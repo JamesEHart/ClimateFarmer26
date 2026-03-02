@@ -1,0 +1,1418 @@
+{
+  "id": "slice-1-baseline",
+  "name": "Gradual Challenge",
+  "description": "A manageable 30-year track with gradual warming and one dry summer early on. Good for learning the basics.",
+  "seed": 42,
+  "years": [
+    {
+      "year": 1,
+      "chillHours": 800,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 75,
+          "avgTempLow": 48,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.05
+        },
+        "summer": {
+          "avgTempHigh": 97,
+          "avgTempLow": 63,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.1,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 78,
+          "avgTempLow": 50,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 57,
+          "avgTempLow": 38,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 1
+    },
+    {
+      "year": 2,
+      "chillHours": 800,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 75.1,
+          "avgTempLow": 48.1,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.05
+        },
+        "summer": {
+          "avgTempHigh": 97.1,
+          "avgTempLow": 63.1,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.1,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 78.1,
+          "avgTempLow": 50.1,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 57.1,
+          "avgTempLow": 38.1,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.992
+    },
+    {
+      "year": 3,
+      "chillHours": 800,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 75.2,
+          "avgTempLow": 48.2,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.05
+        },
+        "summer": {
+          "avgTempHigh": 102.2,
+          "avgTempLow": 63.2,
+          "tempVariance": 6,
+          "precipProbability": 0.01,
+          "precipIntensity": 0.2,
+          "avgET0": 0.35,
+          "heatwaveProbability": 0.4,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 78.2,
+          "avgTempLow": 50.2,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 57.2,
+          "avgTempLow": 38.2,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.984
+    },
+    {
+      "year": 4,
+      "chillHours": 800,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 75.3,
+          "avgTempLow": 48.3,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.05
+        },
+        "summer": {
+          "avgTempHigh": 97.3,
+          "avgTempLow": 63.3,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.1,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 78.3,
+          "avgTempLow": 50.3,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 57.3,
+          "avgTempLow": 38.3,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.976
+    },
+    {
+      "year": 5,
+      "chillHours": 800,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 75.4,
+          "avgTempLow": 48.4,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.05
+        },
+        "summer": {
+          "avgTempHigh": 97.4,
+          "avgTempLow": 63.4,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.1,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 78.4,
+          "avgTempLow": 50.4,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 57.4,
+          "avgTempLow": 38.4,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.968
+    },
+    {
+      "year": 6,
+      "chillHours": 700,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 75.5,
+          "avgTempLow": 48.5,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 97.5,
+          "avgTempLow": 63.5,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.1,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 78.5,
+          "avgTempLow": 50.5,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 57.5,
+          "avgTempLow": 38.5,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.96
+    },
+    {
+      "year": 7,
+      "chillHours": 700,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 75.6,
+          "avgTempLow": 48.6,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 97.6,
+          "avgTempLow": 63.6,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.1,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 78.6,
+          "avgTempLow": 50.6,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 57.6,
+          "avgTempLow": 38.6,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.952
+    },
+    {
+      "year": 8,
+      "chillHours": 700,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 75.7,
+          "avgTempLow": 48.7,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 97.7,
+          "avgTempLow": 63.7,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.1,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 78.7,
+          "avgTempLow": 50.7,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 57.7,
+          "avgTempLow": 38.7,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.944
+    },
+    {
+      "year": 9,
+      "chillHours": 700,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 75.8,
+          "avgTempLow": 48.8,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 97.8,
+          "avgTempLow": 63.8,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.1,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 78.8,
+          "avgTempLow": 50.8,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 57.8,
+          "avgTempLow": 38.8,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.9359999999999999
+    },
+    {
+      "year": 10,
+      "chillHours": 700,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 75.9,
+          "avgTempLow": 48.9,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 97.9,
+          "avgTempLow": 63.9,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 78.9,
+          "avgTempLow": 50.9,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 57.9,
+          "avgTempLow": 38.9,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.9279999999999999
+    },
+    {
+      "year": 11,
+      "chillHours": 700,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 76,
+          "avgTempLow": 49,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 98,
+          "avgTempLow": 64,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 79,
+          "avgTempLow": 51,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 58,
+          "avgTempLow": 39,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.92
+    },
+    {
+      "year": 12,
+      "chillHours": 700,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 76.1,
+          "avgTempLow": 49.1,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 98.1,
+          "avgTempLow": 64.1,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 79.1,
+          "avgTempLow": 51.1,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 58.1,
+          "avgTempLow": 39.1,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.912
+    },
+    {
+      "year": 13,
+      "chillHours": 700,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 76.2,
+          "avgTempLow": 49.2,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 98.2,
+          "avgTempLow": 64.2,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 79.2,
+          "avgTempLow": 51.2,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 58.2,
+          "avgTempLow": 39.2,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.904
+    },
+    {
+      "year": 14,
+      "chillHours": 700,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 76.3,
+          "avgTempLow": 49.3,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 98.3,
+          "avgTempLow": 64.3,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 79.3,
+          "avgTempLow": 51.3,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 58.3,
+          "avgTempLow": 39.3,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.896
+    },
+    {
+      "year": 15,
+      "chillHours": 700,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 76.4,
+          "avgTempLow": 49.4,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 98.4,
+          "avgTempLow": 64.4,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 79.4,
+          "avgTempLow": 51.4,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 58.4,
+          "avgTempLow": 39.4,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.15
+        }
+      },
+      "waterAllocation": 0.888
+    },
+    {
+      "year": 16,
+      "chillHours": 630,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 76.5,
+          "avgTempLow": 49.5,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 98.5,
+          "avgTempLow": 64.5,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 79.5,
+          "avgTempLow": 51.5,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 58.5,
+          "avgTempLow": 39.5,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.88
+    },
+    {
+      "year": 17,
+      "chillHours": 630,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 76.6,
+          "avgTempLow": 49.6,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 98.6,
+          "avgTempLow": 64.6,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 79.6,
+          "avgTempLow": 51.6,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 58.6,
+          "avgTempLow": 39.6,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.872
+    },
+    {
+      "year": 18,
+      "chillHours": 630,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 76.7,
+          "avgTempLow": 49.7,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 98.7,
+          "avgTempLow": 64.7,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 79.7,
+          "avgTempLow": 51.7,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 58.7,
+          "avgTempLow": 39.7,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.864
+    },
+    {
+      "year": 19,
+      "chillHours": 630,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 76.8,
+          "avgTempLow": 49.8,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 98.8,
+          "avgTempLow": 64.8,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 79.8,
+          "avgTempLow": 51.8,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 58.8,
+          "avgTempLow": 39.8,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.856
+    },
+    {
+      "year": 20,
+      "chillHours": 630,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 76.9,
+          "avgTempLow": 49.9,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 98.9,
+          "avgTempLow": 64.9,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 79.9,
+          "avgTempLow": 51.9,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 58.9,
+          "avgTempLow": 39.9,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.848
+    },
+    {
+      "year": 21,
+      "chillHours": 630,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 77,
+          "avgTempLow": 50,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 99,
+          "avgTempLow": 65,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 80,
+          "avgTempLow": 52,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 59,
+          "avgTempLow": 40,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.84
+    },
+    {
+      "year": 22,
+      "chillHours": 630,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 77.1,
+          "avgTempLow": 50.1,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 99.1,
+          "avgTempLow": 65.1,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 80.1,
+          "avgTempLow": 52.1,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 59.1,
+          "avgTempLow": 40.1,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.832
+    },
+    {
+      "year": 23,
+      "chillHours": 630,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 77.2,
+          "avgTempLow": 50.2,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 99.2,
+          "avgTempLow": 65.2,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 80.2,
+          "avgTempLow": 52.2,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 59.2,
+          "avgTempLow": 40.2,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.8240000000000001
+    },
+    {
+      "year": 24,
+      "chillHours": 630,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 77.3,
+          "avgTempLow": 50.3,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 99.3,
+          "avgTempLow": 65.3,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 80.3,
+          "avgTempLow": 52.3,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 59.3,
+          "avgTempLow": 40.3,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.8160000000000001
+    },
+    {
+      "year": 25,
+      "chillHours": 630,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 77.4,
+          "avgTempLow": 50.4,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 99.4,
+          "avgTempLow": 65.4,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 80.4,
+          "avgTempLow": 52.4,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 59.4,
+          "avgTempLow": 40.4,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.808
+    },
+    {
+      "year": 26,
+      "chillHours": 570,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 77.5,
+          "avgTempLow": 50.5,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 99.5,
+          "avgTempLow": 65.5,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 80.5,
+          "avgTempLow": 52.5,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 59.5,
+          "avgTempLow": 40.5,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.8
+    },
+    {
+      "year": 27,
+      "chillHours": 570,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 77.6,
+          "avgTempLow": 50.6,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 99.6,
+          "avgTempLow": 65.6,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 80.6,
+          "avgTempLow": 52.6,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 59.6,
+          "avgTempLow": 40.6,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.792
+    },
+    {
+      "year": 28,
+      "chillHours": 570,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 77.7,
+          "avgTempLow": 50.7,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 99.7,
+          "avgTempLow": 65.7,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 80.7,
+          "avgTempLow": 52.7,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 59.7,
+          "avgTempLow": 40.7,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.784
+    },
+    {
+      "year": 29,
+      "chillHours": 570,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 77.8,
+          "avgTempLow": 50.8,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 99.8,
+          "avgTempLow": 65.8,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 80.8,
+          "avgTempLow": 52.8,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 59.8,
+          "avgTempLow": 40.8,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.776
+    },
+    {
+      "year": 30,
+      "chillHours": 570,
+      "seasons": {
+        "spring": {
+          "avgTempHigh": 77.9,
+          "avgTempLow": 50.9,
+          "tempVariance": 10,
+          "precipProbability": 0.12,
+          "precipIntensity": 0.4,
+          "avgET0": 0.18,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.02
+        },
+        "summer": {
+          "avgTempHigh": 99.9,
+          "avgTempLow": 65.9,
+          "tempVariance": 6,
+          "precipProbability": 0.03,
+          "precipIntensity": 0.2,
+          "avgET0": 0.3,
+          "heatwaveProbability": 0.12000000000000001,
+          "frostProbability": 0
+        },
+        "fall": {
+          "avgTempHigh": 80.9,
+          "avgTempLow": 52.9,
+          "tempVariance": 12,
+          "precipProbability": 0.08,
+          "precipIntensity": 0.5,
+          "avgET0": 0.15,
+          "heatwaveProbability": 0,
+          "frostProbability": 0
+        },
+        "winter": {
+          "avgTempHigh": 59.9,
+          "avgTempLow": 40.9,
+          "tempVariance": 8,
+          "precipProbability": 0.2,
+          "precipIntensity": 0.6,
+          "avgET0": 0.08,
+          "heatwaveProbability": 0,
+          "frostProbability": 0.08
+        }
+      },
+      "waterAllocation": 0.768
+    }
+  ]
+}

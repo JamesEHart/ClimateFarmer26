@@ -26,6 +26,12 @@
   font-weight: 500;
 }
 
+.scenarioName {
+  font-size: var(--font-size-sm);
+  opacity: 0.7;
+  font-style: italic;
+}
+
 .weatherSection {
   display: flex;
   align-items: center;

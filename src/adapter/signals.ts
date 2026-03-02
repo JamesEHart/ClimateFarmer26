@@ -6,11 +6,67 @@ import { createInitialState, processCommand, simulateTick, dismissAutoPause, res
 import { getCoverCropDefinition } from '../data/cover-crops.ts';
 import { logSessionStart } from '../engine/playtest-log.ts';
 import { getCropDefinition } from '../data/crops.ts';
-import { SLICE_1_SCENARIO } from '../data/scenario.ts';
+import { SCENARIOS, SCENARIO_IDS, resolveScenarioId } from '../data/scenarios.ts';
+import type { ClimateScenario } from '../engine/types.ts';
 import { autoSave, loadAutoSave, hasSaveData, hasManualSaves, saveGame, loadGame, listManualSaves, deleteSave, isTutorialDismissed, setTutorialDismissed } from '../save/storage.ts';
 import type { SaveSlotInfo } from '../save/storage.ts';
 import { isSeasonChange, getSeasonName, totalDayToCalendar } from '../engine/calendar.ts';
 import { STORYLETS } from '../data/events.ts';
+
+// ============================================================================
+// Scenario Resolution
+// ============================================================================
+
+/** Resolve a scenarioId and set fallback flag on state if needed. */
+function resolveScenario(scenarioId: string, state?: GameState): ClimateScenario {
+  const { scenario, fallback } = resolveScenarioId(scenarioId);
+  if (fallback && state) state.flags['unknown_scenario_fallback'] = true;
+  return scenario;
+}
+
+/** The currently active scenario. Set on new game or load. */
+let _activeScenario: ClimateScenario = SCENARIOS['gradual-warming'];
+
+const RECENT_SCENARIOS_KEY = 'cf26-recentScenarios';
+const RECENT_POOL_SIZE = 3;
+
+/**
+ * Pick a scenario from the recently-unplayed pool.
+ * Tracks recent selections in localStorage to avoid repeats.
+ */
+function pickScenario(): ClimateScenario {
+  let recent: string[] = [];
+  try {
+    const stored = localStorage.getItem(RECENT_SCENARIOS_KEY);
+    if (stored) recent = JSON.parse(stored);
+  } catch { /* ignore parse errors */ }
+
+  // Available = all scenarios not in recent list
+  let pool = SCENARIO_IDS.filter(id => !recent.includes(id));
+  if (pool.length === 0) pool = [...SCENARIO_IDS]; // all played, reset
+
+  // Pick random from pool
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+
+  // Update recent list (keep last N)
+  recent.push(pick);
+  if (recent.length > RECENT_POOL_SIZE) recent = recent.slice(-RECENT_POOL_SIZE);
+  try {
+    localStorage.setItem(RECENT_SCENARIOS_KEY, JSON.stringify(recent));
+  } catch { /* ignore storage errors */ }
+
+  return SCENARIOS[pick];
+}
+
+/** Get the name of the currently active scenario (for UI display). */
+export function getActiveScenarioName(): string {
+  return _activeScenario.name;
+}
+
+/** Get the ID of the currently active scenario (for testing). */
+export function getActiveScenarioId(): string {
+  return _activeScenario.id;
+}
 
 // ============================================================================
 // Core State Signals
@@ -102,11 +158,18 @@ export interface ConfirmDialogState {
 // Game Lifecycle
 // ============================================================================
 
-export function startNewGame(playerId: string): void {
+export function startNewGame(playerId: string, scenarioId?: string): void {
   const trimmed = playerId.trim().slice(0, 30);
   if (!trimmed) return;
 
-  _liveState = createInitialState(trimmed, SLICE_1_SCENARIO);
+  // Set active scenario (default: random from recently-unplayed pool)
+  if (scenarioId && SCENARIOS[scenarioId]) {
+    _activeScenario = SCENARIOS[scenarioId];
+  } else {
+    _activeScenario = pickScenario();
+  }
+
+  _liveState = createInitialState(trimmed, _activeScenario);
   logSessionStart(_liveState);
   batch(() => {
     publishState();
@@ -124,6 +187,7 @@ export function resumeGame(): void {
   const state = loadAutoSave();
   if (!state) return;
 
+  _activeScenario = resolveScenario(state.scenarioId, state);
   _liveState = state;
   logSessionStart(_liveState);
   batch(() => {
@@ -165,7 +229,7 @@ export function returnToTitle(): void {
 export function dispatch(command: Command): CommandResult {
   if (!_liveState) return { success: false, reason: 'No active game.' };
 
-  const result = processCommand(_liveState, command, SLICE_1_SCENARIO);
+  const result = processCommand(_liveState, command, _activeScenario);
   publishState();
   return result;
 }
@@ -242,7 +306,7 @@ export function plantBulk(scope: 'all' | 'row' | 'col', cropId: string, index?: 
 
     if (fullRowCells.length === 0) {
       // No fully empty rows — route through engine for proper error feedback
-      const result = processCommand(_liveState, { type: 'PLANT_BULK', scope: 'all', cropId }, SLICE_1_SCENARIO);
+      const result = processCommand(_liveState, { type: 'PLANT_BULK', scope: 'all', cropId }, _activeScenario);
       if (!result.success) {
         addNotification(_liveState, 'info', result.reason ?? 'No fully empty rows available. Use "Plant Row" to fill specific rows.');
         publishState();
@@ -260,7 +324,7 @@ export function plantBulk(scope: 'all' | 'row' | 'col', cropId: string, index?: 
         message: `Plant all ${fullRowCells.length} plots with ${cropDef.name} for $${totalCost.toLocaleString()}?`,
         onConfirm: () => {
           if (!_liveState) return;
-          processCommand(_liveState, { type: 'PLANT_BULK', scope: 'all', cropId }, SLICE_1_SCENARIO);
+          processCommand(_liveState, { type: 'PLANT_BULK', scope: 'all', cropId }, _activeScenario);
           confirmDialog.value = null;
           publishState();
         },
@@ -270,7 +334,7 @@ export function plantBulk(scope: 'all' | 'row' | 'col', cropId: string, index?: 
     }
 
     // Cannot afford all — delegate to engine for partial offer
-    const result = processCommand(_liveState, { type: 'PLANT_BULK', scope, cropId }, SLICE_1_SCENARIO);
+    const result = processCommand(_liveState, { type: 'PLANT_BULK', scope, cropId }, _activeScenario);
 
     if (result.partialOffer) {
       const offer = result.partialOffer;
@@ -301,7 +365,7 @@ export function plantBulk(scope: 'all' | 'row' | 'col', cropId: string, index?: 
   }
 
   // Row/Column scope: no confirmation needed (all-or-nothing per DD-1)
-  const result = processCommand(_liveState, { type: 'PLANT_BULK', scope, cropId, index }, SLICE_1_SCENARIO);
+  const result = processCommand(_liveState, { type: 'PLANT_BULK', scope, cropId, index }, _activeScenario);
   if (result.success) {
     publishState();
   }
@@ -318,7 +382,7 @@ export function waterBulk(scope: 'all' | 'row' | 'col', index?: number): void {
     // SPEC §2.6: Always show confirmation for field-scope water
     const plantedCells = _liveState.grid.flat().filter(c => c.crop !== null);
     if (plantedCells.length === 0) {
-      processCommand(_liveState, { type: 'WATER', scope }, SLICE_1_SCENARIO);
+      processCommand(_liveState, { type: 'WATER', scope }, _activeScenario);
       publishState();
       return;
     }
@@ -334,7 +398,7 @@ export function waterBulk(scope: 'all' | 'row' | 'col', index?: number): void {
         message: `Water all ${plantedCells.length} planted plots for $${totalCost.toLocaleString()}?`,
         onConfirm: () => {
           if (!_liveState) return;
-          processCommand(_liveState, { type: 'WATER', scope: 'all' }, SLICE_1_SCENARIO);
+          processCommand(_liveState, { type: 'WATER', scope: 'all' }, _activeScenario);
           confirmDialog.value = null;
           publishState();
         },
@@ -344,7 +408,7 @@ export function waterBulk(scope: 'all' | 'row' | 'col', index?: number): void {
     }
 
     // Cannot afford all — delegate to engine for partial offer
-    const result = processCommand(_liveState, { type: 'WATER', scope }, SLICE_1_SCENARIO);
+    const result = processCommand(_liveState, { type: 'WATER', scope }, _activeScenario);
 
     if (result.partialOffer) {
       const offer = result.partialOffer;
@@ -375,7 +439,7 @@ export function waterBulk(scope: 'all' | 'row' | 'col', index?: number): void {
   }
 
   // Row/Column scope
-  const result = processCommand(_liveState, { type: 'WATER', scope, index }, SLICE_1_SCENARIO);
+  const result = processCommand(_liveState, { type: 'WATER', scope, index }, _activeScenario);
   if (result.success) {
     publishState();
   }
@@ -405,7 +469,7 @@ export function coverCropBulk(scope: 'all' | 'row' | 'col', coverCropId: string,
         message: `Plant cover crops on all ${eligible.length} eligible plots for $${totalCost.toLocaleString()}?`,
         onConfirm: () => {
           if (!_liveState) return;
-          processCommand(_liveState, { type: 'SET_COVER_CROP_BULK', scope: 'all', coverCropId }, SLICE_1_SCENARIO);
+          processCommand(_liveState, { type: 'SET_COVER_CROP_BULK', scope: 'all', coverCropId }, _activeScenario);
           confirmDialog.value = null;
           publishState();
         },
@@ -415,7 +479,7 @@ export function coverCropBulk(scope: 'all' | 'row' | 'col', coverCropId: string,
     }
 
     // Cannot afford all — delegate to engine for partial offer
-    const result = processCommand(_liveState, { type: 'SET_COVER_CROP_BULK', scope, coverCropId }, SLICE_1_SCENARIO);
+    const result = processCommand(_liveState, { type: 'SET_COVER_CROP_BULK', scope, coverCropId }, _activeScenario);
 
     if (result.partialOffer) {
       const offer = result.partialOffer;
@@ -449,7 +513,7 @@ export function coverCropBulk(scope: 'all' | 'row' | 'col', coverCropId: string,
   }
 
   // Row/Column scope: no confirmation needed
-  const result = processCommand(_liveState, { type: 'SET_COVER_CROP_BULK', scope, coverCropId, index }, SLICE_1_SCENARIO);
+  const result = processCommand(_liveState, { type: 'SET_COVER_CROP_BULK', scope, coverCropId, index }, _activeScenario);
   if (result.success) {
     publishState();
   }
@@ -548,6 +612,7 @@ export function loadSavedGame(slotName: string): void {
   const state = loadGame(slotName);
   if (!state) return;
 
+  _activeScenario = resolveScenario(state.scenarioId, state);
   _liveState = state;
   logSessionStart(_liveState);
   batch(() => {
@@ -614,7 +679,7 @@ function gameLoop(now: number): void {
     while (tickAccumulator >= 1 && ticksThisFrame < maxTicksPerFrame) {
       const prevDay = _liveState.calendar.totalDay;
 
-      const weather = simulateTick(_liveState, SLICE_1_SCENARIO);
+      const weather = simulateTick(_liveState, _activeScenario);
       if (weather) lastWeather = weather;
       ticksThisFrame++;
       tickAccumulator--;
@@ -701,5 +766,17 @@ function gameLoop(now: number): void {
   /** Force a state publish after direct _liveState mutations. Test utility. */
   publish() {
     publishState();
+  },
+  /** Get the active scenario ID. */
+  getScenarioId() {
+    return _activeScenario.id;
+  },
+  /** Switch the active scenario by ID. Test utility. */
+  setScenario(scenarioId: string) {
+    if (SCENARIOS[scenarioId]) {
+      _activeScenario = SCENARIOS[scenarioId];
+      return true;
+    }
+    return false;
   },
 };

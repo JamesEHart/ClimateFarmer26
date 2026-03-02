@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'preact/hooks';
-import { gameState, currentWeather, dispatch, handleSave, returnToTitle } from '../../adapter/signals.ts';
+import { gameState, currentWeather, dispatch, handleSave, returnToTitle, getActiveScenarioName } from '../../adapter/signals.ts';
 import { getSeasonName, getMonthName } from '../../engine/calendar.ts';
 import type { GameSpeed, DailyWeather } from '../../engine/types.ts';
 import styles from '../styles/TopBar.module.css';
@@ -66,6 +66,9 @@ export function TopBar() {
         </span>
         <span data-testid="topbar-date" aria-label={`${getMonthName(calendar.month)} Year ${calendar.year}, ${getSeasonName(calendar.season)}`}>
           {getSeasonName(calendar.season)} &mdash; {getMonthName(calendar.month)}, Year {calendar.year}
+        </span>
+        <span class={styles.scenarioName} data-testid="scenario-name" aria-label={`Scenario: ${getActiveScenarioName()}`}>
+          {getActiveScenarioName()}
         </span>
       </div>
 

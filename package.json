@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run --exclude tests/engine/balance/balance-smoke.test.ts --exclude tests/engine/balance/balance-full.test.ts",
     "test:watch": "vitest",
     "test:browser": "playwright test",
-    "test:all": "vitest run && playwright test"
+    "test:balance": "vitest run tests/engine/balance/balance-smoke.test.ts --reporter=verbose",
+    "test:balance-full": "vitest run tests/engine/balance/balance-full.test.ts --reporter=verbose",
+    "test:all": "vitest run --exclude tests/engine/balance/balance-smoke.test.ts --exclude tests/engine/balance/balance-full.test.ts && playwright test"
   },
   "dependencies": {
     "preact": "^10.27.2",
