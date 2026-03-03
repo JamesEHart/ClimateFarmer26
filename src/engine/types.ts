@@ -4,7 +4,7 @@
 // ============================================================================
 
 import type {
-  ActiveEvent, EventOccurrence, ActiveEffect, PendingForeshadow,
+  ActiveEvent, EventOccurrence, ActiveEffect, PendingForeshadow, ScheduledEvent,
 } from './events/types.ts';
 
 // --- Calendar ---
@@ -318,6 +318,9 @@ export interface GameState {
   tracking: TrackingState;
   eventsThisSeason: number;
   actedSincePause: boolean;
+  // Slice 4b.5: Seasonal event draw
+  seasonalEventQueue: ScheduledEvent[];
+  yearStressLevel: number;
 }
 
 // --- Save/Load ---
@@ -336,7 +339,7 @@ export const MAX_YEARS = 30;
 export const DAYS_PER_YEAR = 365;
 export const OVERRIPE_GRACE_DAYS = 30;
 export const STARTING_CASH = 50_000;
-export const STARTING_NITROGEN = 100;
+export const STARTING_NITROGEN = 95;
 export const STARTING_ORGANIC_MATTER = 2.0;
 export const STARTING_MOISTURE = 4.0;
 export const BASE_MOISTURE_CAPACITY = 6.0;
@@ -346,10 +349,10 @@ export const WATER_VISUAL_WARNING_THRESHOLD = 0.30;
 export const WATER_WILTING_THRESHOLD = 0.15;
 export const NITROGEN_HIGH_THRESHOLD = 80;
 export const NITROGEN_MODERATE_THRESHOLD = 40;
-export const IRRIGATION_COST_PER_CELL = 5; // $ per cell per watering
+export const IRRIGATION_COST_PER_CELL = 24; // $ per cell per watering (4c: raised from 5 for balance)
 export const WATER_DOSE_INCHES = 3.0; // inches per watering action (~14 days worth at typical ET)
 export const STARTING_DAY = 59; // March 1 (0-indexed totalDay) — Spring start per SPEC
-export const SAVE_VERSION = '5.0.0';
+export const SAVE_VERSION = '6.0.0';
 
 export function createEmptyExpenseBreakdown(): ExpenseBreakdown {
   return { planting: 0, watering: 0, harvestLabor: 0, maintenance: 0, loanRepayment: 0, removal: 0, coverCrops: 0, eventCosts: 0 };
@@ -367,6 +370,19 @@ export function createEmptyTrackingState(): TrackingState {
 
 /** Number of days in the dormant season (Dec + Jan + Feb = 90). Tied to SEASON_MAP. */
 export const DORMANCY_DAYS = 90;
+
+// Organic matter yield penalty constants (Slice 4c)
+export const OM_FLOOR = 0.5;             // Minimum OM% — single source of truth for decomposition floor + yield calc
+export const OM_YIELD_THRESHOLD = 2.0;   // No yield penalty at or above this OM%
+export const OM_YIELD_FLOOR = 0.40;      // Minimum omFactor (yield multiplier at OM_FLOOR)
+
+// Nitrogen yield constants
+export const NITROGEN_CUSHION_FACTOR = 0.10; // nFactor floor at 0 soil nitrogen (tuned for balance)
+export const N_MINERALIZATION_RATE = 10;     // lbs N per year per 1% OM (tuned: realistic ~20-30, reduced for game balance)
+
+// Organic matter decomposition rate (annual, applied compound-daily)
+// 6%/year under monoculture without cover crops — visible decline within 30-year game
+export const OM_DECOMP_RATE = 0.06;
 
 // Loan constants
 export const LOAN_INTEREST_RATE = 0.10; // 10% annual

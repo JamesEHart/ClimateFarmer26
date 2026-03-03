@@ -3,8 +3,8 @@
 // Evaluates storylet preconditions, selects events, manages foreshadowing.
 // ============================================================================
 
-import type { GameState } from '../types.ts';
-import type { Storylet, Condition, PendingForeshadow } from './types.ts';
+import type { GameState, ClimateScenario } from '../types.ts';
+import type { Storylet, Condition, PendingForeshadow, ScheduledEvent } from './types.ts';
 import { SeededRNG } from '../rng.ts';
 import { GRID_ROWS, GRID_COLS } from '../types.ts';
 import { getCropDefinition } from '../../data/crops.ts';
@@ -174,6 +174,7 @@ export function evaluateEvents(
   state: GameState,
   allStorylets: readonly Storylet[],
   rng: SeededRNG,
+  options?: { conditionOnlyAdvisors?: boolean },
 ): EvaluateEventsResult {
   // Don't fire new events while one is pending
   if (state.activeEvent) {
@@ -220,6 +221,8 @@ export function evaluateEvents(
     for (const storylet of allStorylets) {
       if (storylet.id === foreshadowedFire.id) continue;
       if (!storylet.foreshadowing) continue;
+      // Guardrail HIGH 1: skip random-gated storylets when filtering to advisors only
+      if (options?.conditionOnlyAdvisors && hasRandomCondition(storylet)) continue;
       if (isOnCooldown(storylet, state)) continue;
       if (hasExceededMaxOccurrences(storylet, state)) continue;
 
@@ -250,6 +253,8 @@ export function evaluateEvents(
   const eligible: Storylet[] = [];
 
   for (const storylet of allStorylets) {
+    // Guardrail HIGH 1: skip random-gated storylets when filtering to advisors only
+    if (options?.conditionOnlyAdvisors && hasRandomCondition(storylet)) continue;
     if (isOnCooldown(storylet, state)) continue;
     if (hasExceededMaxOccurrences(storylet, state)) continue;
 
@@ -309,4 +314,139 @@ export function evaluateEvents(
 
   // Fallback (should not happen, but deterministic)
   return { fireEvent: eligible[eligible.length - 1], newForeshadows };
+}
+
+// ============================================================================
+// Seasonal Event Draw (Slice 4b.5)
+// ============================================================================
+
+/**
+ * Returns true if the storylet has a `random` precondition.
+ * Storylets with `random` → seasonal draw. Without → per-tick.
+ */
+export function hasRandomCondition(storylet: Storylet): boolean {
+  return storylet.preconditions.some(c => c.type === 'random');
+}
+
+/**
+ * Compute a yearly stress level (0-1) from scenario climate data.
+ * Higher stress → higher event probability via modulation.
+ */
+export function computeYearStressLevel(scenario: ClimateScenario, year: number): number {
+  const yd = scenario.years[year - 1];
+  if (!yd) return 0.5; // fallback
+
+  const summer = yd.seasons.summer;
+  const spring = yd.seasons.spring;
+
+  const waterStress = 1 - yd.waterAllocation;                    // 0-0.5ish range
+  const heatStress = Math.min(1, summer.heatwaveProbability / 0.5);
+  const etStress = Math.min(1, (summer.avgET0 - 0.25) / 0.15);
+  const frostStress = Math.min(1, spring.frostProbability / 0.06);
+
+  const raw = waterStress * 0.35 + heatStress * 0.35 + etStress * 0.15 + frostStress * 0.15;
+  return Math.max(0, Math.min(1, raw));
+}
+
+/**
+ * Draw which random-gated events fire this season.
+ * Called once at each season boundary (starting Summer Year 1).
+ *
+ * Algorithm:
+ * 1. Filter to storylets with `random` precondition
+ * 2. Evaluate non-random conditions; roll adjusted probability
+ * 3. Apply per-family caps (max 1 per type per season)
+ * 4. Schedule fire days within the season
+ * 5. Sort by appearsOnDay
+ */
+export function drawSeasonalEvents(
+  state: GameState,
+  allStorylets: readonly Storylet[],
+  rng: SeededRNG,
+  stressLevel: number,
+  seasonStartDay: number,
+  seasonEndDay: number,
+): ScheduledEvent[] {
+  // Step 1: Filter to random-gated storylets
+  const randomStorylets = allStorylets.filter(hasRandomCondition);
+
+  // Step 2: Evaluate eligibility and roll probability
+  interface Candidate {
+    storylet: Storylet;
+    family: string;
+  }
+  const candidates: Candidate[] = [];
+
+  for (const storylet of randomStorylets) {
+    // Cooldown and maxOccurrences
+    if (isOnCooldown(storylet, state)) continue;
+    if (hasExceededMaxOccurrences(storylet, state)) continue;
+
+    // Evaluate non-random preconditions only (no RNG consumption)
+    const nonRandom = storylet.preconditions.filter(c => c.type !== 'random');
+    let nonRandomPass = true;
+    for (const cond of nonRandom) {
+      if (!evaluateCondition(cond, state, rng)) {
+        nonRandomPass = false;
+        break;
+      }
+    }
+    if (!nonRandomPass) continue;
+
+    // Roll against adjusted probability
+    const randomCond = storylet.preconditions.find(c => c.type === 'random');
+    if (!randomCond || randomCond.type !== 'random') continue;
+    const baseProbability = randomCond.probability;
+    const adjustedProbability = Math.min(0.95, baseProbability * (0.5 + stressLevel));
+
+    const roll = rng.next();
+    if (roll >= adjustedProbability) continue;
+
+    candidates.push({ storylet, family: storylet.type });
+  }
+
+  // Step 3: Apply family caps (max 1 per type per season)
+  // Array order = priority tiebreaker (first eligible wins)
+  const familySeen = new Set<string>();
+  const accepted: Storylet[] = [];
+  for (const { storylet, family } of candidates) {
+    if (familySeen.has(family)) continue;
+    familySeen.add(family);
+    accepted.push(storylet);
+  }
+
+  // Step 4: Schedule fire days
+  const scheduled: ScheduledEvent[] = [];
+  for (const storylet of accepted) {
+    // fireDay: seasonStart + 5 to seasonEnd - 15 (leave margin at edges)
+    const minDay = seasonStartDay + 5;
+    const maxDay = Math.max(minDay, seasonEndDay - 15);
+    const fireDayRoll = rng.next();
+    const firesOnDay = Math.floor(minDay + fireDayRoll * (maxDay - minDay + 1));
+
+    let appearsOnDay = firesOnDay;
+    let isFalseAlarm = false;
+
+    if (storylet.foreshadowing) {
+      appearsOnDay = firesOnDay - storylet.foreshadowing.daysBeforeEvent;
+      // Clamp: don't foreshadow before season starts + 2
+      appearsOnDay = Math.max(seasonStartDay + 2, appearsOnDay);
+      // Reliability roll
+      const reliabilityRoll = rng.next();
+      isFalseAlarm = reliabilityRoll >= storylet.foreshadowing.reliability;
+    }
+
+    scheduled.push({
+      storyletId: storylet.id,
+      appearsOnDay,
+      firesOnDay,
+      isFalseAlarm,
+      consumed: false,
+    });
+  }
+
+  // Step 5: Sort by appearsOnDay
+  scheduled.sort((a, b) => a.appearsOnDay - b.appearsOnDay);
+
+  return scheduled;
 }

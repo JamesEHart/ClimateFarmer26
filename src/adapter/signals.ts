@@ -425,7 +425,7 @@ export function waterBulk(scope: 'all' | 'row' | 'col', index?: number): void {
               rowsCollected++;
             }
           }
-          executeWater(_liveState, cells);
+          executeWater(_liveState, cells, _activeScenario);
           confirmDialog.value = null;
           publishState();
         },
@@ -778,5 +778,45 @@ function gameLoop(now: number): void {
       return true;
     }
     return false;
+  },
+  /**
+   * Run N simulation ticks synchronously, bypassing requestAnimationFrame.
+   * Auto-dismisses non-event auto-pauses (year-end, water stress, harvest).
+   * Stops early if an event/advisor auto-pause fires and returns 'event'.
+   * Returns 'done' if all ticks completed, 'gameover' if game ended.
+   */
+  fastForward(ticks: number): 'done' | 'event' | 'gameover' {
+    if (!_liveState) return 'done';
+    for (let i = 0; i < ticks; i++) {
+      _liveState.speed = 4; // ensure running
+      simulateTick(_liveState, _activeScenario);
+      // Check for event auto-pause — stop and let the test handle it.
+      // Advisors are auto-dismissed (condition-only, no foreshadowing).
+      const eventPause = _liveState.autoPauseQueue.find(e => e.reason === 'event');
+      if (eventPause) {
+        publishState();
+        return 'event';
+      }
+      // Check game over
+      if (_liveState.gameOver) {
+        publishState();
+        return 'gameover';
+      }
+      // Auto-dismiss other pauses (year-end, water stress, harvest, loan, advisor)
+      while (_liveState.autoPauseQueue.length > 0) {
+        const pause = _liveState.autoPauseQueue[0];
+        if (pause.reason === 'loan_offer') {
+          processCommand(_liveState, { type: 'TAKE_LOAN' }, _activeScenario);
+        }
+        dismissAutoPause(_liveState);
+      }
+      // Handle year-end reset (mirrors handleDismissAutoPause in adapter)
+      if (_liveState.yearEndSummaryPending && _liveState.autoPauseQueue.length === 0) {
+        resetYearlyTracking(_liveState);
+      }
+      _liveState.speed = 4; // re-enable after auto-pause
+    }
+    publishState();
+    return 'done';
   },
 };

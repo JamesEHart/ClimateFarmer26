@@ -129,6 +129,41 @@ Status: Deferred. Needs design discussion — possible interventions: OM-trigger
 Severity: MEDIUM (UX). After planting/watering at game start (or after any auto-pause), the game is paused at 0x speed. There is no clear UI signal that the player needs to press play to continue. Multiple playtesters were confused about why nothing was happening. The current speed controls exist but don't draw attention when they're the required next action.
 Status: Deferred. Needs design discussion. Options: (a) auto-resume at 1x after player actions when game is paused, (b) pulsing/highlighting speed controls when game is paused and player has taken an action, (c) contextual prompt ("Press play to continue"). Each has tradeoffs — auto-resume may surprise students; visual hints are less disruptive.
 
+### Playtest Findings — Slice 4b Bad-Play QA (2026-03-02)
+
+AI agent ran an intentional bad-play scenario (almond monoculture, no adaptation) against the 4b build.
+
+**56. Tomato-market-surge reportedly fired on almond-only farm.** INCONCLUSIVE.
+Severity: MEDIUM. QA log shows `event_fired: tomato-market-surge` at Year 2 spring with only almonds planted. Code review confirms `has_crop: processing-tomatoes` precondition is present and `evaluateCondition` logic is correct. Two regression tests added: (1) isolation test — 50 seeds × 100 ticks (5,000 `evaluateEvents` calls); (2) integration test — 20 seeds through full `simulateTick` engine path covering Year 1 + Year 2 spring (~500 ticks each). Event never fires in either. Unable to reproduce under current build; monitoring with regression tests and future web QA runs.
+Status: Inconclusive. Regression tests in place (`slice3a1.test.ts`). Will monitor in future QA runs.
+
+**57. Game Over "Total expenses" shows only final-year expenses.** RESOLVED.
+Severity: LOW (misleading label). Bankruptcy panel said "Total revenue/expenses" but data came from `yearlyRevenue`/`yearlyExpenses` which reset each year. Label changed to "Final year revenue/expenses". TODO: show lifetime totals in 4e using `tracking.yearSnapshots`.
+
+**58. Pre-loan vs post-loan cash confusion at year-end boundary.**
+Severity: LOW (UX polish). Year-end panel shows pre-loan snapshot cash while TopBar shows post-loan live cash simultaneously. Not a bug — auto-pause queue ordering is correct (year_end data frozen before loan). Confusing for students.
+Status: Deferred to 4d. Fix: add explicit copy in year-end panel ("Pre-loan cash") or sequence panels to avoid conflicting numbers.
+
+**60. SidePanel shows "Empty" for cells with cover crops.**
+Severity: LOW (UX confusion). When a cell has only a cover crop (no primary crop), SidePanel shows "Empty" as the primary label alongside "Cover Crop: Clover/Vetch Mix". Should show "Empty (Cover Crop)" or separate the label state.
+Status: Deferred to 4d.
+
+**61. Notification backlog overwhelms normal gameplay.**
+Severity: MEDIUM (classroom readability). Good-play QA showed notification counts of +113, +167, +183, +260. Not a logic bug, but clear UX concern. Needs batching, summarization, or escalation design.
+Status: Deferred. Requires design discussion on notification model.
+
+**62. Harvest affordance misleads when selected plot is not ready.**
+Severity: LOW (UX). "Harvest Field" button shows green/active when ANY plot is harvestable, even if the currently selected plot is at 85%. Students click expecting to harvest the selected cell. Should show "Harvest Field (N plots ready)" or clarify selected-plot state.
+Status: Deferred to 4d.
+
+**63. Event probabilities are effectively guaranteed annual occurrences.**
+Severity: MEDIUM (design/balance). Events with 10% daily probability evaluated ~90 days/season have `1 - 0.9^90 ≈ 99.98%` chance per season.
+Status: **RESOLVED** in Sub-Slice 4b.5. Moved 8 random-gated events to seasonal draw semantics (one roll per season, modulated by stress level, family caps). 6 condition-only advisors remain per-tick. Balance thresholds need re-establishment in 4c.
+
+**59. Water warning click-fatigue.**
+Severity: LOW (UX). Repeated water_stress auto-pauses across multiple seasons cause dismissal fatigue. Related to #47 (event clustering).
+Status: Deferred. Consider suppression/escalation UX pass after 4c balance tuning and #47 event cap implementation.
+
 ### Deferred — Accepted for Slice 1
 
 30. **Deep save validation** — Nested field tampering (e.g., modifying crop.gddAccumulated inside a valid grid structure) is not caught by `validateSave()`. Acceptable risk for classroom use — students are not adversarial. Could add deep schema validation in a future slice if needed.

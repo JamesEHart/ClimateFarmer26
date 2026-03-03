@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createInitialState, processCommand, simulateTick, harvestCell } from '../../src/engine/game.ts';
+import { createInitialState, processCommand, simulateTick, harvestCell, dismissAutoPause } from '../../src/engine/game.ts';
 import { evaluateCondition, evaluateEvents } from '../../src/engine/events/selector.ts';
 import { applyEffects, getPriceModifier } from '../../src/engine/events/effects.ts';
 import { SLICE_1_SCENARIO } from '../../src/data/scenario.ts';
@@ -123,6 +123,102 @@ describe('Tomato Market Surge event', () => {
     expect(getPriceModifier(state, 'sorghum')).toBeCloseTo(1.0);
   });
 });
+
+  it('regression (isolation): never fires on almond-only farm across many seeds', () => {
+    // QA playtest reported tomato-market-surge firing with only almonds planted.
+    // Run evaluateEvents across 50 seeds × many ticks in Year 2 spring to verify
+    // the has_crop precondition blocks the event.
+
+    for (let seed = 1; seed <= 50; seed++) {
+      const state = makeState();
+      state.calendar = { year: 2, season: 'spring', month: 4, day: 10, totalDay: 59 + 365 + 30 };
+
+      // Plant almonds in all cells (no tomatoes)
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          state.grid[r][c].crop = {
+            cropId: 'almonds',
+            plantedDay: 100,
+            growthStage: 'growing' as const,
+            isPerennial: true,
+            perennialAge: 1,
+            perennialEstablished: false,
+            harvestedThisSeason: false,
+            daysSinceWatered: 0,
+            waterStressDays: 0,
+          } as CropInstance;
+        }
+      }
+
+      // Run evaluateEvents 100 times with different RNG states
+      const rng = new SeededRNG(seed * 9973);
+      for (let tick = 0; tick < 100; tick++) {
+        const result = evaluateEvents(state, STORYLETS, rng);
+        if (result.fireEvent) {
+          expect(result.fireEvent.id).not.toBe('tomato-market-surge');
+          // Clear activeEvent so next eval can fire
+          state.activeEvent = null;
+        }
+      }
+    }
+  });
+
+  it('regression (integration): never fires via simulateTick on almond-only farm', () => {
+    // Full engine path: simulateTick → weather → soil → events → queue.
+    // Tests 20 seeds × full Year 2 spring (~90 ticks each) through the real engine.
+    const SLICE_1 = SLICE_1_SCENARIO;
+
+    for (let seed = 1; seed <= 20; seed++) {
+      const state = createInitialState('tomato-repro-' + seed, SLICE_1);
+      state.speed = 1;
+
+      // Plant almonds in all 64 cells
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          state.grid[r][c].crop = {
+            cropId: 'almonds',
+            plantedDay: state.calendar.totalDay,
+            growthStage: 'growing' as const,
+            isPerennial: true,
+            perennialAge: 1,
+            perennialEstablished: false,
+            harvestedThisSeason: false,
+            daysSinceWatered: 0,
+            waterStressDays: 0,
+          } as CropInstance;
+        }
+      }
+
+      // Advance through entire Year 1 + Year 2 spring (~365 + 90 ticks)
+      // Dismiss auto-pauses as they arise (mirrors bot harness behavior)
+      for (let tick = 0; tick < 500; tick++) {
+        // Drain auto-pause queue before each tick
+        while (state.autoPauseQueue.length > 0) {
+          // If an event fired, check it's not tomato-market-surge
+          if (state.activeEvent) {
+            expect(state.activeEvent.storyletId).not.toBe('tomato-market-surge');
+            // Respond to event so it clears
+            const choice = state.activeEvent.choices[0];
+            if (choice) {
+              processCommand(state, {
+                type: 'RESPOND_EVENT',
+                eventId: state.activeEvent.storyletId,
+                choiceId: choice.id,
+              }, SLICE_1);
+            }
+          }
+          dismissAutoPause(state);
+        }
+
+        if (state.gameOver) break;
+        // Stop after Year 2 spring (no need to go further)
+        if (state.calendar.year >= 3) break;
+
+        state.speed = 1;
+        simulateTick(state, SLICE_1);
+      }
+    }
+  });
 
 // ============================================================================
 // Stretch Events: Groundwater Pumping Ban

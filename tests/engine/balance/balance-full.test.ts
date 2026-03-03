@@ -100,7 +100,11 @@ describe('Balance Full (500 runs)', () => {
   });
 
   describe('Corn Monoculture', () => {
-    it('survives ≤70% of runs', () => {
+    // Post-4c: OM yield penalty + water allocation + nitrogen tightening
+    it('median final cash < $200K', () => {
+      expect(overallMedianCash('corn-monoculture')).toBeLessThan(200_000);
+    });
+    it('survives ≤70% of runs (viable but not dominant)', () => {
       expect(overallSurvivalRate('corn-monoculture')).toBeLessThanOrEqual(0.70);
     });
   });
@@ -167,8 +171,8 @@ describe('Balance Full (500 runs)', () => {
 
   // §30.4 — Soil Pedagogy
   describe('Soil Pedagogy', () => {
-    it('monoculture without cover crops: ≥20% yield decline by year 15', () => {
-      // Check corn monoculture (no cover crops) for yield decline
+    it('monoculture without cover crops: ≥50% of runs show ≥20% revenue decline by year 15', () => {
+      // Post-4c: OM yield penalty + nitrogen tightening cause visible revenue decline
       const cornResults = allResults.filter(r => r.botName === 'corn-monoculture');
       let declineCount = 0;
       let measurableRuns = 0;
@@ -182,10 +186,9 @@ describe('Balance Full (500 runs)', () => {
           }
         }
       }
-      // At least half the measurable runs should show decline
-      if (measurableRuns > 0) {
-        expect(declineCount / measurableRuns).toBeGreaterThanOrEqual(0.5);
-      }
+      expect(measurableRuns).toBeGreaterThanOrEqual(90);
+      const declineRate = declineCount / measurableRuns;
+      expect(declineRate).toBeGreaterThanOrEqual(0.50);
     });
 
     it('cover crop users maintain OM ≥ 1.5%', () => {

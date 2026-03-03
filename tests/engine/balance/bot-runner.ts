@@ -110,7 +110,7 @@ function executeCommandWithPartialOffers(
       }
     }
     if (cells.length > 0) {
-      return executeWater(state, cells);
+      return executeWater(state, cells, scenario);
     }
   }
 

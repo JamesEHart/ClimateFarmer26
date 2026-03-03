@@ -103,6 +103,15 @@ export interface ActiveEffect {
   sourceEventId: string;
 }
 
+/** A scheduled event from the seasonal draw, awaiting its fire day */
+export interface ScheduledEvent {
+  storyletId: string;
+  appearsOnDay: number;   // foreshadow notification day (= firesOnDay if no foreshadowing)
+  firesOnDay: number;     // actual event fire day
+  isFalseAlarm: boolean;  // foreshadowing reliability roll
+  consumed: boolean;      // has been fired or handed to PendingForeshadow system
+}
+
 /** A foreshadowing notification pending resolution */
 export interface PendingForeshadow {
   storyletId: string;

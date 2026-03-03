@@ -11,9 +11,11 @@ import {
   WATER_DOSE_INCHES, STARTING_DAY, AUTO_PAUSE_PRIORITY,
   EVENT_RNG_SEED_OFFSET, LOAN_INTEREST_RATE, LOAN_REPAYMENT_FRACTION,
   LOAN_DEBT_CAP, DORMANCY_DAYS,
+  OM_FLOOR, OM_YIELD_THRESHOLD, OM_YIELD_FLOOR, NITROGEN_CUSHION_FACTOR,
+  N_MINERALIZATION_RATE, OM_DECOMP_RATE,
   createEmptyTrackingState, createEmptyExpenseBreakdown,
 } from './types.ts';
-import { evaluateEvents } from './events/selector.ts';
+import { evaluateEvents, drawSeasonalEvents, computeYearStressLevel } from './events/selector.ts';
 import { applyEffects, expireActiveEffects, getYieldModifier, getPriceModifier, getIrrigationCostMultiplier } from './events/effects.ts';
 import { STORYLETS } from '../data/events.ts';
 import { totalDayToCalendar, isYearEnd, isSeasonChange, isInPlantingWindow, getSeasonName, getMonthName } from './calendar.ts';
@@ -101,6 +103,9 @@ export function createInitialState(playerId: string, scenario: ClimateScenario):
     tracking: createEmptyTrackingState(),
     eventsThisSeason: 0,
     actedSincePause: false,
+    // Slice 4b.5: Seasonal event draw
+    seasonalEventQueue: [],  // No draw in Spring Year 1 (onboarding)
+    yearStressLevel: computeYearStressLevel(scenario, 1),
   };
 }
 
@@ -128,7 +133,7 @@ function assertFinite(value: number, label: string): void {
 // Command Processing
 // ============================================================================
 
-export function processCommand(state: GameState, command: Command, _scenario: ClimateScenario): CommandResult {
+export function processCommand(state: GameState, command: Command, scenario: ClimateScenario): CommandResult {
   const cashBefore = state.economy.cash;
   let result: CommandResult;
 
@@ -149,7 +154,7 @@ export function processCommand(state: GameState, command: Command, _scenario: Cl
       result = processHarvestBulk(state, command.scope, command.index);
       break;
     case 'WATER':
-      result = processWater(state, command.scope, command.index);
+      result = processWater(state, command.scope, command.index, scenario);
       break;
     case 'RESPOND_EVENT':
       result = processRespondEvent(state, command.eventId, command.choiceId);
@@ -411,7 +416,7 @@ function processHarvestBulk(state: GameState, scope: 'all' | 'row' | 'col', inde
   return { success: true, revenue: totalRevenue, cellsAffected: harvestable.length };
 }
 
-function processWater(state: GameState, scope: 'all' | 'row' | 'col', index?: number): CommandResult {
+function processWater(state: GameState, scope: 'all' | 'row' | 'col', index?: number, scenario?: ClimateScenario): CommandResult {
   // Watering restriction check (from regulatory events)
   if (state.wateringRestricted) {
     return { success: false, reason: 'Watering is currently restricted by water allocation regulations.' };
@@ -471,10 +476,15 @@ function processWater(state: GameState, scope: 'all' | 'row' | 'col', index?: nu
     }
   }
 
-  return executeWater(state, cells);
+  return executeWater(state, cells, scenario);
 }
 
-export function executeWater(state: GameState, cells: Cell[]): CommandResult {
+/**
+ * Apply irrigation to cells. Dose is reduced by scenario water allocation.
+ * @param scenario - Required in production (all call sites pass it). Optional only
+ *   for unit test isolation — falls back to allocation=1.0 (full dose).
+ */
+export function executeWater(state: GameState, cells: Cell[], scenario?: ClimateScenario): CommandResult {
   const costMultiplier = getIrrigationCostMultiplier(state);
   const costPerCell = IRRIGATION_COST_PER_CELL * costMultiplier;
   const totalCost = cells.length * costPerCell;
@@ -482,8 +492,13 @@ export function executeWater(state: GameState, cells: Cell[]): CommandResult {
   state.economy.yearlyExpenses += totalCost;
   state.tracking.currentExpenses.watering += totalCost;
 
+  const allocation = scenario
+    ? scenario.years[Math.min(state.calendar.year - 1, scenario.years.length - 1)].waterAllocation
+    : 1.0;
+  const effectiveDose = WATER_DOSE_INCHES * allocation;
+
   for (const cell of cells) {
-    cell.soil.moisture = Math.min(cell.soil.moisture + WATER_DOSE_INCHES, cell.soil.moistureCapacity);
+    cell.soil.moisture = Math.min(cell.soil.moisture + effectiveDose, cell.soil.moistureCapacity);
   }
 
   return { success: true, cost: totalCost, cellsAffected: cells.length };
@@ -881,6 +896,20 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
     if (state.calendar.season === 'spring') {
       incorporateCoverCrops(state);
     }
+
+    // Seasonal event draw (skip Year 1 Spring for onboarding)
+    const skipDraw = state.calendar.year === 1 && state.calendar.season === 'spring';
+    if (!skipDraw) {
+      const eventRng = new SeededRNG(state.eventRngState);
+      const seasonStart = newTotalDay;
+      const seasonEnd = seasonStart + 89;
+      state.seasonalEventQueue = drawSeasonalEvents(
+        state, STORYLETS, eventRng, state.yearStressLevel, seasonStart, seasonEnd,
+      );
+      state.eventRngState = eventRng.getState();
+    } else {
+      state.seasonalEventQueue = [];
+    }
   }
 
   // Expire active effects (remove where totalDay >= expiresDay)
@@ -931,18 +960,59 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
     });
   }
 
-  // Event evaluation (uses separate event RNG)
+  // --- Seasonal event queue processing ---
+  if (!state.activeEvent) {
+    for (const scheduled of state.seasonalEventQueue) {
+      if (scheduled.consumed) continue;
+      const storylet = STORYLETS.find(s => s.id === scheduled.storyletId);
+      if (!storylet) { scheduled.consumed = true; continue; }
+
+      if (storylet.foreshadowing && newTotalDay >= scheduled.appearsOnDay && newTotalDay < scheduled.firesOnDay) {
+        // Create foreshadow notification — PendingForeshadow system takes over
+        state.pendingForeshadows.push({
+          storyletId: storylet.id,
+          signal: storylet.foreshadowing.signal,
+          appearsOnDay: newTotalDay,
+          eventFiresOnDay: scheduled.firesOnDay,
+          isFalseAlarm: scheduled.isFalseAlarm,
+          advisorSource: storylet.foreshadowing.advisorSource,
+          dismissed: false,
+        });
+        addNotification(state, 'foreshadowing', storylet.foreshadowing.signal);
+        scheduled.consumed = true;
+      } else if (!storylet.foreshadowing && newTotalDay >= scheduled.firesOnDay) {
+        // Fire non-foreshadowed event directly
+        state.activeEvent = {
+          storyletId: storylet.id,
+          title: storylet.title,
+          description: storylet.description,
+          choices: storylet.choices,
+          firedOnDay: newTotalDay,
+        };
+        // Guardrail HIGH 2: use correct auto-pause reason based on storylet type
+        state.autoPauseQueue.push({
+          reason: storylet.type === 'advisor' ? 'advisor' : 'event',
+          message: storylet.title,
+        });
+        logEventFired(state, storylet.id, storylet.type, storylet.title, storylet.choices.map(c => c.id));
+        scheduled.consumed = true;
+        break; // Only one event at a time
+      }
+    }
+  }
+
+  // --- Condition-only advisor events (per-tick) + foreshadow maturation ---
   const eventRng = new SeededRNG(state.eventRngState);
-  const eventResult = evaluateEvents(state, STORYLETS, eventRng);
+  const eventResult = evaluateEvents(state, STORYLETS, eventRng, { conditionOnlyAdvisors: true });
   state.eventRngState = eventRng.getState();
 
-  // Process foreshadowing
+  // Process foreshadowing from condition-only advisors
   for (const foreshadow of eventResult.newForeshadows) {
     state.pendingForeshadows.push(foreshadow);
     addNotification(state, 'foreshadowing', foreshadow.signal);
   }
 
-  // Fire selected event
+  // Fire condition-only advisor event (or foreshadow-matured event from Phase 1)
   if (eventResult.fireEvent) {
     const storylet = eventResult.fireEvent;
     state.activeEvent = {
@@ -957,10 +1027,6 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
       message: storylet.title,
     });
     logEventFired(state, storylet.id, storylet.type, storylet.title, storylet.choices.map(c => c.id));
-    // Increment per-season event counter (non-advisor only, for clustering cap)
-    if (storylet.type !== 'advisor') {
-      state.eventsThisSeason++;
-    }
   }
 
   // Loan interest accrual (daily simple interest)
@@ -1038,6 +1104,12 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
 
     // Reset expense tracking for next year
     state.tracking.currentExpenses = createEmptyExpenseBreakdown();
+
+    // Recompute stress level for upcoming year
+    if (state.calendar.year < MAX_YEARS) {
+      state.yearStressLevel = computeYearStressLevel(scenario, state.calendar.year + 1);
+    }
+
     logYearEnd(state);
   }
 
@@ -1132,18 +1204,19 @@ function simulateSoil(cell: Cell, weather: DailyWeather): void {
   // Precipitation (water gain)
   soil.moisture = Math.min(soil.moisture + weather.precipitation, soil.moistureCapacity);
 
-  // Organic matter decomposition (very slow: ~2%/year of current OM)
+  // Organic matter decomposition (~5%/year compound-daily of current OM)
   // Cover crop roots protect soil — halt decomposition when cover crop is present
   if (!cell.coverCropId) {
-    const omDecompRate = 0.02 / DAYS_PER_YEAR;
-    soil.organicMatter = Math.max(0.5, soil.organicMatter - soil.organicMatter * omDecompRate);
+    const omDecompRate = OM_DECOMP_RATE / DAYS_PER_YEAR;
+    soil.organicMatter = Math.max(OM_FLOOR, soil.organicMatter - soil.organicMatter * omDecompRate);
   }
 
   // Update moisture capacity based on OM
   soil.moistureCapacity = BASE_MOISTURE_CAPACITY + (soil.organicMatter - 2.0) * OM_MOISTURE_BONUS_PER_PERCENT;
 
-  // Nitrogen mineralization from OM (slow natural replenishment)
-  const nMineralization = (soil.organicMatter / 100) * 30 / DAYS_PER_YEAR; // ~0.6 lbs/day at 2% OM
+  // Nitrogen mineralization from OM (~25 lbs N/year per 1% OM at rate 25)
+  // At 2% OM: 50 lbs/year = 0.137 lbs/day. As OM declines, mineralization drops → progressive N decline
+  const nMineralization = soil.organicMatter * N_MINERALIZATION_RATE / DAYS_PER_YEAR;
   soil.nitrogen = Math.min(soil.nitrogen + nMineralization, 200); // Cap at 200
 
   assertFinite(soil.moisture, 'soil.moisture');
@@ -1230,10 +1303,9 @@ function simulateCrop(cell: Cell, weather: DailyWeather, state: GameState, scena
     crop.waterStressDays++;
   }
 
-  // Nitrogen uptake (proportional to growth)
-  const growthFraction = gdd / cropDef.gddToMaturity;
-  const nUptake = cropDef.nitrogenUptake * growthFraction;
-  cell.soil.nitrogen = Math.max(0, cell.soil.nitrogen - nUptake);
+  // NOTE: Nitrogen is consumed at harvest (harvestCell), not during daily growth.
+  // This allows soil.nitrogen to accumulate via mineralization between harvests,
+  // creating progressive yield decline as OM drops → less mineralization → less N at harvest.
 
   // Growth stage transitions
   const progress = crop.gddAccumulated / cropDef.gddToMaturity;
@@ -1315,6 +1387,18 @@ export function getPerennialPhase(crop: CropInstance, cropDef: CropDefinition): 
 }
 
 // ============================================================================
+// Organic Matter Yield Factor (Slice 4c)
+// ============================================================================
+
+/** Linear interpolation: 1.0 at OM_YIELD_THRESHOLD, OM_YIELD_FLOOR at OM_FLOOR. */
+export function computeOMYieldFactor(organicMatter: number): number {
+  if (organicMatter >= OM_YIELD_THRESHOLD) return 1.0;
+  const range = OM_YIELD_THRESHOLD - OM_FLOOR;
+  return Math.max(OM_YIELD_FLOOR,
+    OM_YIELD_FLOOR + (1 - OM_YIELD_FLOOR) * (organicMatter - OM_FLOOR) / range);
+}
+
+// ============================================================================
 // Harvest Calculation
 // ============================================================================
 
@@ -1334,9 +1418,17 @@ export function harvestCell(state: GameState, cell: Cell): number {
   const waterFactor = Math.max(0, 1 - cropDef.ky * waterStressFraction);
   yieldAmount *= waterFactor;
 
-  // Nitrogen factor: min(1, soilN at harvest / needed)
-  const nFactor = Math.min(1, (cell.soil.nitrogen + cropDef.nitrogenUptake * 0.5) / cropDef.nitrogenUptake);
+  // Nitrogen factor: soil N accumulated since last harvest via mineralization
+  // As OM declines, mineralization drops → less N available → progressive yield decline
+  const nFactor = Math.min(1, (cell.soil.nitrogen + cropDef.nitrogenUptake * NITROGEN_CUSHION_FACTOR) / cropDef.nitrogenUptake);
   yieldAmount *= nFactor;
+
+  // Consume nitrogen at harvest (crop uptake removes accumulated soil N)
+  cell.soil.nitrogen = Math.max(0, cell.soil.nitrogen - cropDef.nitrogenUptake);
+
+  // Organic matter yield factor (Slice 4c): soil depletion reduces yields
+  const omFactor = computeOMYieldFactor(cell.soil.organicMatter);
+  yieldAmount *= omFactor;
 
   // Overripe penalty (linear decay over 30-day grace period)
   if (crop.growthStage === 'overripe') {

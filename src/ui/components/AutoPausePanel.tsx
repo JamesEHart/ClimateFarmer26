@@ -189,8 +189,9 @@ function getEventConfig(event: AutoPauseEvent, state: import('../../engine/types
         title: 'Game Over',
         primaryLabel: 'Start New Game',
         report: data
-          ? `Starting cash: $50,000. Total revenue: $${Math.floor(data.yearlyRevenue).toLocaleString()}. Total expenses: $${Math.floor(data.yearlyExpenses).toLocaleString()}.`
+          ? `Starting cash: $50,000. Final year revenue: $${Math.floor(data.yearlyRevenue).toLocaleString()}. Final year expenses: $${Math.floor(data.yearlyExpenses).toLocaleString()}.`
           : undefined,
+        // TODO 4e: Replace with lifetime totals from tracking.yearSnapshots
         suggestion,
       };
     }

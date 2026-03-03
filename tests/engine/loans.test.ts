@@ -304,4 +304,34 @@ describe('Year-end with debt', () => {
     expect(yearEnd!.data).toHaveProperty('debt');
     expect(yearEnd!.data).toHaveProperty('interestPaid');
   });
+
+  it('year_end and bankruptcy both queued when insolvency occurs at year boundary', () => {
+    const state = makeState();
+    // Set up: took a loan (totalLoansReceived=1), so next insolvency is hard game-over
+    state.economy.totalLoansReceived = 1;
+    state.economy.debt = 5000;
+    // Cash barely negative — maintenance costs at year-end will push to bankruptcy
+    state.economy.cash = -1;
+
+    // Position at last day of year 1
+    state.speed = 1;
+    state.calendar = { day: 364, month: 12, season: 'winter', year: 1, totalDay: 363 };
+    state.rngState = 42;
+
+    simulateTick(state, SLICE_1_SCENARIO);
+
+    // Both should be in the queue
+    const yearEnd = state.autoPauseQueue.find(e => e.reason === 'year_end');
+    const bankruptcy = state.autoPauseQueue.find(e => e.reason === 'bankruptcy');
+    expect(yearEnd).toBeDefined();
+    expect(bankruptcy).toBeDefined();
+
+    // Bankruptcy should sort first (priority 100 > year_end 40)
+    expect(state.autoPauseQueue[0].reason).toBe('bankruptcy');
+
+    // Year-end data should still be captured correctly
+    expect(yearEnd!.data).toHaveProperty('year');
+    expect(yearEnd!.data).toHaveProperty('revenue');
+    expect(yearEnd!.data).toHaveProperty('expenses');
+  });
 });

@@ -382,6 +382,9 @@ describe('Yield curve integration in harvest', () => {
       crop.chillHoursAccumulated = 1000;
       crop.waterStressDays = 0;
     }
+    // High nitrogen isolates age factor from nitrogen dynamics (4c changed N mechanics)
+    state1.grid[0][0].soil.nitrogen = 200;
+    state2.grid[0][0].soil.nitrogen = 200;
 
     // Set ages
     crop1.perennialAge = 3;  // ramp 60%
@@ -408,6 +411,8 @@ describe('Yield curve integration in harvest', () => {
       crop.growthStage = 'harvestable';
       crop.chillHoursAccumulated = 1000;
       crop.waterStressDays = 0;
+      // High nitrogen isolates age factor from nitrogen dynamics (4c changed N mechanics)
+      st.grid[0][0].soil.nitrogen = 200;
     }
 
     statePeak.grid[0][0].crop!.perennialAge = 10;  // peak

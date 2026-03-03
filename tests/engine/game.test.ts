@@ -505,8 +505,11 @@ describe('simulateTick', () => {
     expect(state.grid[0][0].crop!.gddAccumulated).toBeGreaterThan(0);
   });
 
-  it('nitrogen decreases as crops grow', () => {
+  it('nitrogen increases during growth from mineralization (consumed at harvest)', () => {
     state.calendar = { day: 60, month: 3, season: 'spring', year: 1, totalDay: 59 };
+    // Start with low nitrogen to see mineralization increase
+    state.grid[0][0].soil.nitrogen = 10;
+    state.grid[0][0].soil.organicMatter = 2.0;
     processCommand(state, {
       type: 'PLANT_CROP', cellRow: 0, cellCol: 0, cropId: 'processing-tomatoes',
     }, SLICE_1_SCENARIO);
@@ -522,7 +525,8 @@ describe('simulateTick', () => {
       }
     }
 
-    expect(state.grid[0][0].soil.nitrogen).toBeLessThan(nBefore);
+    // Nitrogen should increase during growth (mineralization adds N, consumption deferred to harvest)
+    expect(state.grid[0][0].soil.nitrogen).toBeGreaterThan(nBefore);
   });
 
   it('does not charge cash when no crops are planted', () => {

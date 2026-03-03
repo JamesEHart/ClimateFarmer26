@@ -854,6 +854,8 @@ test.describe('Event Panel', () => {
     await expect(page.getByTestId('event-panel')).not.toBeVisible();
   });
 
+  // Uses fastForward debug hook to advance game synchronously, bypassing rAF throttling
+  // that makes this test unreliable in parallel Playwright runs.
   test('foreshadowing notification appears before event fires naturally', async ({ page }) => {
     await startNewGame(page);
     await waitForGameScreen(page);
@@ -863,21 +865,41 @@ test.describe('Event Panel', () => {
     await page.getByTestId('action-plant').click();
     await page.getByTestId('menu-crop-processing-tomatoes').click();
 
-    // Run at max speed and wait for an event panel to appear naturally
-    await page.getByTestId('speed-fastest').click();
-    await dismissAutoPausesUntil(page, 'event-panel');
+    // Fast-forward through game ticks synchronously until an event fires.
+    // fastForward auto-dismisses non-event pauses (year-end, water stress, etc.)
+    // and stops when an event/advisor auto-pause fires.
+    const result = await page.evaluate(() => {
+      const debug = (window as Record<string, any>).__gameDebug;
+      // Try up to 10 batches of 1000 ticks (covers ~27 years)
+      for (let batch = 0; batch < 10; batch++) {
+        const r = debug.fastForward(1000);
+        if (r === 'event') return 'event';
+        if (r === 'gameover') return 'gameover';
+      }
+      return 'no-event';
+    });
 
-    // The event fired naturally. Verify foreshadowing notification exists in state
-    // (all 3 events have foreshadowing; even false alarms create notifications).
-    const hadForeshadowing = await page.evaluate(() => {
+    expect(result).toBe('event');
+
+    // Wait for UI to reflect the event panel
+    await expect(page.getByTestId('event-panel').or(page.getByTestId('advisor-panel'))).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('event-title')).not.toBeEmpty();
+
+    // Verify foreshadowing happened: either pending foreshadows exist or
+    // a foreshadowing notification was created at some point during the run.
+    // Note: condition-only advisors (per-tick) don't use foreshadowing,
+    // but seasonal draw events (the ones fastForward stops on) always do.
+    const foreshadowingInfo = await page.evaluate(() => {
       const debug = (window as Record<string, any>).__gameDebug;
       const state = debug?.getState();
-      if (!state) return false;
-      return state.pendingForeshadows.length > 0 ||
-        state.notifications.some((n: any) => n.type === 'foreshadowing');
+      if (!state) return { pending: 0, notifications: 0 };
+      return {
+        pending: state.pendingForeshadows.length,
+        notifications: state.notifications.filter((n: any) => n.type === 'foreshadowing').length,
+      };
     });
-    expect(hadForeshadowing).toBe(true);
-    await expect(page.getByTestId('event-title')).not.toBeEmpty();
+    // At least one foreshadowing signal should have appeared during the game
+    expect(foreshadowingInfo.pending + foreshadowingInfo.notifications).toBeGreaterThan(0);
   });
 });
 
