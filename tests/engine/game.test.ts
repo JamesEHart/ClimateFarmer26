@@ -716,7 +716,7 @@ describe('Economic realism', () => {
     expect(state.economy.yearlyRevenue).toBeGreaterThan(state.economy.yearlyExpenses);
   });
 
-  it('idle farm does not lose money', () => {
+  it('idle farm has no mid-year charges (overhead is year-end only)', () => {
     state.speed = 1;
     const startCash = state.economy.cash;
 

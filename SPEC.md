@@ -256,7 +256,7 @@ The engine fully simulates OM changes each tick. However, there are no Slice 1 p
 #### 5.5 Economic Realism Checks (Engine Tests)
 - **When** I plant a full field (64 plots) of Processing Tomatoes and successfully grow/harvest them with adequate water and nitrogen, **the revenue should** exceed the planting + irrigation costs (farming a full field well should be profitable).
 - **When** I plant tomatoes repeatedly on the same plots without managing nitrogen, **I should see** yields decline year-over-year until farming becomes unprofitable (demonstrating soil depletion).
-- **When** I do nothing (don't plant anything), **I should NOT see** cash change at all (no mysterious charges with no crops). Cash should remain at starting value.
+- **When** I do nothing (don't plant anything), **I should see** cash decrease by $2,000 per year at year-end (annual farm overhead: property taxes, insurance, base upkeep). An idle farm should go bankrupt well before year 30. No mid-year charges should appear without farming activity.
 - **When** the dry summer hits (Year 3 in baseline scenario), **I should see** higher water stress on crops unless I irrigate more often, resulting in lower yields — a natural demonstration of climate risk.
 
 ---

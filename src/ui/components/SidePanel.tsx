@@ -87,6 +87,8 @@ function CellDetail({ cell, row, col }: { cell: import('../../engine/types.ts').
         confirmDialog.value = null;
       },
       onCancel: () => { confirmDialog.value = null; },
+      actionId: 'remove-crop',
+      origin: 'manual',
     };
   }
 

@@ -121,9 +121,9 @@ describe('Bot Harness', () => {
 
     const result = runBot(suicideBot, SLICE_1_SCENARIO, 42);
 
-    // Should go bankrupt (no income, starting cash drains via expenses)
-    // Note: with no crops, expenses are zero, so the bot may actually survive
-    // by doing nothing. Let's just verify it completes without crashing.
+    // With annual overhead ($2K/year), cash drains even with no crops.
+    // Suicide bot declines loans → bankrupts at first insolvency (~year 25).
+    expect(result.survived).toBe(false);
     expect(result.yearsCompleted).toBeGreaterThanOrEqual(1);
     expect(result.tickCount).toBeGreaterThan(0);
   }, 120_000);

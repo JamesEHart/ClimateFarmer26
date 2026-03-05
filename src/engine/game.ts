@@ -4,7 +4,7 @@ import type {
   ClimateScenario, YearSnapshot,
 } from './types.ts';
 import {
-  GRID_ROWS, GRID_COLS, STARTING_CASH, STARTING_NITROGEN,
+  GRID_ROWS, GRID_COLS, STARTING_CASH, ANNUAL_OVERHEAD, STARTING_NITROGEN,
   STARTING_ORGANIC_MATTER, STARTING_MOISTURE, BASE_MOISTURE_CAPACITY,
   OM_MOISTURE_BONUS_PER_PERCENT, OVERRIPE_GRACE_DAYS, DAYS_PER_YEAR,
   MAX_YEARS, WATER_STRESS_AUTOPAUSE_THRESHOLD, IRRIGATION_COST_PER_CELL,
@@ -1073,6 +1073,11 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
         }
       }
     }
+
+    // Annual farm overhead: property taxes, insurance, base upkeep
+    state.economy.cash -= ANNUAL_OVERHEAD;
+    state.economy.yearlyExpenses += ANNUAL_OVERHEAD;
+    state.tracking.currentExpenses.annualOverhead += ANNUAL_OVERHEAD;
 
     // Year-end snapshot (Slice 4a): capture tracking data BEFORE resetting
     const yearSnapshot = createYearSnapshot(state);

@@ -637,7 +637,7 @@ describe('Save/Load System', () => {
       const state = createInitialState('test-player', SLICE_1_SCENARIO);
       autoSave(state);
       const raw = JSON.parse(mockStorage[AUTOSAVE_KEY]);
-      raw.version = '7.0.0';
+      raw.version = '8.0.0';
       mockStorage[AUTOSAVE_KEY] = JSON.stringify(raw);
       expect(loadAutoSave()).toBeNull();
     });

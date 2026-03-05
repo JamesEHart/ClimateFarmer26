@@ -90,7 +90,7 @@
 
 39. **Loan panel browser test unskipped** — Added `window.__gameDebug` hook (setCash, setDay, setDebt, triggerEvent, etc.) for Playwright state injection. Loan tests now force `cash=0` directly, enabling 3 new browser tests: panel appears, accept adds debt, decline ends game. Removed `test.skip`.
 
-40. **HIGH: Flaky event panel browser tests** — Event panel tests relied on `dismissAutoPausesUntil` waiting for natural RNG-driven events (probabilistic timing). Failed 1/5 under stress. Fixed: `triggerEvent` debug hook injects events directly, making event panel structure/interaction tests deterministic. Foreshadow test kept as natural-flow (tests the whole pipeline). Stress-tested 30/30 passes.
+40. **HIGH: Flaky event panel browser tests** — Event panel tests relied on `dismissAutoPausesUntil` waiting for natural RNG-driven events (probabilistic timing). Failed 1/5 under stress. Fixed: `triggerEvent` debug hook injects events directly, making event panel structure/interaction tests deterministic. Foreshadow test kept as natural-flow (tests the whole pipeline). Originally stress-tested 30/30 passes. **Regression after 4c/4d rebalancing:** foreshadowing test (game.spec.ts:884) now fails ~10% under `--repeat-each=20` (2/20). Root cause: changed economic parameters (STARTING_NITROGEN 95→99, IRRIGATION_COST 24→8, ANNUAL_OVERHEAD added) shift the simulation trajectory so condition-only advisors sometimes fire before any seasonal draw event. The test assumes `fastForward` always stops on a foreshadowed event, but condition-only advisors have no foreshadowing. Fix: filter to only count seasonal events, or use `triggerEvent` to inject a foreshadowed event deterministically.
 
 ### Resolved from Slice 2c Senior Engineer Review (2026-02-25)
 
@@ -106,9 +106,9 @@
 
 Two students were instructed to "play badly" (try to lose). Neither triggered bankruptcy. One submitted a playtest log covering a full 30-year run.
 
-**45. Economy is too lenient — impossible to lose with almond monoculture.** **PRE-CLASSROOM RELEASE BLOCKER.**
-Severity: HIGH (balance). Student planted 64 almonds in year 3, made no strategic adjustments, and finished year 30 with $404,223 (started at $50,000). No debt, no loan offers, no bankruptcy threat. This undermines the core teaching objective — students should learn that monoculture and ignoring climate adaptation has consequences.
-Status: **BLOCKER — must be resolved before classroom deployment.** Requires headless automated strategy tests running full 30-year games (ARCHITECTURE.md §12 Layer 2, §13 Slice 4). Likely tuning levers: lower starting cash, raise orchard maintenance costs, increase drought severity in later years, add pest/disease pressure for monoculture. Do NOT hand-tune — use systematic headless testing against multiple strategies.
+**45. Economy is too lenient — impossible to lose with almond monoculture.** RESOLVED (4c + 4d).
+Severity: HIGH (balance). Originally: student planted 64 almonds, finished year 30 with $404,223. No failure pressure.
+Resolution: Sub-Slice 4c added four economic levers (OM yield penalty, water allocation enforcement, nitrogen tightening, irrigation cost increase). Sub-Slice 4d added $2,000/year annual overhead. Result: almond monoculture 0% survival, corn monoculture ~69% (risky), idle farm 0% (bankrupt year 27), diversified 100%. Balance verified across 500 headless runs (5 bots × 5 scenarios × 20 seeds). Good play (diversified strategy) still earns ~$670K — this is correct pedagogy (reward for smart decisions, not a cap on success).
 
 **46. Tomato Market Surge fires when player has no tomatoes.** RESOLVED.
 Severity: MEDIUM (event noise). `tomato-market-surge` had no precondition requiring tomato production. Fixed: added `has_crop: processing-tomatoes` precondition. Event now only fires when player actually has tomatoes planted.
@@ -164,6 +164,22 @@ Status: **RESOLVED** in Sub-Slice 4b.5. Moved 8 random-gated events to seasonal 
 Severity: LOW (UX). Repeated water_stress auto-pauses across multiple seasons cause dismissal fatigue. Related to #47 (event clustering).
 Status: Deferred. Consider suppression/escalation UX pass after 4c balance tuning and #47 event cap implementation.
 
+### AI QA Playthrough Findings (2026-03-04)
+
+30-year playthrough by well-intentioned AI agent. Cross-referenced against code and existing issues.
+
+**64. Tomato Market Surge timing drifts post-harvest in late years.**
+Severity: LOW (design). Event fires after summer harvest in 16/28 years, meaning the price bonus has no strategic value — player can't act on it. In late years, the event often fires when no tomatoes exist or harvest is already complete.
+Status: Deferred to future content slice. Fix: tighten the firing window to pre-harvest (spring/early summer), or add a "forward contract" mechanic so the price bonus applies to next season's harvest.
+
+**65. Year-30 completion panel lacks educational summary.**
+Severity: MEDIUM (educational value). Current UI: "Congratulations!" title + "Start New Game" button. No financial arc, soil health delta, key decision highlights, or reflection prompts. The tracking data exists in `yearSnapshots` — the UI just doesn't surface it. For a classroom tool, this is the most important screen students will see.
+Status: Deferred to future slice. Requires design discussion on what metrics to highlight and what reflection questions to prompt.
+
+**66. Soil management has limited agency after early advisor caps.**
+Severity: LOW (design). `advisor-soil-nitrogen` fires max 3 times (intentional cap in events.ts). Cover crops provide recurring nitrogen restoration (+50N per incorporation), but there's no explicit "fertilize" or "soil amendment" action. After early advisor hints stop, players lack ongoing feedback about soil health trajectory.
+Status: Deferred. Design question: add recurring soil tools (fertilizer purchase, soil testing), raise/remove advisor caps, or accept current cover-crop-only path. Cover crops ARE the intended answer pedagogically — but players may not realize it without continued prompting.
+
 ### Deferred — Accepted for Slice 1
 
 30. **Deep save validation** — Nested field tampering (e.g., modifying crop.gddAccumulated inside a valid grid structure) is not caught by `validateSave()`. Acceptable risk for classroom use — students are not adversarial. Could add deep schema validation in a future slice if needed.
@@ -192,8 +208,8 @@ Automated playtest by Claude agent. Triaged per senior engineer review. Verified
 Severity: HIGH (functional). Root cause: `plantBulk()` in `signals.ts` returned early with no feedback when no fully-empty rows existed. The engine had the right error message; the adapter never asked for it. BUG-03 is the same root cause. Fixed: adapter now routes through `processCommand` and shows an info notification with the engine's error message ("No fully empty rows available. Use Plant Row to fill specific rows.").
 
 **52. Water Warning "Water Field" chains into redundant second confirmation.**
-Severity: MEDIUM (UX flow). Auto-pause primary action calls `waterBulk('all')` which itself shows a confirmation dialog — double confirmation. Harvest auto-pause doesn't have this problem because `harvestBulk` dispatches directly. The water stress auto-pause IS the confirmation point; the second dialog is redundant.
-Status: Deferred. Fix: add a `skipConfirm` parameter to `waterBulk` when called from auto-pause context, or dispatch `WATER` command directly from the auto-pause handler.
+Severity: **HIGH** (UX flow — causes apparent freeze in long sessions). Auto-pause primary action calls `waterBulk('all')` which itself shows a confirmation dialog — double confirmation. The second dialog can appear hidden behind the auto-pause panel, causing what looks like a game freeze. Confirmed in 30-year QA playthrough: repeated instances of Water Warning + hidden Confirm causing apparent UI lock. Harvest auto-pause doesn't have this problem because `harvestBulk` dispatches directly.
+Status: Deferred to 4d. Fix: add a `skipConfirm` parameter to `waterBulk` when called from auto-pause context, or dispatch `WATER` command directly from the auto-pause handler. Add Playwright regression test: "no hidden confirm dialog remains after water warning action."
 
 **53. Year-end expenses don't break down categories.**
 Severity: MEDIUM (transparency). Not a logic bug — the $1,600 discrepancy is exactly 8 almonds × $200 annual maintenance, correctly charged at year-end. But the year-end summary only shows aggregated "Expenses" with no line items. Violates cause-and-effect transparency principle.

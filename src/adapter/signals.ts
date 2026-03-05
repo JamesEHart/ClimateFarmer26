@@ -148,10 +148,23 @@ export const grid = computed(() => gameState.value?.grid ?? []);
 // Types
 // ============================================================================
 
+export type ConfirmActionId =
+  | 'plant-all'
+  | 'plant-partial'
+  | 'water-all'
+  | 'water-partial'
+  | 'cover-crop-all'
+  | 'cover-crop-partial'
+  | 'remove-crop';
+
+export type ConfirmOrigin = 'manual' | 'autopause';
+
 export interface ConfirmDialogState {
   message: string;
   onConfirm: () => void;
   onCancel: () => void;
+  actionId: ConfirmActionId;
+  origin: ConfirmOrigin;
 }
 
 // ============================================================================
@@ -329,6 +342,8 @@ export function plantBulk(scope: 'all' | 'row' | 'col', cropId: string, index?: 
           publishState();
         },
         onCancel: () => { confirmDialog.value = null; },
+        actionId: 'plant-all',
+        origin: 'manual',
       };
       return;
     }
@@ -356,6 +371,8 @@ export function plantBulk(scope: 'all' | 'row' | 'col', cropId: string, index?: 
           publishState();
         },
         onCancel: () => { confirmDialog.value = null; },
+        actionId: 'plant-partial',
+        origin: 'manual',
       };
       return;
     }
@@ -403,6 +420,8 @@ export function waterBulk(scope: 'all' | 'row' | 'col', index?: number): void {
           publishState();
         },
         onCancel: () => { confirmDialog.value = null; },
+        actionId: 'water-all',
+        origin: 'manual',
       };
       return;
     }
@@ -430,6 +449,8 @@ export function waterBulk(scope: 'all' | 'row' | 'col', index?: number): void {
           publishState();
         },
         onCancel: () => { confirmDialog.value = null; },
+        actionId: 'water-partial',
+        origin: 'manual',
       };
       return;
     }
@@ -474,6 +495,8 @@ export function coverCropBulk(scope: 'all' | 'row' | 'col', coverCropId: string,
           publishState();
         },
         onCancel: () => { confirmDialog.value = null; },
+        actionId: 'cover-crop-all',
+        origin: 'manual',
       };
       return;
     }
@@ -504,6 +527,8 @@ export function coverCropBulk(scope: 'all' | 'row' | 'col', coverCropId: string,
           publishState();
         },
         onCancel: () => { confirmDialog.value = null; },
+        actionId: 'cover-crop-partial',
+        origin: 'manual',
       };
       return;
     }

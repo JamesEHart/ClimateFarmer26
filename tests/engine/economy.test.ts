@@ -7,13 +7,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   createInitialState, processCommand, simulateTick, harvestCell, executeWater,
-  computeOMYieldFactor,
+  computeOMYieldFactor, dismissAutoPause, resetYearlyTracking,
 } from '../../src/engine/game.ts';
 import type { GameState, Cell } from '../../src/engine/types.ts';
 import {
   STARTING_CASH, STARTING_ORGANIC_MATTER, WATER_DOSE_INCHES,
   IRRIGATION_COST_PER_CELL, OM_FLOOR, OM_YIELD_THRESHOLD, OM_YIELD_FLOOR,
   NITROGEN_CUSHION_FACTOR, N_MINERALIZATION_RATE, OM_DECOMP_RATE,
+  ANNUAL_OVERHEAD, DAYS_PER_YEAR, STARTING_DAY,
 } from '../../src/engine/types.ts';
 import { SLICE_1_SCENARIO } from '../../src/data/scenario.ts';
 import { SCENARIOS } from '../../src/data/scenarios.ts';
@@ -378,7 +379,7 @@ describe('nitrogen dynamics', () => {
     expect(cell.soil.nitrogen).toBe(0);
   });
 
-  it('yield at 0 soil nitrogen is ~25% (not 50%)', () => {
+  it('yield at 0 soil nitrogen is ~10% (cushion provides minimum floor)', () => {
     const cell1 = state.grid[0][0];
     const cell2 = state.grid[0][1];
     const cornDef = getCropDefinition('silage-corn');
@@ -476,5 +477,77 @@ describe('nitrogen dynamics', () => {
     const grossRev = rev + cornDef.laborCostPerAcre;
     const grossRef = refRev + cornDef.laborCostPerAcre;
     expect(grossRev / grossRef).toBeCloseTo(0.60, 1);
+  });
+});
+
+// ============================================================================
+// Annual Overhead
+// ============================================================================
+
+describe('Annual overhead', () => {
+  it('ANNUAL_OVERHEAD constant is $2,000', () => {
+    expect(ANNUAL_OVERHEAD).toBe(2_000);
+  });
+
+  it('deducts overhead at year-end (idle farm, no crops)', () => {
+    const startCash = state.economy.cash;
+    state.speed = 1;
+
+    // Advance from STARTING_DAY (59) through year-end (day 364)
+    // Year-end occurs when (totalDay + 1) % 365 === 0, i.e., totalDay = 364
+    const ticksToYearEnd = DAYS_PER_YEAR - STARTING_DAY - 1; // 305 ticks
+    for (let i = 0; i <= ticksToYearEnd; i++) {
+      simulateTick(state, SLICE_1_SCENARIO);
+      // Dismiss any auto-pauses (events, etc.) but NOT year-end
+      while (state.autoPauseQueue.length > 0 && state.autoPauseQueue[0].reason !== 'year_end') {
+        dismissAutoPause(state);
+        state.speed = 1;
+      }
+    }
+
+    // Year-end should have been reached
+    expect(state.autoPauseQueue.some(e => e.reason === 'year_end')).toBe(true);
+
+    // Cash should reflect overhead deduction (no crops planted, so only overhead)
+    expect(state.economy.cash).toBe(startCash - ANNUAL_OVERHEAD);
+  });
+
+  it('overhead appears in year-end snapshot expense breakdown', () => {
+    state.speed = 1;
+
+    // Advance through year-end
+    const ticksToYearEnd = DAYS_PER_YEAR - STARTING_DAY - 1;
+    for (let i = 0; i <= ticksToYearEnd; i++) {
+      simulateTick(state, SLICE_1_SCENARIO);
+      while (state.autoPauseQueue.length > 0 && state.autoPauseQueue[0].reason !== 'year_end') {
+        dismissAutoPause(state);
+        state.speed = 1;
+      }
+    }
+
+    // Check the year snapshot
+    expect(state.tracking.yearSnapshots.length).toBe(1);
+    expect(state.tracking.yearSnapshots[0].expenses.annualOverhead).toBe(ANNUAL_OVERHEAD);
+  });
+
+  it('overhead appears in year-end auto-pause data', () => {
+    state.speed = 1;
+
+    const ticksToYearEnd = DAYS_PER_YEAR - STARTING_DAY - 1;
+    for (let i = 0; i <= ticksToYearEnd; i++) {
+      simulateTick(state, SLICE_1_SCENARIO);
+      while (state.autoPauseQueue.length > 0 && state.autoPauseQueue[0].reason !== 'year_end') {
+        dismissAutoPause(state);
+        state.speed = 1;
+      }
+    }
+
+    const yearEnd = state.autoPauseQueue.find(e => e.reason === 'year_end');
+    expect(yearEnd).toBeDefined();
+    const data = yearEnd!.data as Record<string, unknown>;
+    const breakdown = data.expenseBreakdown as Record<string, number>;
+    expect(breakdown.annualOverhead).toBe(ANNUAL_OVERHEAD);
+    // Expenses should include overhead
+    expect(data.expenses).toBeGreaterThanOrEqual(ANNUAL_OVERHEAD);
   });
 });

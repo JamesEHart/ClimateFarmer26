@@ -194,6 +194,7 @@ export interface ExpenseBreakdown {
   removal: number;
   coverCrops: number;
   eventCosts: number;
+  annualOverhead: number;
 }
 
 export interface YearSnapshot {
@@ -339,7 +340,8 @@ export const MAX_YEARS = 30;
 export const DAYS_PER_YEAR = 365;
 export const OVERRIPE_GRACE_DAYS = 30;
 export const STARTING_CASH = 50_000;
-export const STARTING_NITROGEN = 95;
+export const ANNUAL_OVERHEAD = 2_000; // property taxes, insurance, base farm upkeep (deducted at year-end)
+export const STARTING_NITROGEN = 99;
 export const STARTING_ORGANIC_MATTER = 2.0;
 export const STARTING_MOISTURE = 4.0;
 export const BASE_MOISTURE_CAPACITY = 6.0;
@@ -349,13 +351,13 @@ export const WATER_VISUAL_WARNING_THRESHOLD = 0.30;
 export const WATER_WILTING_THRESHOLD = 0.15;
 export const NITROGEN_HIGH_THRESHOLD = 80;
 export const NITROGEN_MODERATE_THRESHOLD = 40;
-export const IRRIGATION_COST_PER_CELL = 24; // $ per cell per watering (4c: raised from 5 for balance)
+export const IRRIGATION_COST_PER_CELL = 8; // $ per cell per watering (4c: raised from 5; reduced from 24 after overhead)
 export const WATER_DOSE_INCHES = 3.0; // inches per watering action (~14 days worth at typical ET)
 export const STARTING_DAY = 59; // March 1 (0-indexed totalDay) — Spring start per SPEC
-export const SAVE_VERSION = '6.0.0';
+export const SAVE_VERSION = '7.0.0';
 
 export function createEmptyExpenseBreakdown(): ExpenseBreakdown {
-  return { planting: 0, watering: 0, harvestLabor: 0, maintenance: 0, loanRepayment: 0, removal: 0, coverCrops: 0, eventCosts: 0 };
+  return { planting: 0, watering: 0, harvestLabor: 0, maintenance: 0, loanRepayment: 0, removal: 0, coverCrops: 0, eventCosts: 0, annualOverhead: 0 };
 }
 
 export function createEmptyTrackingState(): TrackingState {

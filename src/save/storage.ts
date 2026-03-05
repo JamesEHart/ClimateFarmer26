@@ -62,19 +62,31 @@ function readSave(key: string): GameState | null {
 
     const parsed = JSON.parse(raw) as SaveGame;
     if (!validateSave(parsed)) {
-      // Try v5 → v6 migration
-      if (isV5Save(parsed)) {
-        return migrateV5ToV6(parsed);
+      // Try v6 → v7 migration
+      if (isV6Save(parsed)) {
+        return migrateV6ToV7(parsed);
       }
-      // Try v4 → v5 → v6 chain
+      // Try v5 → v6 → v7 chain
+      if (isV5Save(parsed)) {
+        const v6State = migrateV5ToV6(parsed);
+        if (v6State) {
+          const v6Save = { version: '6.0.0', state: v6State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
+          return migrateV6ToV7(v6Save);
+        }
+      }
+      // Try v4 → v5 → v6 → v7 chain
       if (isV4Save(parsed)) {
         const v5State = migrateV4ToV5(parsed);
         if (v5State) {
           const v5Save = { version: '5.0.0', state: v5State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-          return migrateV5ToV6(v5Save);
+          const v6State = migrateV5ToV6(v5Save);
+          if (v6State) {
+            const v6Save = { version: '6.0.0', state: v6State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
+            return migrateV6ToV7(v6Save);
+          }
         }
       }
-      // Try v3 → v4 → v5 → v6 chain
+      // Try v3 → v4 → v5 → v6 → v7 chain
       if (isV3Save(parsed)) {
         const v4State = migrateV3ToV4(parsed);
         if (v4State) {
@@ -82,11 +94,15 @@ function readSave(key: string): GameState | null {
           const v5State = migrateV4ToV5(v4Save);
           if (v5State) {
             const v5Save = { version: '5.0.0', state: v5State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-            return migrateV5ToV6(v5Save);
+            const v6State = migrateV5ToV6(v5Save);
+            if (v6State) {
+              const v6Save = { version: '6.0.0', state: v6State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
+              return migrateV6ToV7(v6Save);
+            }
           }
         }
       }
-      // Try v2 → v3 → v4 → v5 → v6 chain
+      // Try v2 → v3 → v4 → v5 → v6 → v7 chain
       if (isV2Save(parsed)) {
         const v3State = migrateV2ToV3(parsed);
         if (v3State) {
@@ -97,12 +113,16 @@ function readSave(key: string): GameState | null {
             const v5State = migrateV4ToV5(v4Save);
             if (v5State) {
               const v5Save = { version: '5.0.0', state: v5State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-              return migrateV5ToV6(v5Save);
+              const v6State = migrateV5ToV6(v5Save);
+              if (v6State) {
+                const v6Save = { version: '6.0.0', state: v6State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
+                return migrateV6ToV7(v6Save);
+              }
             }
           }
         }
       }
-      // Try v1 → v2 → v3 → v4 → v5 → v6 chain
+      // Try v1 → v2 → v3 → v4 → v5 → v6 → v7 chain
       if (isV1Save(parsed)) {
         const v2State = migrateV1ToV2(parsed);
         if (v2State) {
@@ -116,7 +136,11 @@ function readSave(key: string): GameState | null {
               const v5State = migrateV4ToV5(v4Save);
               if (v5State) {
                 const v5Save = { version: '5.0.0', state: v5State, timestamp: Date.now() } as unknown as SaveGame;
-                return migrateV5ToV6(v5Save);
+                const v6State = migrateV5ToV6(v5Save);
+                if (v6State) {
+                  const v6Save = { version: '6.0.0', state: v6State, timestamp: Date.now() } as unknown as SaveGame;
+                  return migrateV6ToV7(v6Save);
+                }
               }
             }
           }
@@ -174,13 +198,23 @@ export function listManualSaves(): SaveSlotInfo[] {
       let state: GameState | null = null;
       if (validateSave(parsed)) {
         state = parsed.state;
+      } else if (isV6Save(parsed)) {
+        state = migrateV6ToV7(parsed);
       } else if (isV5Save(parsed)) {
-        state = migrateV5ToV6(parsed);
+        const v6State = migrateV5ToV6(parsed);
+        if (v6State) {
+          const v6Save = { version: '6.0.0', state: v6State, timestamp: savedTimestamp } as unknown as SaveGame;
+          state = migrateV6ToV7(v6Save);
+        }
       } else if (isV4Save(parsed)) {
         const v5State = migrateV4ToV5(parsed);
         if (v5State) {
           const v5Save = { version: '5.0.0', state: v5State, timestamp: savedTimestamp } as unknown as SaveGame;
-          state = migrateV5ToV6(v5Save);
+          const v6State = migrateV5ToV6(v5Save);
+          if (v6State) {
+            const v6Save = { version: '6.0.0', state: v6State, timestamp: savedTimestamp } as unknown as SaveGame;
+            state = migrateV6ToV7(v6Save);
+          }
         }
       } else if (isV3Save(parsed)) {
         const v4State = migrateV3ToV4(parsed);
@@ -189,7 +223,11 @@ export function listManualSaves(): SaveSlotInfo[] {
           const v5State = migrateV4ToV5(v4Save);
           if (v5State) {
             const v5Save = { version: '5.0.0', state: v5State, timestamp: savedTimestamp } as unknown as SaveGame;
-            state = migrateV5ToV6(v5Save);
+            const v6State = migrateV5ToV6(v5Save);
+            if (v6State) {
+              const v6Save = { version: '6.0.0', state: v6State, timestamp: savedTimestamp } as unknown as SaveGame;
+              state = migrateV6ToV7(v6Save);
+            }
           }
         }
       } else if (isV2Save(parsed)) {
@@ -202,7 +240,11 @@ export function listManualSaves(): SaveSlotInfo[] {
             const v5State = migrateV4ToV5(v4Save);
             if (v5State) {
               const v5Save = { version: '5.0.0', state: v5State, timestamp: savedTimestamp } as unknown as SaveGame;
-              state = migrateV5ToV6(v5Save);
+              const v6State = migrateV5ToV6(v5Save);
+              if (v6State) {
+                const v6Save = { version: '6.0.0', state: v6State, timestamp: savedTimestamp } as unknown as SaveGame;
+                state = migrateV6ToV7(v6Save);
+              }
             }
           }
         }
@@ -219,7 +261,11 @@ export function listManualSaves(): SaveSlotInfo[] {
               const v5State = migrateV4ToV5(v4Save);
               if (v5State) {
                 const v5Save = { version: '5.0.0', state: v5State, timestamp: savedTimestamp } as unknown as SaveGame;
-                state = migrateV5ToV6(v5Save);
+                const v6State = migrateV5ToV6(v5Save);
+                if (v6State) {
+                  const v6Save = { version: '6.0.0', state: v6State, timestamp: savedTimestamp } as unknown as SaveGame;
+                  state = migrateV6ToV7(v6Save);
+                }
               }
             }
           }
@@ -483,6 +529,50 @@ function migrateV5ToV6(data: unknown): GameState | null {
     }
     if (state.yearStressLevel === undefined) {
       state.yearStressLevel = 0.5;
+    }
+
+    return state as GameState;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================================
+// V6 → V7 Migration (adds annualOverhead to expense tracking)
+// ============================================================================
+
+function isV6Save(data: unknown): boolean {
+  if (!data || typeof data !== 'object') return false;
+  const save = data as Record<string, unknown>;
+  return save.version === '6.0.0';
+}
+
+/**
+ * Migrate a v6 save to v7 by adding annualOverhead: 0 to:
+ * - tracking.currentExpenses
+ * - All yearSnapshots[].expenses
+ */
+function migrateV6ToV7(data: unknown): GameState | null {
+  try {
+    const save = data as SaveGame;
+    const state = save.state as GameState & Record<string, unknown>;
+
+    // Add annualOverhead to current expense tracking
+    if (state.tracking?.currentExpenses) {
+      const expenses = state.tracking.currentExpenses as unknown as Record<string, unknown>;
+      if (expenses.annualOverhead === undefined) {
+        expenses.annualOverhead = 0;
+      }
+    }
+
+    // Add annualOverhead to all historical year snapshots
+    if (state.tracking?.yearSnapshots) {
+      for (const snapshot of state.tracking.yearSnapshots) {
+        const expenses = snapshot.expenses as unknown as Record<string, unknown>;
+        if (expenses.annualOverhead === undefined) {
+          expenses.annualOverhead = 0;
+        }
+      }
     }
 
     return state as GameState;

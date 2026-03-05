@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { confirmDialog } from '../../adapter/signals.ts';
-import type { ConfirmDialogState } from '../../adapter/signals.ts';
+import type { ConfirmDialogState, ConfirmActionId } from '../../adapter/signals.ts';
 import styles from '../styles/Overlay.module.css';
 
 export function ConfirmDialog() {
@@ -8,6 +8,18 @@ export function ConfirmDialog() {
   if (!dialog) return null;
 
   return <ConfirmDialogInner dialog={dialog} />;
+}
+
+function getAriaLabel(actionId: ConfirmActionId): string {
+  switch (actionId) {
+    case 'plant-all': return 'Confirm planting entire field';
+    case 'plant-partial': return 'Confirm partial field planting';
+    case 'water-all': return 'Confirm watering entire field';
+    case 'water-partial': return 'Confirm partial field watering';
+    case 'cover-crop-all': return 'Confirm cover crop planting';
+    case 'cover-crop-partial': return 'Confirm partial cover crop planting';
+    case 'remove-crop': return 'Confirm crop removal';
+  }
 }
 
 function ConfirmDialogInner({ dialog }: { dialog: ConfirmDialogState }) {
@@ -29,7 +41,14 @@ function ConfirmDialogInner({ dialog }: { dialog: ConfirmDialogState }) {
   }, [dialog]);
 
   return (
-    <div class={styles.overlay} data-testid="confirm-dialog" role="alertdialog" aria-label="Confirm action">
+    <div
+      class={styles.overlay}
+      data-testid="confirm-dialog"
+      data-confirm-action={dialog.actionId}
+      data-confirm-origin={dialog.origin}
+      role="alertdialog"
+      aria-label={getAriaLabel(dialog.actionId)}
+    >
       <div class={styles.panel} ref={panelRef}>
         <div data-testid="confirm-message" class={styles.message}>
           {dialog.message}

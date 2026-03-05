@@ -15,6 +15,7 @@ import { createCornMonoculture } from './bots/corn-monoculture.ts';
 import { createZeroIrrigation } from './bots/zero-irrigation.ts';
 import { createDiversifiedAdaptive } from './bots/diversified-adaptive.ts';
 import { createCitrusStability } from './bots/citrus-stability.ts';
+import { createIdleFarm } from './bots/idle-farm.ts';
 import { SCENARIOS, SCENARIO_IDS } from '../../../src/data/scenarios.ts';
 
 // ============================================================================
@@ -189,3 +190,46 @@ describe('Balance Smoke (75 runs)', () => {
     });
   });
 }, 600_000); // 10 minute timeout for entire suite
+
+// ============================================================================
+// Dedicated Idle-Farm Suite (separate from main BOTS to avoid skewing aggregates)
+// ============================================================================
+
+const idleResults: RunResult[] = [];
+for (const scenarioId of SCENARIO_IDS) {
+  const scenario = SCENARIOS[scenarioId];
+  for (const seed of SMOKE_SEEDS) {
+    const bot = createIdleFarm();
+    idleResults.push(runBot(bot, scenario, seed));
+  }
+}
+
+describe('Idle Farm (dedicated suite)', () => {
+  it('0% survival rate (overhead kills idle farms)', () => {
+    const survived = idleResults.filter(r => r.survived).length;
+    expect(survived).toBe(0);
+  });
+
+  it('median final cash < $0', () => {
+    const sorted = idleResults.map(r => r.finalCash).sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    expect(median).toBeLessThan(0);
+  });
+
+  it('goes bankrupt between year 26 and year 29', () => {
+    for (const r of idleResults) {
+      expect(r.bankruptcyYear).not.toBeNull();
+      expect(r.bankruptcyYear!).toBeGreaterThanOrEqual(26);
+      expect(r.bankruptcyYear!).toBeLessThanOrEqual(29);
+    }
+  });
+
+  it('takes one emergency loan before final bankruptcy', () => {
+    // First insolvency → loan offered → bot takes it. Second insolvency → game over.
+    for (const r of idleResults) {
+      expect(r.loansReceived).toBe(1);
+      expect(r.yearsCompleted).toBeGreaterThanOrEqual(26);
+    }
+  });
+}, 120_000);

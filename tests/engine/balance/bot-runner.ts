@@ -47,6 +47,7 @@ export interface RunResult {
   avgNitrogen: number;
   yearSnapshots: YearSnapshot[];
   bankruptcyYear: number | null;
+  loansReceived: number;
   tickCount: number;
   elapsedMs: number;
 }
@@ -226,12 +227,13 @@ function extractRunResult(
     totalExpenses: snapshots.reduce((sum, s) => {
       const e = s.expenses;
       return sum + e.planting + e.watering + e.harvestLabor + e.maintenance +
-        e.loanRepayment + e.removal + e.coverCrops + e.eventCosts;
+        e.loanRepayment + e.removal + e.coverCrops + e.eventCosts + e.annualOverhead;
     }, 0),
     avgOrganicMatter: cellCount > 0 ? totalOM / cellCount : 0,
     avgNitrogen: cellCount > 0 ? totalN / cellCount : 0,
     yearSnapshots: snapshots,
     bankruptcyYear: survived ? null : state.calendar.year,
+    loansReceived: state.economy.totalLoansReceived,
     tickCount,
     elapsedMs,
   };

@@ -119,7 +119,7 @@ describe('Tracking initialization', () => {
   it('helper functions create correct defaults', () => {
     const exp = createEmptyExpenseBreakdown();
     expect(Object.values(exp).every(v => v === 0)).toBe(true);
-    expect(Object.keys(exp)).toHaveLength(8);
+    expect(Object.keys(exp)).toHaveLength(9);
 
     const trk = createEmptyTrackingState();
     expect(trk.yearSnapshots).toEqual([]);

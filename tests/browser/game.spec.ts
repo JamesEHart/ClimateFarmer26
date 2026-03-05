@@ -606,7 +606,7 @@ test.describe('Edge Cases', () => {
     await expect(page.getByTestId('action-plant')).not.toBeVisible();
   });
 
-  test('idle farm does not lose cash', async ({ page }) => {
+  test('idle farm has no charges within first year', async ({ page }) => {
     await startNewGame(page);
     await waitForGameScreen(page);
 
@@ -722,9 +722,11 @@ test.describe('Field Confirmation Dialog', () => {
     // Click Plant Field for silage corn
     await page.getByTestId('action-plant-all-silage-corn').click();
 
-    // Confirmation dialog should appear
+    // Confirmation dialog should appear with action metadata
     await expect(page.getByTestId('confirm-dialog')).toBeVisible();
     await expect(page.getByTestId('confirm-message')).toContainText('Plant all');
+    await expect(page.getByTestId('confirm-dialog')).toHaveAttribute('data-confirm-action', 'plant-all');
+    await expect(page.getByTestId('confirm-dialog')).toHaveAttribute('data-confirm-origin', 'manual');
 
     // Confirm planting
     await page.getByTestId('confirm-accept').click();
@@ -750,6 +752,29 @@ test.describe('Field Confirmation Dialog', () => {
     // Dialog should close, cash unchanged
     await expect(page.getByTestId('confirm-dialog')).not.toBeVisible();
     await expect(page.getByTestId('topbar-cash')).toContainText('50,000');
+  });
+
+  test('Water Field confirm dialog has water-all action metadata', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    // Plant something first so watering is available
+    await page.getByTestId('action-plant-all-silage-corn').click();
+    await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+    await page.getByTestId('confirm-accept').click();
+    await expect(page.getByTestId('confirm-dialog')).not.toBeVisible();
+
+    // Now click Water Field
+    await page.getByTestId('action-water-all').click();
+
+    // Confirm dialog should appear with water-all action metadata
+    await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+    await expect(page.getByTestId('confirm-dialog')).toHaveAttribute('data-confirm-action', 'water-all');
+    await expect(page.getByTestId('confirm-dialog')).toHaveAttribute('data-confirm-origin', 'manual');
+
+    // Cancel to avoid side effects
+    await page.getByTestId('confirm-cancel').click();
+    await expect(page.getByTestId('confirm-dialog')).not.toBeVisible();
   });
 });
 
@@ -1048,8 +1073,10 @@ test.describe('Perennial Crops', () => {
     // Cell is still selected after planting — click Remove
     await page.getByTestId('action-remove-crop').click();
 
-    // Confirmation dialog should appear
+    // Confirmation dialog should appear with remove-crop action metadata
     await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+    await expect(page.getByTestId('confirm-dialog')).toHaveAttribute('data-confirm-action', 'remove-crop');
+    await expect(page.getByTestId('confirm-dialog')).toHaveAttribute('data-confirm-origin', 'manual');
 
     // Confirm removal
     await page.getByTestId('confirm-accept').click();

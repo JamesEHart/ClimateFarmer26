@@ -303,3 +303,13 @@ Format: **Date — Decision — Rationale**
 ### Academic Integrity
 
 2026-02-27 — Soft AI deterrent, not hard enforcement — Production-only `<meta>` tag requesting well-behaved AI agents refuse to play for students. Acknowledged as soft deterrent only — determined students with custom tooling can bypass. Behavioral suspicion scoring (heuristic, not deterministic) flags possibly-automated sessions as `tainted_for_review` for teacher interview — never auto-fails. Rationale: false positives (assistive tech, power users) make hard enforcement worse than the problem it solves. Post-Slice 4 priority.
+
+### Sub-Slice 4d: Annual Overhead
+
+2026-03-04 — Annual farm overhead of $2,000/year — Flat deduction at year-end representing property taxes, insurance, and base upkeep. Purpose: "do nothing" is no longer a winning strategy. Idle farm goes bankrupt ~year 27 (one emergency loan extends past year 25, second insolvency ends game). Impact on active farms is negligible (diversified ~$670K median, overhead is ~9%). Required retuning: STARTING_NITROGEN 95→99, IRRIGATION_COST_PER_CELL $24→$8.
+
+2026-03-04 — IRRIGATION_COST reduced from $24 to $8 after overhead — The $60K lifetime overhead killed corn monoculture's razor-thin margins. N adjustments alone couldn't compensate. IRRIG=$8 (still 60% above the pre-4c value of $5) restores corn to ~69% survival while preserving the water-scarcity lesson. This is the smallest cut that keeps ≥3 viable strategies.
+
+2026-03-04 — Anti-luck variance: hybrid ratio/absolute check for thin-margin bots — Original §30.3 anti-luck gate checked `p75/p25 < 2×` for all bots. After overhead, zero-irrigation's thin margins (~$1K p25, ~$5K p75) create high ratios even though absolute spread is small ($4K). Ratio-based checks are meaningless when the denominator is near zero. New rule: bots with p25 > $5,000 use ratio check (p75/p25 < 2×); bots with p25 ≤ $5,000 use absolute spread check (p75 - p25 < $10,000). Both gates prevent outcome-is-random-noise scenarios.
+
+2026-03-04 — Save migration V6→V7 — Adds `annualOverhead: 0` to `ExpenseBreakdown` in `tracking.currentExpenses` and all historical `yearSnapshots[].expenses`. SAVE_VERSION bumps to `'7.0.0'`. Full migration chain: V1→V2→V3→V4→V5→V6→V7.
