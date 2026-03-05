@@ -180,6 +180,29 @@ Status: Deferred to future slice. Requires design discussion on what metrics to 
 Severity: LOW (design). `advisor-soil-nitrogen` fires max 3 times (intentional cap in events.ts). Cover crops provide recurring nitrogen restoration (+50N per incorporation), but there's no explicit "fertilize" or "soil amendment" action. After early advisor hints stop, players lack ongoing feedback about soil health trajectory.
 Status: Deferred. Design question: add recurring soil tools (fertilizer purchase, soil testing), raise/remove advisor caps, or accept current cover-crop-only path. Cover crops ARE the intended answer pedagogically — but players may not realize it without continued prompting.
 
+**67. "Continue Saved Game" can appear but do nothing when auto-save is invalid/corrupt.**
+Severity: MEDIUM (resume UX + trust).
+Status: Open.
+
+What happens: `Continue Saved Game` is shown based on key existence only. If `climateFarmer_autosave` exists but cannot be parsed/validated, clicking Continue silently no-ops.
+
+Expected: If resume is not possible, either hide the button or show a clear error and offer to clear the bad save.
+
+Actual: Button is visible; click path returns early without user feedback.
+
+Repro:
+1. In devtools, set `localStorage.setItem('climateFarmer_autosave', 'not-json')`.
+2. Reload title screen.
+3. Click `Continue Saved Game`.
+4. Nothing happens; no visible error.
+
+Evidence:
+- Visibility check uses key presence only: `hasSaveData()` in `src/save/storage.ts`.
+- Resume path returns if load fails: `resumeGame()` in `src/adapter/signals.ts`.
+Refs: src/save/storage.ts:163, src/adapter/signals.ts:199
+
+Suggested fix: Gate visibility on `loadAutoSave() !== null`, or keep current visibility and surface an explicit error/cleanup action when resume fails.
+
 ### Deferred — Accepted for Slice 1
 
 30. **Deep save validation** — Nested field tampering (e.g., modifying crop.gddAccumulated inside a valid grid structure) is not caught by `validateSave()`. Acceptable risk for classroom use — students are not adversarial. Could add deep schema validation in a future slice if needed.
@@ -207,9 +230,22 @@ Automated playtest by Claude agent. Triaged per senior engineer review. Verified
 **51. "Plant Field" bulk buttons silently fail when some plots are occupied.** RESOLVED.
 Severity: HIGH (functional). Root cause: `plantBulk()` in `signals.ts` returned early with no feedback when no fully-empty rows existed. The engine had the right error message; the adapter never asked for it. BUG-03 is the same root cause. Fixed: adapter now routes through `processCommand` and shows an info notification with the engine's error message ("No fully empty rows available. Use Plant Row to fill specific rows.").
 
-**52. Water Warning "Water Field" chains into redundant second confirmation.**
-Severity: **HIGH** (UX flow — causes apparent freeze in long sessions). Auto-pause primary action calls `waterBulk('all')` which itself shows a confirmation dialog — double confirmation. The second dialog can appear hidden behind the auto-pause panel, causing what looks like a game freeze. Confirmed in 30-year QA playthrough: repeated instances of Water Warning + hidden Confirm causing apparent UI lock. Harvest auto-pause doesn't have this problem because `harvestBulk` dispatches directly.
-Status: Deferred to 4d. Fix: add a `skipConfirm` parameter to `waterBulk` when called from auto-pause context, or dispatch `WATER` command directly from the auto-pause handler. Add Playwright regression test: "no hidden confirm dialog remains after water warning action."
+**52. Water Warning action chains into second confirm dialog (double-gate).**
+Severity: **HIGH** (automation + UX flow friction in long sessions).
+Status: Open / Deferred.
+
+What happens: From Water Warning auto-pause, clicking primary action (`Water Field`) calls `waterBulk('all')`, which opens a confirm dialog. This creates a two-step gate during an already-blocking pause and is easy to mishandle in automation.
+
+Expected: Auto-pause primary should either execute watering directly (single decision point) or clearly indicate that a second confirm is intentionally required.
+
+Actual: Primary action triggers another modal confirm. In automation, this often looks like the first action "did not work" unless confirm is prioritized.
+
+Evidence:
+- Auto-pause primary for water calls `waterBulk('all')`: `src/ui/components/AutoPausePanel.tsx`.
+- `waterBulk('all')` always opens confirm for field scope: `src/adapter/signals.ts`.
+Refs: src/ui/components/AutoPausePanel.tsx:48, src/adapter/signals.ts:395
+
+Suggested fix: Add `skipConfirm` path for auto-pause-origin watering, or dispatch a direct engine `WATER` command for this context; keep manual side-panel watering confirmed.
 
 **53. Year-end expenses don't break down categories.**
 Severity: MEDIUM (transparency). Not a logic bug — the $1,600 discrepancy is exactly 8 almonds × $200 annual maintenance, correctly charged at year-end. But the year-end summary only shows aggregated "Expenses" with no line items. Violates cause-and-effect transparency principle.
