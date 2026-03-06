@@ -56,117 +56,123 @@ export function TopBar() {
 
   return (
     <header class={styles.topbar} role="banner">
-      <div class={styles.dateSection}>
-        <span
-          class={styles.seasonIcon}
-          data-testid="topbar-season-icon"
-          aria-hidden="true"
-        >
-          {SEASON_ICONS[calendar.season] ?? ''}
-        </span>
-        <span data-testid="topbar-date" aria-label={`${getMonthName(calendar.month)} Year ${calendar.year}, ${getSeasonName(calendar.season)}`}>
-          {getSeasonName(calendar.season)} &mdash; {getMonthName(calendar.month)}, Year {calendar.year}
-        </span>
-        <span class={styles.scenarioName} data-testid="scenario-name" aria-label={`Scenario: ${getActiveScenarioName()}`}>
-          {getActiveScenarioName()}
-        </span>
-      </div>
-
-      {weather && (
-        <div class={styles.weatherSection} aria-label={`Weather: ${weatherDisplay.text}`}>
-          <span class={styles.weatherIcon} aria-hidden="true">{weatherDisplay.icon}</span>
-          <span>{weatherDisplay.text}</span>
-        </div>
-      )}
-
-      <div class={styles.speedControls} role="group" aria-label="Simulation speed controls">
-        {speedButtons.map(btn => (
-          <button
-            key={btn.testId}
-            data-testid={btn.testId}
-            class={`${styles.speedBtn} ${speed === btn.speed ? styles.speedBtnActive : ''}`}
-            onClick={() => setSpeed(btn.speed)}
-            aria-label={btn.ariaLabel}
-            aria-pressed={speed === btn.speed}
-          >
-            {btn.label}
-          </button>
-        ))}
-      </div>
-
-      {needsPlayPrompt.value && speed === 0 && (
-        <span data-testid="play-prompt" class={styles.playPrompt}>
-          Press Play to continue
-        </span>
-      )}
-
-      <span
-        ref={cashRef}
-        class={styles.cashSection}
-        data-testid="topbar-cash"
-        aria-label={`Cash: $${Math.floor(economy.cash).toLocaleString()}`}
-      >
-        ${Math.floor(economy.cash).toLocaleString()}
-      </span>
-
-      {(() => {
-        const net = economy.yearlyRevenue - economy.yearlyExpenses;
-        return (
+      <div class={styles.leftGroup}>
+        <div class={styles.dateSection}>
           <span
-            data-testid="topbar-year-net"
-            class={net >= 0 ? styles.netPositive : styles.netNegative}
-            aria-label={`Year net: ${net >= 0 ? '+' : ''}$${Math.floor(net).toLocaleString()}`}
+            class={styles.seasonIcon}
+            data-testid="topbar-season-icon"
+            aria-hidden="true"
           >
-            Year net: {net >= 0 ? '+' : '-'}${Math.floor(Math.abs(net)).toLocaleString()}
+            {SEASON_ICONS[calendar.season] ?? ''}
           </span>
-        );
-      })()}
+          <span data-testid="topbar-date" aria-label={`${getMonthName(calendar.month)} Year ${calendar.year}, ${getSeasonName(calendar.season)}`}>
+            {getSeasonName(calendar.season)} &mdash; {getMonthName(calendar.month)}, Year {calendar.year}
+          </span>
+          <span class={styles.scenarioName} data-testid="scenario-name" aria-label={`Scenario: ${getActiveScenarioName()}`}>
+            {getActiveScenarioName()}
+          </span>
+        </div>
 
-      {state.frostProtectionEndsDay > state.calendar.totalDay && (
+        {weather && (
+          <div class={styles.weatherSection} aria-label={`Weather: ${weatherDisplay.text}`}>
+            <span class={styles.weatherIcon} aria-hidden="true">{weatherDisplay.icon}</span>
+            <span>{weatherDisplay.text}</span>
+          </div>
+        )}
+      </div>
+
+      <div class={styles.centerGroup}>
+        <div class={styles.speedControls} role="group" aria-label="Simulation speed controls">
+          {speedButtons.map(btn => (
+            <button
+              key={btn.testId}
+              data-testid={btn.testId}
+              class={`${styles.speedBtn} ${speed === btn.speed ? styles.speedBtnActive : ''}`}
+              onClick={() => setSpeed(btn.speed)}
+              aria-label={btn.ariaLabel}
+              aria-pressed={speed === btn.speed}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+
+        {needsPlayPrompt.value && speed === 0 && (
+          <span data-testid="play-prompt" class={styles.playPrompt}>
+            Press Play to continue
+          </span>
+        )}
+      </div>
+
+      <div class={styles.rightGroup}>
         <span
-          class={styles.frostStatus}
-          data-testid="frost-protection-status"
-          aria-label={`Frost protection active: ${state.frostProtectionEndsDay - state.calendar.totalDay} days remaining`}
+          ref={cashRef}
+          class={styles.cashSection}
+          data-testid="topbar-cash"
+          aria-label={`Cash: $${Math.floor(economy.cash).toLocaleString()}`}
         >
-          {'\u{1F9CA}'} Frost Protection ({state.frostProtectionEndsDay - state.calendar.totalDay}d)
+          ${Math.floor(economy.cash).toLocaleString()}
         </span>
-      )}
 
-      {economy.debt > 0 && (
-        <span
-          class={styles.debtSection}
-          data-testid="topbar-debt"
-          aria-label={`Debt: $${Math.floor(economy.debt).toLocaleString()}`}
+        {(() => {
+          const net = economy.yearlyRevenue - economy.yearlyExpenses;
+          return (
+            <span
+              data-testid="topbar-year-net"
+              class={net >= 0 ? styles.netPositive : styles.netNegative}
+              aria-label={`Year net: ${net >= 0 ? '+' : ''}$${Math.floor(net).toLocaleString()}`}
+            >
+              Year net: {net >= 0 ? '+' : '-'}${Math.floor(Math.abs(net)).toLocaleString()}
+            </span>
+          );
+        })()}
+
+        {state.frostProtectionEndsDay > state.calendar.totalDay && (
+          <span
+            class={styles.frostStatus}
+            data-testid="frost-protection-status"
+            aria-label={`Frost protection active: ${state.frostProtectionEndsDay - state.calendar.totalDay} days remaining`}
+          >
+            {'\u{1F9CA}'} Frost Protection ({state.frostProtectionEndsDay - state.calendar.totalDay}d)
+          </span>
+        )}
+
+        {economy.debt > 0 && (
+          <span
+            class={styles.debtSection}
+            data-testid="topbar-debt"
+            aria-label={`Debt: $${Math.floor(economy.debt).toLocaleString()}`}
+          >
+            Debt: ${Math.floor(economy.debt).toLocaleString()}
+          </span>
+        )}
+
+        <button
+          data-testid="save-button"
+          class={styles.saveBtn}
+          onClick={() => handleSave()}
+          aria-label="Save game"
         >
-          Debt: ${Math.floor(economy.debt).toLocaleString()}
-        </span>
-      )}
+          Save
+        </button>
 
-      <button
-        data-testid="save-button"
-        class={styles.saveBtn}
-        onClick={() => handleSave()}
-        aria-label="Save game"
-      >
-        Save
-      </button>
-
-      <button
-        data-testid="save-new-game"
-        class={styles.newGameBtn}
-        onClick={() => {
-          confirmDialog.value = {
-            message: 'Return to title screen? Your game is auto-saved at each season boundary.',
-            onConfirm: () => { confirmDialog.value = null; returnToTitle(); },
-            onCancel: () => { confirmDialog.value = null; },
-            actionId: 'return-to-title',
-            origin: 'manual',
-          };
-        }}
-        aria-label="Return to title screen"
-      >
-        New Game
-      </button>
+        <button
+          data-testid="save-new-game"
+          class={styles.newGameBtn}
+          onClick={() => {
+            confirmDialog.value = {
+              message: 'Return to title screen? Your game is auto-saved at each season boundary.',
+              onConfirm: () => { confirmDialog.value = null; returnToTitle(); },
+              onCancel: () => { confirmDialog.value = null; },
+              actionId: 'return-to-title',
+              origin: 'manual',
+            };
+          }}
+          aria-label="Return to title screen"
+        >
+          New Game
+        </button>
+      </div>
     </header>
   );
 }

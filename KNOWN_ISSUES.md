@@ -311,7 +311,7 @@ Status: Open / Informational.
 Severity: LOW (debug-only, not player-facing).
 Status: Open — needs local repro attempt.
 
-Reported: after `setCash()` + `publish()`, some UI elements may not reflect updated state until the next natural tick. If confirmed, root cause is that `publish()` clones `_liveState` but doesn't re-derive computed signals. Not a player-facing issue — only affects QA debug workflows.
+Reported: after `setCash()` + `publish()`, some UI elements may not reflect updated state until the next natural tick. Hypothesis: `publish()` clones `_liveState` but may not re-derive all computed signals — needs local repro to confirm. Not a player-facing issue — only affects QA debug workflows.
 
 **77. Stale RESPOND_EVENT noise in automation logs.**
 Severity: LOW (automation hardening).
