@@ -297,6 +297,28 @@ Resolution: Added `($/plot)` to row and column plant buttons, matching field-lev
 - OBS-01 (click outside to deselect): Design suggestion, not a bug. Filed mentally.
 - OBS-02 (no planting window tooltips): Good suggestion for Slice 4 glossary/info system.
 
+### 4e QA Testing Findings (2026-03-06)
+
+AI agent ran structured 4e acceptance test pass. 21/21 gameplay checks passed. No regressions.
+
+**75. Debug API misuse risk (QA tooling).**
+Severity: LOW (debug-only, not player-facing).
+Status: Open / Informational.
+
+`setDay()` sets the day counter without simulating intermediate growth/weather. `setCash()`+`publish()` updates the UI but may leave engine tracking state inconsistent. QA agents should prefer `fastForward()` (which auto-resolves transient states) over `setDay()` for realistic testing. Document in agent navigation guides.
+
+**76. Possible UI desync after direct debug mutation.**
+Severity: LOW (debug-only, not player-facing).
+Status: Open — needs local repro attempt.
+
+Reported: after `setCash()` + `publish()`, some UI elements may not reflect updated state until the next natural tick. If confirmed, root cause is that `publish()` clones `_liveState` but doesn't re-derive computed signals. Not a player-facing issue — only affects QA debug workflows.
+
+**77. Stale RESPOND_EVENT noise in automation logs.**
+Severity: LOW (automation hardening).
+Status: Open / Deferred.
+
+AI test agents sometimes send `RESPOND_EVENT` commands when no event panel is active (e.g., rapid sequential clicks). The engine correctly rejects these (no-op), but they create noise in test logs. Optional fix: suppress or debounce stale event responses in test harness.
+
 ### Deferred to Slice 4 / Later Discussion
 
 - **Balance testing suite** — Headless automated strategy tests running full 30-year games against multiple scenarios (ARCHITECTURE.md §12 Layer 2). Required before classroom deployment. Strategies to test: monoculture almond, monoculture corn, diversified adaptive, zero-irrigation, maximum debt. Target: monoculture should fail in ≥60% of drought-heavy scenarios; well-diversified strategies should survive ≥80%. See playtest findings #45.
