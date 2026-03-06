@@ -122,7 +122,7 @@ export function FarmCell({ cell }: FarmCellProps) {
       tabIndex={row === 0 && col === 0 ? 0 : -1}
     >
       {cropArtSrc && (
-        <img class={styles.cropArt} src={cropArtSrc} alt="" aria-hidden="true" width="36" height="36" />
+        <img class={styles.cropArt} src={cropArtSrc} alt="" aria-hidden="true" />
       )}
       {crop && (crop.growthStage === 'harvestable' || crop.growthStage === 'overripe') && (
         <span class={styles.readyBadge} data-testid={`harvest-indicator-${row}-${col}`}>
