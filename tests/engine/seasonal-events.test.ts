@@ -41,7 +41,7 @@ describe('hasRandomCondition', () => {
     ]);
   });
 
-  it('identifies all 6 per-tick events', () => {
+  it('identifies all 9 per-tick events', () => {
     const perTickIds = STORYLETS.filter(s => !hasRandomCondition(s)).map(s => s.id);
     expect(perTickIds).toEqual([
       'advisor-orchard-decline',
@@ -50,6 +50,9 @@ describe('hasRandomCondition', () => {
       'advisor-chill-warning',
       'advisor-drought-recovery',
       'advisor-perennial-opportunity',
+      'advisor-chen-intro',
+      'advisor-forum-intro',
+      'tech-water-irrigation',
     ]);
   });
 });

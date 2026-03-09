@@ -390,11 +390,24 @@ describe('Weather heat forecast pre-irrigate effect', () => {
 
 describe('Advisor character routing via advisorId', () => {
   it('Dr. Santos advisors have advisorId extension-agent', () => {
-    const santos = STORYLETS.filter(s => s.type === 'advisor' && s.id.startsWith('advisor-'));
-    expect(santos.length).toBeGreaterThan(0);
-    for (const s of santos) {
+    const santosIds = [
+      'advisor-orchard-decline', 'advisor-soil-nitrogen', 'advisor-crop-failure',
+      'advisor-chill-warning', 'advisor-drought-recovery', 'advisor-perennial-opportunity',
+    ];
+    for (const id of santosIds) {
+      const s = STORYLETS.find(st => st.id === id)!;
       expect(s.advisorId).toBe('extension-agent');
     }
+  });
+
+  it('Marcus Chen advisor has advisorId farm-credit', () => {
+    const chen = STORYLETS.find(s => s.id === 'advisor-chen-intro')!;
+    expect(chen.advisorId).toBe('farm-credit');
+  });
+
+  it('Growers Forum advisor has advisorId growers-forum', () => {
+    const forum = STORYLETS.find(s => s.id === 'advisor-forum-intro')!;
+    expect(forum.advisorId).toBe('growers-forum');
   });
 
   it('Weather Service advisors have advisorId weather-service', () => {

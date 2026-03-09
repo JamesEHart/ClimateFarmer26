@@ -327,6 +327,8 @@ export interface GameState {
   // Slice 4b.5: Seasonal event draw
   seasonalEventQueue: ScheduledEvent[];
   yearStressLevel: number;
+  // Slice 5b: Auto-irrigation message rotation (no-repeat guarantee)
+  autoIrrigationMsgIdx?: number;
 }
 
 // --- Save/Load ---

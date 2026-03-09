@@ -17,6 +17,18 @@ const ADVISOR_CHARACTERS: Record<string, { portrait: string; name: string; role:
     role: 'National Weather Service — Fresno Office',
     subtitle: 'Forecast accuracy varies by timeframe',
   },
+  'farm-credit': {
+    portrait: `${import.meta.env.BASE_URL}assets/advisors/farm-credit_128x128.jpeg`,
+    name: 'Marcus Chen',
+    role: 'Valley Farm Credit — Agricultural Lender',
+    subtitle: 'Focused on returns and financial growth',
+  },
+  'growers-forum': {
+    portrait: `${import.meta.env.BASE_URL}assets/advisors/growers-forum_128x128.jpeg`,
+    name: 'Valley Growers Forum',
+    role: 'Local Farming Community',
+    subtitle: 'Word-of-mouth from neighboring farms',
+  },
 };
 
 /**

@@ -880,7 +880,7 @@ Strategic depth, competing advisors, tech branching, and climate escalation. Tra
 
 **Sub-slices:**
 - 5a: System extensions ✅ COMPLETE — New condition types (`not_has_flag`, `tech_level_below`, `tech_level_at_least`), `getTechLevel()` reconvergence (3 tracks: water/soil/crop), K-lite potassium (per-cell depletion + price factor + symptom cues), auto-irrigation hook (tech-gated with cost multipliers), crop gating via `requiredFlag`, permanent regime shift modifiers (water/market/heat), separate tech/non-tech event clustering caps, harvest affordance count, `pickMessage()` for message variety, agave as first gated crop, save migration V7→V8 (SAVE_VERSION='8.0.0'). 666 unit tests passing.
-- 5b: Advisors + first tech branch (Marcus Chen + Valley Growers Forum, year-3 tech fork, auto-irrigation end-to-end, competing advice pattern)
+- 5b: Advisors + first tech branch ✅ COMPLETE — Marcus Chen (`farm-credit`) + Valley Growers Forum (`growers-forum`) advisor characters with intro storylets, water irrigation tech unlock (year 3, drip irrigation → auto-irrigation end-to-end), auto-irrigation notification with 3-message rotating pool (no-repeat), `autoIrrigationMsgIdx` on GameState. 712 unit tests passing.
 - 5c: Full content + regime shifts (remaining tech decisions years 6-24, 3 regime shifts, 2-3 novel crops, Year-30 reflection panel)
 - 5d: Balance + validate (bot updates for tech paths, Monte Carlo variety metrics, AI playtesting)
 

@@ -535,4 +535,119 @@ export const STORYLETS: readonly Storylet[] = [
     ],
     tags: ['advisor', 'perennials'],
   },
+
+  // --- Slice 5b: New Advisor Introductions + Water Tech Unlock ---
+
+  {
+    id: 'advisor-chen-intro',
+    type: 'advisor',
+    title: 'A Visit from Valley Farm Credit',
+    description: "A sharp-dressed man stops by your farm gate. \"Marcus Chen, Valley Farm Credit. I've been reviewing agricultural operations in the district and your numbers caught my eye. Mind if I take a look around?\" He pulls out a tablet and starts calculating. \"I see potential here — let me show you where your dollars are working hardest and where they're leaking.\"",
+    preconditions: [
+      { type: 'min_year', year: 2 },
+      { type: 'not_has_flag', flag: 'met_chen' },
+    ],
+    priority: 95,
+    cooldownDays: 0,
+    maxOccurrences: 1,
+    advisorId: 'farm-credit',
+    choices: [
+      {
+        id: 'welcome-review',
+        label: 'Welcome the Review',
+        description: "Hear what Marcus has to say about your farm's financials.",
+        effects: [
+          { type: 'set_flag', flag: 'met_chen', value: true },
+          { type: 'add_notification', message: "Marcus Chen from Valley Farm Credit reviewed your operation. His advice: \"Focus on your highest-revenue crops and track every dollar. Farming is a business — treat it like one.\"", notificationType: 'event_result' },
+        ],
+      },
+      {
+        id: 'polite-decline',
+        label: "I'm Doing Fine",
+        description: "You appreciate the offer but aren't looking for financial advice right now.",
+        effects: [
+          { type: 'set_flag', flag: 'met_chen', value: true },
+          { type: 'add_notification', message: 'Marcus Chen left his card. "Call me when you want to talk about growing your operation," he said.', notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['advisor', 'finance', 'introduction'],
+  },
+
+  {
+    id: 'advisor-forum-intro',
+    type: 'advisor',
+    title: 'Valley Growers Forum Meetup',
+    description: "There's a flyer on the bulletin board at the feed store: \"Valley Growers Forum — Monthly Meetup. Share what's working, learn from your neighbors.\" You hear it's mostly old-timers and a few younger growers swapping stories over coffee. The advice isn't always scientific, but people who've farmed this valley for decades know things that don't show up in textbooks.",
+    preconditions: [
+      { type: 'min_year', year: 2 },
+      { type: 'not_has_flag', flag: 'met_forum' },
+    ],
+    priority: 90,
+    cooldownDays: 0,
+    maxOccurrences: 1,
+    advisorId: 'growers-forum',
+    choices: [
+      {
+        id: 'attend-meeting',
+        label: 'Start Attending Meetings',
+        description: 'The local farmers have decades of experience to share.',
+        effects: [
+          { type: 'set_flag', flag: 'met_forum', value: true },
+          { type: 'add_notification', message: 'You joined the Valley Growers Forum. The meetings are informal — lots of coffee, strong opinions, and the occasional gem of wisdom. "Stick around," one farmer said. "You\'ll hear things Dr. Santos won\'t tell you."', notificationType: 'event_result' },
+        ],
+      },
+      {
+        id: 'just-listen',
+        label: 'Just Listen for Now',
+        description: "You're curious but not ready to commit to regular meetings.",
+        effects: [
+          { type: 'set_flag', flag: 'met_forum', value: true },
+          { type: 'add_notification', message: 'You stopped by the Growers Forum meeting. Mixed bag — some solid tips about local conditions, some dubious claims about miracle fertilizers. Worth keeping an ear open.', notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['advisor', 'community', 'introduction'],
+  },
+
+  {
+    id: 'tech-water-irrigation',
+    type: 'advisor',
+    title: 'Irrigation Technology Decision',
+    description: "Dr. Santos called a meeting to discuss your irrigation situation. \"You've been fighting water stress every season, and it's costing you time and yields. There's a better way.\" Marcus Chen is here too — he pulls up cost projections on his tablet. \"The numbers are clear. Drip irrigation pays for itself within two seasons.\" At the Growers Forum last week, someone mentioned their neighbor installed drip lines and hasn't worried about watering since. All three voices agree: it's time to automate your irrigation.",
+    preconditions: [
+      { type: 'min_year', year: 3 },
+      { type: 'has_crop' },
+      { type: 'tech_level_below', track: 'water', level: 1 },
+      { type: 'has_flag', flag: 'met_chen' },
+      { type: 'has_flag', flag: 'met_forum' },
+    ],
+    priority: 100,
+    cooldownDays: 365,
+    maxOccurrences: 3,
+    advisorId: 'extension-agent',
+    choices: [
+      {
+        id: 'install-irrigation',
+        label: 'Install Drip Irrigation',
+        description: 'Proven technology. Delivers water directly to roots with minimal waste. Your fields will be watered automatically when crops get stressed. Costs $800.',
+        cost: 800,
+        requiresCash: 800,
+        effects: [
+          { type: 'modify_cash', amount: -800 },
+          { type: 'set_flag', flag: 'tech_drip_irrigation', value: true },
+          { type: 'add_notification', message: 'Drip irrigation installed! Your fields will now be watered automatically when crops get stressed. Santos: "Simple, reliable, effective." Chen: "Smart investment — watch your water costs drop."', notificationType: 'event_result' },
+        ],
+      },
+      {
+        id: 'not-now',
+        label: 'Not Right Now',
+        description: "You'll think about it. Manual watering works, even if it's tedious.",
+        effects: [
+          { type: 'add_notification', message: "You decided to hold off on irrigation technology. Santos: \"The offer stands — your crops will keep getting stressed without it.\" Chen: \"Every season you wait is money left on the table.\"", notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['tech-unlock', 'advisor', 'water'],
+  },
 ] as const;

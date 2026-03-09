@@ -1040,6 +1040,18 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
         for (const cell of stressedCells) {
           cell.soil.moisture = Math.min(cell.soil.moisture + effectiveDose, cell.soil.moistureCapacity);
         }
+        // Notification with rotating message pool (SPEC §33.4: never same message twice in a row)
+        const count = stressedCells.length;
+        const s = count > 1 ? 's' : '';
+        const costStr = totalCost.toFixed(0);
+        const autoIrrigationMessages = [
+          `Auto-irrigation watered ${count} plot${s} ($${costStr}).`,
+          `Irrigation system activated for ${count} stressed plot${s} — $${costStr} deducted.`,
+          `${count} plot${s} auto-watered before crops took damage ($${costStr}).`,
+        ];
+        const msgIdx = ((state.autoIrrigationMsgIdx ?? -1) + 1) % autoIrrigationMessages.length;
+        state.autoIrrigationMsgIdx = msgIdx;
+        addNotification(state, 'info', autoIrrigationMessages[msgIdx]);
       } else if (!state.waterStressPausedThisSeason) {
         // Can't afford auto-irrigation — fall back to manual pause (once per season)
         state.waterStressPausedThisSeason = true;

@@ -77,7 +77,7 @@ export interface Storylet {
   foreshadowing?: Foreshadowing;
   choices: Choice[];
   tags: string[];
-  advisorId?: 'extension-agent' | 'weather-service'; // routes advisor character display
+  advisorId?: 'extension-agent' | 'weather-service' | 'farm-credit' | 'growers-forum'; // routes advisor character display
 }
 
 // --- Runtime state types ---
