@@ -317,7 +317,6 @@ export interface GameState {
   flags: Record<string, boolean>;
   wateringRestricted: boolean;
   wateringRestrictionEndsDay: number;
-  irrigationCostMultiplier: number;
   eventRngState: number;      // separate RNG for events (seeded from mainSeed + 10000)
   // Slice 3c: Weather advisor frost protection
   frostProtectionEndsDay: number; // 0 = inactive; active when totalDay < this value

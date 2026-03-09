@@ -66,6 +66,14 @@ export const CROP_ART: Record<string, Record<string, string>> = {
     harvestable: `${base}assets/crops/crop-citrus_48x48.jpeg`,
     overripe: `${base}assets/crops/crop-citrus_48x48.jpeg`,
   },
+  'agave': {
+    seedling: `${base}assets/crops/crop-agave-seedling_48x48.jpeg`,
+    vegetative: `${base}assets/crops/crop-agave-vegetative_48x48.jpeg`,
+    flowering: `${base}assets/crops/crop-agave-flowering_48x48.jpeg`,
+    mature: `${base}assets/crops/crop-agave-mature_48x48.jpeg`,
+    harvestable: `${base}assets/crops/crop-agave_48x48.jpeg`,
+    overripe: `${base}assets/crops/crop-agave_48x48.jpeg`,
+  },
 };
 
 interface FarmCellProps {

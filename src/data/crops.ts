@@ -322,7 +322,7 @@ export const CROPS: Record<string, CropDefinition> = {
 
     requiredFlag: 'tech_crop_agave',
 
-    shortDescription: 'Desert-adapted perennial. Minimal water needs, thrives in heat. Requires technology unlock to plant.',
+    shortDescription: 'Desert-adapted perennial. Minimal water needs, thrives in heat. Long establishment but very low maintenance.',
   },
 };
 

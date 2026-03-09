@@ -848,6 +848,8 @@ The end-of-game score rewards **resilient, sustainable farming** — not just ma
 | Climate Adaptation | 20% | Responded to changing conditions | Outcome-based: crop transitions away from failing crops + drought-tolerant crop adoption + cover crop usage after soil decline. No credit for advisor interaction itself. |
 | Consistency | 10% | Not a boom-bust rollercoaster | Inverse of year-over-year revenue variance, normalized |
 
+- Possible future supporting metric for sustainability scoring: [SLICE6_SERVINGS_METRIC.md](/Users/naddicott/ClimateFarmer26/SLICE6_SERVINGS_METRIC.md)
+
 - **When** a student completes 30 years, **I should see** a score breakdown showing each component with a sub-score and explanation.
 - **When** a student goes bankrupt, **I should see** a partial score based on years survived and the components above up to that point.
 - **When** two students compare scores, **the student who diversified and adapted should** outscore the student who monocultured, even if the monoculture student has more final cash.

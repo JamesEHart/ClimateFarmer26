@@ -305,7 +305,14 @@ AI agent ran structured 4e acceptance test pass. 21/21 gameplay checks passed. N
 Severity: LOW (debug-only, not player-facing).
 Status: Open / Informational.
 
-`setDay()` sets the day counter without simulating intermediate growth/weather. `setCash()`+`publish()` updates the UI but may leave engine tracking state inconsistent. QA agents should prefer `fastForward()` (which auto-resolves transient states) over `setDay()` for realistic testing. Document in agent navigation guides.
+`setDay()` sets the day counter without simulating intermediate growth/weather. `setCash()`+`publish()` updates the UI but may leave engine tracking state inconsistent. QA agents should prefer `fastForward()` (which auto-resolves transient states) over `setDay()` for realistic testing.
+
+**QA guidance (expanded after regression-3 false failures):**
+- `fastForward(1)` advances until the next autopause/event boundary, NOT one simulation day. It may skip many days.
+- `setDay()` does not resimulate intermediate weather/growth — it is state surgery, not time travel.
+- Controlled text inputs must be typed or updated with real input events; direct DOM `.value` assignment does not update Preact signal state.
+- Verify irrigation surcharges via real cash deltas over controlled conditions (plant, drain moisture, measure cost), not by reading stale state fields. The `irrigationCostMultiplier` field was removed in 5a — production irrigation cost is derived from `activeEffects` via `getIrrigationCostMultiplier(state)`.
+- Mixing `setDay()`, direct state mutation, `publish()`, and `fastForward()` in a single test sequence creates unreliable results. Prefer one approach per scenario.
 
 **76. Possible UI desync after direct debug mutation.**
 Severity: LOW (debug-only, not player-facing).

@@ -105,24 +105,24 @@ Each stage should be visually distinct from its neighbors. Crop art renders resp
 - **Background:** Soil/earth tones — crops sit on farm cells, so background should blend with the cell background. (The shared prompt says "transparent background" but all assets are JPEG — no transparency supported. Earth-toned backgrounds effectively achieve the same result.)
 - **Constraints:** No text, no logos, no watermarks
 
-### Needed: Agave Crop Art (Slice 5a — tech-gated crop, in engine but no art yet)
+### Agave Crop Art (Slice 5a — tech-gated crop, complete)
 
-Agave is a perennial (no dormancy, evergreen like citrus). Needs 5 images + CROP_ART entry in FarmCell.tsx.
-
-| Asset ID | File Path | Dimensions | Status | Notes |
-|----------|-----------|------------|--------|-------|
-| `crop-agave-seedling` | `public/assets/crops/crop-agave-seedling_48x48.jpeg` | 48x48 | **Needed** | Small agave rosette, low to ground, few thick leaves |
-| `crop-agave-vegetative` | `public/assets/crops/crop-agave-vegetative_48x48.jpeg` | 48x48 | **Needed** | Growing rosette, thick succulent blue-green leaves |
-| `crop-agave-flowering` | `public/assets/crops/crop-agave-flowering_48x48.jpeg` | 48x48 | **Needed** | Tall flower stalk (quiote) emerging from rosette |
-| `crop-agave-mature` | `public/assets/crops/crop-agave-mature_48x48.jpeg` | 48x48 | **Needed** | Full mature rosette, large thick leaves, blue-grey |
-| `crop-agave` | `public/assets/crops/crop-agave_48x48.jpeg` | 48x48 | **Needed** | Harvestable piña/heart visible, used for harvestable + overripe |
-
-### Needed: Slice 5b Advisor Portraits (not yet in engine)
+Agave is a perennial (no dormancy, evergreen like citrus). Wired in CROP_ART in FarmCell.tsx.
 
 | Asset ID | File Path | Dimensions | Status | Notes |
 |----------|-----------|------------|--------|-------|
-| `farm-credit` | `public/assets/advisors/farm-credit_128x128.jpeg` | 128x128 | **Needed** | Marcus Chen — Valley Farm Credit banker. Professional, business attire, confident. ROI-focused advisor. |
-| `growers-forum` | `public/assets/advisors/growers-forum_128x128.jpeg` | 128x128 | **Needed** | Valley Growers Forum representative. Casual/farm attire, approachable, community voice. |
+| `crop-agave-seedling` | `public/assets/crops/crop-agave-seedling_48x48.jpeg` | 48x48 | Complete | Small agave rosette, low to ground, few thick leaves |
+| `crop-agave-vegetative` | `public/assets/crops/crop-agave-vegetative_48x48.jpeg` | 48x48 | Complete | Growing rosette, thick succulent blue-green leaves |
+| `crop-agave-flowering` | `public/assets/crops/crop-agave-flowering_48x48.jpeg` | 48x48 | Complete | Tall flower stalk (quiote) emerging from rosette |
+| `crop-agave-mature` | `public/assets/crops/crop-agave-mature_48x48.jpeg` | 48x48 | Complete | Full mature rosette, large thick leaves, blue-grey |
+| `crop-agave` | `public/assets/crops/crop-agave_48x48.jpeg` | 48x48 | Complete | Harvestable piña/heart visible, used for harvestable + overripe |
+
+### Slice 5b Advisor Portraits (art ready, not yet wired in engine)
+
+| Asset ID | File Path | Dimensions | Status | Notes |
+|----------|-----------|------------|--------|-------|
+| `farm-credit` | `public/assets/advisors/farm-credit_128x128.jpeg` | 128x128 | Art ready | Marcus Chen — Valley Farm Credit banker. Wire in 5b when advisorId added. |
+| `growers-forum` | `public/assets/advisors/growers-forum_128x128.jpeg` | 128x128 | Art ready | Valley Growers Forum representative. Wire in 5b when advisorId added. |
 
 ## UI Icons (Future)
 

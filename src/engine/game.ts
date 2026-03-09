@@ -99,7 +99,6 @@ export function createInitialState(playerId: string, scenario: ClimateScenario):
     flags: {},
     wateringRestricted: false,
     wateringRestrictionEndsDay: 0,
-    irrigationCostMultiplier: 1.0,
     eventRngState: eventRng.getState(),
     frostProtectionEndsDay: 0,
     // Slice 4a: Tracking

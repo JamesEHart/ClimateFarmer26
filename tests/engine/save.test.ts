@@ -282,7 +282,7 @@ describe('Save/Load System', () => {
       delete v1State.flags;
       delete v1State.wateringRestricted;
       delete v1State.wateringRestrictionEndsDay;
-      delete v1State.irrigationCostMultiplier;
+
       delete v1State.eventRngState;
 
       // Strip Slice 2a economy fields
@@ -380,7 +380,7 @@ describe('Save/Load System', () => {
       delete v1State.flags;
       delete v1State.wateringRestricted;
       delete v1State.wateringRestrictionEndsDay;
-      delete v1State.irrigationCostMultiplier;
+
       delete v1State.eventRngState;
       delete v1State.economy.debt;
       delete v1State.economy.totalLoansReceived;
@@ -489,7 +489,7 @@ describe('Save/Load System', () => {
       delete v1State.flags;
       delete v1State.wateringRestricted;
       delete v1State.wateringRestrictionEndsDay;
-      delete v1State.irrigationCostMultiplier;
+
       delete v1State.eventRngState;
       delete v1State.economy.debt;
       delete v1State.economy.totalLoansReceived;

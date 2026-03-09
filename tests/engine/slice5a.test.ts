@@ -927,7 +927,7 @@ describe('Slice 5a: Save migration V7 → V8', () => {
     delete s.flags;
     delete s.wateringRestricted;
     delete s.wateringRestrictionEndsDay;
-    delete s.irrigationCostMultiplier;
+
     delete s.eventRngState;
     delete s.frostProtectionEndsDay;
     delete s.tracking;
