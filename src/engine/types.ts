@@ -119,6 +119,7 @@ export interface CropDefinition {
 
   // Nutrients
   nitrogenUptake: number;     // lbs/acre removed at full yield
+  potassiumUptake: number;    // lbs/acre removed at full yield (Slice 5a: K-lite)
 
   // Economics
   yieldPotential: number;     // units/acre at maximum
@@ -140,6 +141,10 @@ export interface CropDefinition {
     endOfLifeYear: number;            // years post-establishment when floor is reached
     declineFloor: number;             // minimum yield fraction (0.2-0.3)
   };
+
+  // Slice 5a: Tech gating + heat sensitivity
+  requiredFlag?: string;               // flag that must be true to plant this crop
+  heatSensitivity?: number;            // yield multiplier under regime_heat_threshold (e.g. 0.75 = 25% loss)
 
   // Display
   shortDescription: string;
@@ -170,6 +175,7 @@ export interface SoilState {
   organicMatter: number;      // percentage (e.g., 2.0)
   moisture: number;           // inches
   moistureCapacity: number;   // max inches (function of OM)
+  potassium: number;          // lbs/acre (Slice 5a: K-lite)
 }
 
 export interface Cell {
@@ -354,7 +360,26 @@ export const NITROGEN_MODERATE_THRESHOLD = 40;
 export const IRRIGATION_COST_PER_CELL = 8; // $ per cell per watering (4c: raised from 5; reduced from 24 after overhead)
 export const WATER_DOSE_INCHES = 3.0; // inches per watering action (~14 days worth at typical ET)
 export const STARTING_DAY = 59; // March 1 (0-indexed totalDay) — Spring start per SPEC
-export const SAVE_VERSION = '7.0.0';
+export const SAVE_VERSION = '8.0.0';
+
+// Slice 5a: K-lite constants
+export const STARTING_POTASSIUM = 150;      // lbs/acre — initial K for all cells
+export const K_MAX = 200;                    // lbs/acre — mineralization cap
+export const K_MINERALIZATION_RATE = 15;     // lbs/acre/year from natural cycling
+export const K_PRICE_FLOOR = 0.70;           // minimum K factor on harvest price
+export const K_SYMPTOM_THRESHOLD = 0.85;     // K factor below which symptoms appear
+
+// Slice 5a: Auto-irrigation cost multipliers by water tech level
+export const AUTO_IRRIGATION_COST_MULTIPLIERS: Record<number, number> = {
+  1: 0.70,  // basic drip/smart — 70% of manual cost
+  2: 0.50,  // recycling/advanced — 50%
+  3: 0.35,  // AI — 35%
+};
+
+// Slice 5a: Regime shift modifiers
+export const REGIME_WATER_REDUCTION = 0.80;  // 20% less effective watering
+export const REGIME_MARKET_CRASH_FACTOR = 0.70; // 30% price reduction
+
 
 export function createEmptyExpenseBreakdown(): ExpenseBreakdown {
   return { planting: 0, watering: 0, harvestLabor: 0, maintenance: 0, loanRepayment: 0, removal: 0, coverCrops: 0, eventCosts: 0, annualOverhead: 0 };

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ClimateFarmer26 is a browser-based educational simulation game where students role-play as California farmers across multiple years, making season-by-season strategic decisions as climate impacts challenge their operations. A successful playthrough teaches diversification, water conservation, and forward-thinking agricultural practices. The student experience should be pleasant and focused on key decisions — many systems run on autopilot until the student opts into manual control.
 
-**Status: Slice 4 complete. Ready for Slice 5 planning.** Core farming loop + event/storylet engine + seasonal draw + perennials + 7 crops + cover crops + 2 advisors (Dr. Santos + NWS Fresno) + yield curves + frost protection + economic rebalancing + 5 climate scenarios + classroom UX pass. Production build: ~44KB gzipped JS.
+**Status: Slice 5 planning in progress ("Adapt or Fail").** Slices 1-4 complete. Core loop + event engine + 7 crops + 2 advisors + yield curves + 5 scenarios + classroom UX. Slice 5 adds: tech tree via storylets (7-8 either/or decision points), 2 new competing advisors (banker + community), K-lite nutrients, 3 regime shifts, auto-irrigation, 2-3 novel crops, message variety, event cap. Production build: ~44KB gzipped JS.
 
 ## Workflow Rules
 
@@ -158,4 +158,4 @@ This section will grow as the project takes shape. Current rules:
 - Allowed integrations TBD (e.g., Google Sheets, Supabase) — do not add without approval
 - Do not add dependencies without discussing them first
 - Target hardware: Chromebooks. Performance budgets will be defined during architecture phase.
-- No new mechanics until the core loop (plant → grow → harvest → money → next season) is fully working and tested.
+- Do not implement Slice 6+ features (completion code, Google Form, full scoring formula, insurance/credit systems, solar lease) without explicit approval. Slice 5 scope is the boundary.

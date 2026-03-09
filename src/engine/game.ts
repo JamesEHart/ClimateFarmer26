@@ -13,8 +13,11 @@ import {
   LOAN_DEBT_CAP, DORMANCY_DAYS,
   OM_FLOOR, OM_YIELD_THRESHOLD, OM_YIELD_FLOOR, NITROGEN_CUSHION_FACTOR,
   N_MINERALIZATION_RATE, OM_DECOMP_RATE,
+  STARTING_POTASSIUM, K_MAX, K_MINERALIZATION_RATE, K_PRICE_FLOOR, K_SYMPTOM_THRESHOLD,
+  AUTO_IRRIGATION_COST_MULTIPLIERS, REGIME_WATER_REDUCTION, REGIME_MARKET_CRASH_FACTOR,
   createEmptyTrackingState, createEmptyExpenseBreakdown,
 } from './types.ts';
+import { getTechLevel } from './tech-levels.ts';
 import { evaluateEvents, drawSeasonalEvents, computeYearStressLevel } from './events/selector.ts';
 import { applyEffects, expireActiveEffects, getYieldModifier, getPriceModifier, getIrrigationCostMultiplier } from './events/effects.ts';
 import { STORYLETS } from '../data/events.ts';
@@ -116,6 +119,7 @@ function createInitialSoil(): SoilState {
     organicMatter: om,
     moisture: STARTING_MOISTURE,
     moistureCapacity: BASE_MOISTURE_CAPACITY + (om - 2.0) * OM_MOISTURE_BONUS_PER_PERCENT,
+    potassium: STARTING_POTASSIUM,
   };
 }
 
@@ -204,6 +208,12 @@ function processPlantCrop(state: GameState, row: number, col: number, cropId: st
   if (cell.crop) return { success: false, reason: 'This plot already has a crop.' };
 
   const cropDef = getCropDefinition(cropId);
+
+  // Slice 5a: Tech gating — crop requires a flag to unlock
+  if (cropDef.requiredFlag && !state.flags[cropDef.requiredFlag]) {
+    return { success: false, reason: `${cropDef.name} requires a technology unlock before planting.` };
+  }
+
   const cal = state.calendar;
   if (!isInPlantingWindow(cal.month, cropDef.plantingWindow.startMonth, cropDef.plantingWindow.endMonth)) {
     return {
@@ -249,6 +259,12 @@ function processPlantCrop(state: GameState, row: number, col: number, cropId: st
 
 function processPlantBulk(state: GameState, scope: 'all' | 'row' | 'col', cropId: string, index?: number): CommandResult {
   const cropDef = getCropDefinition(cropId);
+
+  // Slice 5a: Tech gating — crop requires a flag to unlock
+  if (cropDef.requiredFlag && !state.flags[cropDef.requiredFlag]) {
+    return { success: false, reason: `${cropDef.name} requires a technology unlock before planting.` };
+  }
+
   const cal = state.calendar;
   if (!isInPlantingWindow(cal.month, cropDef.plantingWindow.startMonth, cropDef.plantingWindow.endMonth)) {
     return {
@@ -517,7 +533,9 @@ export function executeWater(state: GameState, cells: Cell[], scenario?: Climate
   const allocation = scenario
     ? scenario.years[Math.min(state.calendar.year - 1, scenario.years.length - 1)].waterAllocation
     : 1.0;
-  const effectiveDose = WATER_DOSE_INCHES * allocation;
+  // Slice 5a: Permanent water reduction from regime shift
+  const regimeModifier = state.flags['regime_water_reduced'] ? REGIME_WATER_REDUCTION : 1.0;
+  const effectiveDose = WATER_DOSE_INCHES * allocation * regimeModifier;
 
   for (const cell of cells) {
     cell.soil.moisture = Math.min(cell.soil.moisture + effectiveDose, cell.soil.moistureCapacity);
@@ -970,21 +988,75 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
     }
   }
 
-  // Auto-pause: harvest ready
+  // Auto-pause: harvest ready (with count for affordance)
   if (anyHarvestReady) {
+    let readyCount = 0;
+    for (let row = 0; row < GRID_ROWS; row++) {
+      for (let col = 0; col < GRID_COLS; col++) {
+        const cell = state.grid[row][col];
+        if (cell.crop && cell.crop.growthStage === 'harvestable' &&
+            !(cell.crop.isPerennial && cell.crop.harvestedThisSeason)) {
+          readyCount++;
+        }
+      }
+    }
     state.autoPauseQueue.push({
       reason: 'harvest_ready',
-      message: 'Your crops are ready to harvest!',
+      message: readyCount === 1
+        ? '1 plot is ready to harvest!'
+        : `${readyCount} plots are ready to harvest!`,
     });
   }
 
-  // Auto-pause: water stress (first per season only)
-  if (anyWaterStress && !state.waterStressPausedThisSeason) {
-    state.waterStressPausedThisSeason = true;
-    state.autoPauseQueue.push({
-      reason: 'water_stress',
-      message: 'Some of your crops need water!',
-    });
+  // Auto-pause: water stress
+  // Slice 5a: With irrigation tech, auto-water on every qualifying tick.
+  // Without tech, manual pause fires once per season only.
+  if (anyWaterStress) {
+    const waterLevel = getTechLevel(state.flags, 'water');
+    if (waterLevel >= 1 && !state.wateringRestricted) {
+      // Auto-irrigation: water stressed cells, deducting reduced cost
+      // Apply both tech discount AND any event-based cost modifiers
+      const techMultiplier = AUTO_IRRIGATION_COST_MULTIPLIERS[waterLevel] ?? 0.70;
+      const eventMultiplier = getIrrigationCostMultiplier(state);
+      const costPerCell = IRRIGATION_COST_PER_CELL * techMultiplier * eventMultiplier;
+      // Count cells that need water
+      const stressedCells: Cell[] = [];
+      for (let row = 0; row < GRID_ROWS; row++) {
+        for (let col = 0; col < GRID_COLS; col++) {
+          const cell = state.grid[row][col];
+          if (cell.crop && cell.soil.moisture < cell.soil.moistureCapacity * WATER_STRESS_AUTOPAUSE_THRESHOLD) {
+            stressedCells.push(cell);
+          }
+        }
+      }
+      const totalCost = stressedCells.length * costPerCell;
+      if (state.economy.cash >= totalCost && stressedCells.length > 0) {
+        // Apply auto-irrigation
+        state.economy.cash -= totalCost;
+        state.economy.yearlyExpenses += totalCost;
+        state.tracking.currentExpenses.watering += totalCost;
+        const allocation = scenario.years[Math.min(state.calendar.year - 1, scenario.years.length - 1)].waterAllocation;
+        const regimeModifier = state.flags['regime_water_reduced'] ? REGIME_WATER_REDUCTION : 1.0;
+        const effectiveDose = WATER_DOSE_INCHES * allocation * regimeModifier;
+        for (const cell of stressedCells) {
+          cell.soil.moisture = Math.min(cell.soil.moisture + effectiveDose, cell.soil.moistureCapacity);
+        }
+      } else if (!state.waterStressPausedThisSeason) {
+        // Can't afford auto-irrigation — fall back to manual pause (once per season)
+        state.waterStressPausedThisSeason = true;
+        state.autoPauseQueue.push({
+          reason: 'water_stress',
+          message: 'Some of your crops need water!',
+        });
+      }
+    } else if (!state.waterStressPausedThisSeason) {
+      // No irrigation tech or watering restricted — manual pause (once per season)
+      state.waterStressPausedThisSeason = true;
+      state.autoPauseQueue.push({
+        reason: 'water_stress',
+        message: 'Some of your crops need water!',
+      });
+    }
   }
 
   // --- Seasonal event queue processing ---
@@ -1251,9 +1323,14 @@ function simulateSoil(cell: Cell, weather: DailyWeather): void {
   const nMineralization = soil.organicMatter * N_MINERALIZATION_RATE / DAYS_PER_YEAR;
   soil.nitrogen = Math.min(soil.nitrogen + nMineralization, 200); // Cap at 200
 
+  // Slice 5a: Potassium mineralization (natural slow recovery)
+  const kMineralization = K_MINERALIZATION_RATE / DAYS_PER_YEAR;
+  soil.potassium = Math.min(soil.potassium + kMineralization, K_MAX);
+
   assertFinite(soil.moisture, 'soil.moisture');
   assertFinite(soil.nitrogen, 'soil.nitrogen');
   assertFinite(soil.organicMatter, 'soil.organicMatter');
+  assertFinite(soil.potassium, 'soil.potassium');
 }
 
 // ============================================================================
@@ -1502,11 +1579,24 @@ export function harvestCell(state: GameState, cell: Cell, silent?: boolean): num
   const ageFactor = getPerennialAgeFactor(crop, cropDef);
   yieldAmount *= ageFactor;
 
+  // Slice 5a: Heat regime penalty for heat-sensitive crops
+  if (state.flags['regime_heat_threshold'] && cropDef.heatSensitivity !== undefined) {
+    yieldAmount *= cropDef.heatSensitivity;
+  }
+
   yieldAmount = Math.max(0, yieldAmount);
+
+  // Slice 5a: K-lite — potassium affects price quality, not yield
+  const kFactor = Math.min(1.0, Math.max(K_PRICE_FLOOR,
+    cell.soil.potassium / cropDef.potassiumUptake));
 
   // Apply event price modifier
   const priceMod = getPriceModifier(state, crop.cropId);
-  const actualPrice = cropDef.basePrice * priceMod;
+
+  // Slice 5a: Market crash regime reduces all prices
+  const regimePriceMod = state.flags['regime_market_crash'] ? REGIME_MARKET_CRASH_FACTOR : 1.0;
+
+  const actualPrice = cropDef.basePrice * priceMod * kFactor * regimePriceMod;
 
   const grossRevenue = yieldAmount * actualPrice;
   const laborCost = cropDef.laborCostPerAcre;
@@ -1537,6 +1627,22 @@ export function harvestCell(state: GameState, cell: Cell, silent?: boolean): num
     } else {
       addNotification(state, 'harvest',
         `Harvested ${cropDef.name}: ${yieldAmount.toFixed(1)} ${cropDef.yieldUnit} at $${actualPrice.toFixed(2)}/${cropDef.yieldUnit} = $${grossRevenue.toFixed(0)} (labor: $${laborCost})`);
+    }
+  }
+
+  // Slice 5a: K depletion at harvest
+  cell.soil.potassium = Math.max(0, cell.soil.potassium - cropDef.potassiumUptake);
+
+  // Slice 5a: K symptom cues — always notify when quality is affected, but
+  // reveal "potassium" only if player has soil testing. Non-testers get symptom language.
+  if (!silent && kFactor < K_SYMPTOM_THRESHOLD) {
+    if (state.flags['tech_soil_testing']) {
+      const pctLoss = Math.round((1 - kFactor) * 100);
+      addNotification(state, 'info',
+        `${cropDef.name}: low potassium reduced crop quality. Price reduced by ${pctLoss}%.`);
+    } else {
+      addNotification(state, 'info',
+        `${cropDef.name}: crop quality is declining — nutrient deficiency suspected.`);
     }
   }
 
@@ -1720,8 +1826,19 @@ export function getAvailableCrops(state: GameState): string[] {
   const { month } = state.calendar;
   return getAllCropIds().filter(id => {
     const def = getCropDefinition(id);
+    // Slice 5a: Exclude crops gated by a flag the player hasn't unlocked
+    if (def.requiredFlag && !state.flags[def.requiredFlag]) return false;
     return isInPlantingWindow(month, def.plantingWindow.startMonth, def.plantingWindow.endMonth);
   });
+}
+
+/**
+ * Select a message from a variety pool using the provided RNG.
+ * Used by message variety system to prevent players reading the same text twice.
+ */
+export function pickMessage(pool: readonly string[], rng: SeededRNG): string {
+  const index = Math.floor(rng.next() * pool.length);
+  return pool[index];
 }
 
 /** Calculate yield percentage for a crop (for display during overripe period) */

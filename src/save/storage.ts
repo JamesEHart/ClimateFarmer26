@@ -1,5 +1,5 @@
 import type { GameState, SaveGame } from '../engine/types.ts';
-import { SAVE_VERSION, GRID_ROWS, GRID_COLS, EVENT_RNG_SEED_OFFSET, createEmptyTrackingState } from '../engine/types.ts';
+import { SAVE_VERSION, GRID_ROWS, GRID_COLS, EVENT_RNG_SEED_OFFSET, STARTING_POTASSIUM, createEmptyTrackingState } from '../engine/types.ts';
 import { SLICE_1_SCENARIO } from '../data/scenario.ts';
 
 // ============================================================================
@@ -62,47 +62,50 @@ function readSave(key: string): GameState | null {
 
     const parsed = JSON.parse(raw) as SaveGame;
     if (!validateSave(parsed)) {
-      // Try v6 → v7 migration
+      // Helper: apply V7→V8 to a V7 state
+      const finishV7 = (v7State: GameState | null): GameState | null => {
+        if (!v7State) return null;
+        const v7Save = { version: '7.0.0', state: v7State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
+        return migrateV7ToV8(v7Save);
+      };
+      // Helper: apply V6→V7→V8 chain
+      const finishV6 = (v6State: GameState | null): GameState | null => {
+        if (!v6State) return null;
+        const v6Save = { version: '6.0.0', state: v6State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
+        return finishV7(migrateV6ToV7(v6Save));
+      };
+      // Helper: apply V5→V6→V7→V8 chain
+      const finishV5 = (v5State: GameState | null): GameState | null => {
+        if (!v5State) return null;
+        const v5Save = { version: '5.0.0', state: v5State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
+        return finishV6(migrateV5ToV6(v5Save));
+      };
+
+      // Try v7 → v8 migration
+      if (isV7Save(parsed)) {
+        return migrateV7ToV8(parsed);
+      }
+      // Try v6 → v7 → v8 chain
       if (isV6Save(parsed)) {
-        return migrateV6ToV7(parsed);
+        return finishV6(migrateV6ToV7(parsed));
       }
-      // Try v5 → v6 → v7 chain
+      // Try v5 → v6 → v7 → v8 chain
       if (isV5Save(parsed)) {
-        const v6State = migrateV5ToV6(parsed);
-        if (v6State) {
-          const v6Save = { version: '6.0.0', state: v6State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-          return migrateV6ToV7(v6Save);
-        }
+        return finishV5(migrateV5ToV6(parsed));
       }
-      // Try v4 → v5 → v6 → v7 chain
+      // Try v4 → v5 → ... → v8 chain
       if (isV4Save(parsed)) {
-        const v5State = migrateV4ToV5(parsed);
-        if (v5State) {
-          const v5Save = { version: '5.0.0', state: v5State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-          const v6State = migrateV5ToV6(v5Save);
-          if (v6State) {
-            const v6Save = { version: '6.0.0', state: v6State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-            return migrateV6ToV7(v6Save);
-          }
-        }
+        return finishV5(migrateV4ToV5(parsed));
       }
-      // Try v3 → v4 → v5 → v6 → v7 chain
+      // Try v3 → v4 → ... → v8 chain
       if (isV3Save(parsed)) {
         const v4State = migrateV3ToV4(parsed);
         if (v4State) {
           const v4Save = { version: '4.0.0', state: v4State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-          const v5State = migrateV4ToV5(v4Save);
-          if (v5State) {
-            const v5Save = { version: '5.0.0', state: v5State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-            const v6State = migrateV5ToV6(v5Save);
-            if (v6State) {
-              const v6Save = { version: '6.0.0', state: v6State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-              return migrateV6ToV7(v6Save);
-            }
-          }
+          return finishV5(migrateV4ToV5(v4Save));
         }
       }
-      // Try v2 → v3 → v4 → v5 → v6 → v7 chain
+      // Try v2 → v3 → ... → v8 chain
       if (isV2Save(parsed)) {
         const v3State = migrateV2ToV3(parsed);
         if (v3State) {
@@ -110,19 +113,11 @@ function readSave(key: string): GameState | null {
           const v4State = migrateV3ToV4(v3Save);
           if (v4State) {
             const v4Save = { version: '4.0.0', state: v4State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-            const v5State = migrateV4ToV5(v4Save);
-            if (v5State) {
-              const v5Save = { version: '5.0.0', state: v5State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-              const v6State = migrateV5ToV6(v5Save);
-              if (v6State) {
-                const v6Save = { version: '6.0.0', state: v6State, timestamp: (parsed as SaveGame).timestamp ?? Date.now() } as unknown as SaveGame;
-                return migrateV6ToV7(v6Save);
-              }
-            }
+            return finishV5(migrateV4ToV5(v4Save));
           }
         }
       }
-      // Try v1 → v2 → v3 → v4 → v5 → v6 → v7 chain
+      // Try v1 → v2 → ... → v8 chain
       if (isV1Save(parsed)) {
         const v2State = migrateV1ToV2(parsed);
         if (v2State) {
@@ -133,15 +128,7 @@ function readSave(key: string): GameState | null {
             const v4State = migrateV3ToV4(v3Save);
             if (v4State) {
               const v4Save = { version: '4.0.0', state: v4State, timestamp: Date.now() } as unknown as SaveGame;
-              const v5State = migrateV4ToV5(v4Save);
-              if (v5State) {
-                const v5Save = { version: '5.0.0', state: v5State, timestamp: Date.now() } as unknown as SaveGame;
-                const v6State = migrateV5ToV6(v5Save);
-                if (v6State) {
-                  const v6Save = { version: '6.0.0', state: v6State, timestamp: Date.now() } as unknown as SaveGame;
-                  return migrateV6ToV7(v6Save);
-                }
-              }
+              return finishV5(migrateV4ToV5(v4Save));
             }
           }
         }
@@ -194,41 +181,44 @@ export function listManualSaves(): SaveSlotInfo[] {
       const parsed = JSON.parse(raw) as SaveGame;
       const savedTimestamp = parsed.timestamp ?? Date.now();
 
-      // Try current-version validation first, then migration for older saves
+      // Try current-version validation first, then migration chain for older saves.
+      // Uses the same finishV* helpers as readSave for DRY migration chains.
       let state: GameState | null = null;
+
+      // Helper: apply V7→V8
+      const finishV7 = (v7State: GameState | null): GameState | null => {
+        if (!v7State) return null;
+        const v7Save = { version: '7.0.0', state: v7State, timestamp: savedTimestamp } as unknown as SaveGame;
+        return migrateV7ToV8(v7Save);
+      };
+      // Helper: apply V6→V7→V8
+      const finishV6 = (v6State: GameState | null): GameState | null => {
+        if (!v6State) return null;
+        const v6Save = { version: '6.0.0', state: v6State, timestamp: savedTimestamp } as unknown as SaveGame;
+        return finishV7(migrateV6ToV7(v6Save));
+      };
+      // Helper: apply V5→V6→V7→V8
+      const finishV5 = (v5State: GameState | null): GameState | null => {
+        if (!v5State) return null;
+        const v5Save = { version: '5.0.0', state: v5State, timestamp: savedTimestamp } as unknown as SaveGame;
+        return finishV6(migrateV5ToV6(v5Save));
+      };
+
       if (validateSave(parsed)) {
         state = parsed.state;
+      } else if (isV7Save(parsed)) {
+        state = migrateV7ToV8(parsed);
       } else if (isV6Save(parsed)) {
-        state = migrateV6ToV7(parsed);
+        state = finishV6(migrateV6ToV7(parsed));
       } else if (isV5Save(parsed)) {
-        const v6State = migrateV5ToV6(parsed);
-        if (v6State) {
-          const v6Save = { version: '6.0.0', state: v6State, timestamp: savedTimestamp } as unknown as SaveGame;
-          state = migrateV6ToV7(v6Save);
-        }
+        state = finishV5(migrateV5ToV6(parsed));
       } else if (isV4Save(parsed)) {
-        const v5State = migrateV4ToV5(parsed);
-        if (v5State) {
-          const v5Save = { version: '5.0.0', state: v5State, timestamp: savedTimestamp } as unknown as SaveGame;
-          const v6State = migrateV5ToV6(v5Save);
-          if (v6State) {
-            const v6Save = { version: '6.0.0', state: v6State, timestamp: savedTimestamp } as unknown as SaveGame;
-            state = migrateV6ToV7(v6Save);
-          }
-        }
+        state = finishV5(migrateV4ToV5(parsed));
       } else if (isV3Save(parsed)) {
         const v4State = migrateV3ToV4(parsed);
         if (v4State) {
           const v4Save = { version: '4.0.0', state: v4State, timestamp: savedTimestamp } as unknown as SaveGame;
-          const v5State = migrateV4ToV5(v4Save);
-          if (v5State) {
-            const v5Save = { version: '5.0.0', state: v5State, timestamp: savedTimestamp } as unknown as SaveGame;
-            const v6State = migrateV5ToV6(v5Save);
-            if (v6State) {
-              const v6Save = { version: '6.0.0', state: v6State, timestamp: savedTimestamp } as unknown as SaveGame;
-              state = migrateV6ToV7(v6Save);
-            }
-          }
+          state = finishV5(migrateV4ToV5(v4Save));
         }
       } else if (isV2Save(parsed)) {
         const v3State = migrateV2ToV3(parsed);
@@ -237,15 +227,7 @@ export function listManualSaves(): SaveSlotInfo[] {
           const v4State = migrateV3ToV4(v3Save);
           if (v4State) {
             const v4Save = { version: '4.0.0', state: v4State, timestamp: savedTimestamp } as unknown as SaveGame;
-            const v5State = migrateV4ToV5(v4Save);
-            if (v5State) {
-              const v5Save = { version: '5.0.0', state: v5State, timestamp: savedTimestamp } as unknown as SaveGame;
-              const v6State = migrateV5ToV6(v5Save);
-              if (v6State) {
-                const v6Save = { version: '6.0.0', state: v6State, timestamp: savedTimestamp } as unknown as SaveGame;
-                state = migrateV6ToV7(v6Save);
-              }
-            }
+            state = finishV5(migrateV4ToV5(v4Save));
           }
         }
       } else if (isV1Save(parsed)) {
@@ -258,15 +240,7 @@ export function listManualSaves(): SaveSlotInfo[] {
             const v4State = migrateV3ToV4(v3Save);
             if (v4State) {
               const v4Save = { version: '4.0.0', state: v4State, timestamp: savedTimestamp } as unknown as SaveGame;
-              const v5State = migrateV4ToV5(v4Save);
-              if (v5State) {
-                const v5Save = { version: '5.0.0', state: v5State, timestamp: savedTimestamp } as unknown as SaveGame;
-                const v6State = migrateV5ToV6(v5Save);
-                if (v6State) {
-                  const v6Save = { version: '6.0.0', state: v6State, timestamp: savedTimestamp } as unknown as SaveGame;
-                  state = migrateV6ToV7(v6Save);
-                }
-              }
+              state = finishV5(migrateV4ToV5(v4Save));
             }
           }
         }
@@ -571,6 +545,40 @@ function migrateV6ToV7(data: unknown): GameState | null {
         const expenses = snapshot.expenses as unknown as Record<string, unknown>;
         if (expenses.annualOverhead === undefined) {
           expenses.annualOverhead = 0;
+        }
+      }
+    }
+
+    return state as GameState;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================================
+// V7 → V8 Migration (adds potassium to soil state)
+// ============================================================================
+
+function isV7Save(data: unknown): boolean {
+  if (!data || typeof data !== 'object') return false;
+  const save = data as Record<string, unknown>;
+  return save.version === '7.0.0';
+}
+
+/**
+ * Migrate a v7 save to v8 by adding potassium to all cells' soil state.
+ * K-lite system: per-cell potassium affects harvest price.
+ */
+function migrateV7ToV8(data: unknown): GameState | null {
+  try {
+    const save = data as SaveGame;
+    const state = save.state as GameState & Record<string, unknown>;
+
+    // Add potassium to all cells' soil
+    for (const row of state.grid) {
+      for (const cell of row) {
+        if ((cell.soil as unknown as Record<string, unknown>).potassium === undefined) {
+          (cell.soil as unknown as Record<string, unknown>).potassium = STARTING_POTASSIUM;
         }
       }
     }

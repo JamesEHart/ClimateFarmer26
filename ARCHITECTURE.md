@@ -1,6 +1,6 @@
 # ARCHITECTURE.md — Technical Design Document (Draft)
 
-> **Status: Living document. Slices 1-4 implemented and reviewed. Slice 5 planning next.**
+> **Status: Living document. Slices 1-4 complete. Slice 5a (systems infrastructure) implemented. Slice 5b-5d in progress.**
 > Cross-references: `reference/SIMULATION_PATTERNS.md`, `reference/BackgroundDeepResearch.md`
 
 ## 1. Overview
@@ -21,7 +21,7 @@
 | Browser Tests | Playwright | Chromium-based, data-testid support |
 | CSS | CSS Modules | Scoped, zero runtime cost |
 | Hosting | GitHub Pages | Free static hosting |
-| Result Reporting | Completion code → Google Form | Zero server dependency |
+| Result Reporting | Completion code → Google Form *(Slice 6 target)* | Zero server dependency |
 
 ## 3. Performance Budget
 
@@ -311,26 +311,26 @@ interface SoilState {
 
 ### 5.6 Nutrient & Soil System
 
-Three-tier nutrient model (N → K → Zn) with detection gated by tech investment:
+Nutrient model with progressive disclosure gated by tech investment:
 
-| Nutrient | Role | Visibility Without Tech | With Tech |
-|----------|------|------------------------|-----------|
-| **Nitrogen (N)** | Yield volume ("gas pedal") | Narrative hints: "crops look pale" | Exact levels, drone heatmap, VRA prescriptions |
-| **Potassium (K)** | Quality/defense | Ambiguous hints: "leaf edges look scorched" (could be drought) | Hyperspectral distinction, specific treatment options |
-| **Zinc (Zn)** | Critical checkpoint (fruit set) | Surprise event: "fruit dropping off trees" (too late this year) | Historical data analysis, preventive application |
+| Nutrient | Role | Implemented | Visibility | Impact |
+|----------|------|-------------|------------|--------|
+| **Nitrogen (N)** | Yield volume ("gas pedal") | Slice 1 (full simulation) | Always visible | Yield penalty when depleted |
+| **Potassium (K)** | Quality/defense | Slice 5 (K-lite) | Hidden until `tech_soil_testing`; **symptom cues always visible** | Price/quality penalty (max 30%), affects ALL players |
+| **Zinc (Zn)** | Critical checkpoint (fruit set) | Deferred (Slice 6+) | — | — |
 
-**Daily soil update per cell:**
+**K-lite design principle:** K depletion affects ALL players equally — soil testing reveals the CAUSE and enables targeted management, but "head in the sand" is NOT a winning strategy. Players without soil testing get ambiguous symptom cues ("leaf edges look stressed," "harvest quality seems lower than expected") and price penalties. Soil testing reveals K levels numerically and unlocks precision fertilization options.
+
+**Daily soil update per cell (currently implemented):**
 ```
-N(t+1) = N(t) + fertilizer_applied + legume_fixation + OM_mineralization
-         - crop_uptake - leaching_loss
-K(t+1) = K(t) + fertilizer_applied - crop_removal    (slower cycling)
-Zn(t+1) = Zn(t) + amendment_applied - crop_removal   (very slow cycling)
-OM(t+1) = OM(t) + residue_input + compost - decomposition_rate * OM(t)
+N(t+1) = N(t) + legume_fixation + OM_mineralization - crop_uptake
+K(t+1) = K(t) + OM_K_mineralization - crop_removal     (Slice 5: slower cycling than N)
+OM(t+1) = OM(t) + residue_input - decomposition_rate * OM(t)
 moisture(t+1) = moisture(t) + irrigation + rain - ET - drainage
-moistureCapacity = base_capacity + OM_bonus           (per 1% OM ≈ +0.8in)
+moistureCapacity = base_capacity + OM_bonus             (per 1% OM ≈ +0.8in)
 ```
 
-**Over-application consequences:** Excess N → regulatory fine event (nitrate leaching). This teaches that more fertilizer is not always better.
+**Over-application consequences (deferred):** Excess N → regulatory fine event (nitrate leaching). Deferred to Slice 6+ with regulatory compliance system.
 
 ### 5.7 Crop System
 
@@ -427,9 +427,9 @@ interface EconomyState {
 - **Second insolvency OR debt > $100k:** Hard game over.
 - **Graceful end:** Reach year 30 → retirement event with final score.
 
-**Implementation note (Slice 2-3):** The actual EconomyState in `types.ts` currently has: `cash`, `debt`, `totalLoansReceived` (0 or 1), `interestPaidThisYear`, `yearlyRevenue`, `yearlyExpenses`. Slice 3 adds `frostProtectionEndsDay` to GameState (not economy — it's a game mechanic field). Fields like `creditRating`, `insurancePremiumRate`, `insuranceActive` are deferred to Slice 4+.
+**Implementation note (current through Slice 4):** The actual EconomyState in `types.ts` has: `cash`, `debt`, `totalLoansReceived` (0 or 1), `interestPaidThisYear`, `yearlyRevenue`, `yearlyExpenses`. Fields like `creditRating`, `insurancePremiumRate`, `insuranceActive` are aspirational design — deferred to Slice 6+. The interface shown above represents the full target, not current implementation.
 
-**Insurance:** Premium rate increases with claim history. After too many claims, insurance becomes unavailable ("uninsurable"). This creates real consequences for repeated climate losses without adaptation.
+**Insurance (deferred to Slice 6+):** Premium rate increases with claim history. After too many claims, insurance becomes unavailable ("uninsurable"). Not in scope for Slices 1-5.
 
 ### 5.9 Advisor System
 
@@ -439,8 +439,8 @@ interface EconomyState {
 |---------|------|-------------|-----------------|--------|
 | Dr. Maria Santos (County Extension Agent) | Crops, soil, tech recommendations | High (almost always correct) | Soil health drops, crop failures, new tech available | Slice 2c: 5 storylets implemented |
 | NWS Fresno (Weather Service) | Forecasts, extreme event warnings | Medium (sometimes wrong — false alarms) | Seasonal forecasts, approaching events | Slice 3c: 3 storylets (heat forecast, frost alert, drought outlook) |
-| Financial Advisor / Banker | Loans, insurance, investment | High for facts, debatable for strategy | Financial stress, tax season, high cash, insurance renewal | Deferred to Slice 4+ |
-| Farming Community (online/co-op) | Tips, market gossip, anecdotes | Low-Medium (sometimes right, sometimes noise) | Random/periodic, market rumors, peer experience | Deferred to Slice 4+ |
+| Marcus Chen (Valley Farm Credit) | ROI, cash flow, profit maximization | High for facts, debatable for strategy. Blind spot: long-term risk | Financial stress, tech decisions, high cash, crop strategy | Slice 5: competing advisor for tech decisions |
+| Valley Growers Forum | Tips, market gossip, anecdotes, novel crop rumors | Low-Medium (sometimes wrong, occasionally visionary) | Random/periodic, market rumors, novel approaches, community trends | Slice 5: wild-card advisor, source of unconventional ideas |
 
 Advisors appear as **game-pausing overlay panels** with character portrait, dialogue, and 2–3 choices. Advisor appearances are storylets in the event system — same mechanism, tagged as `type: "advisor"`. Each advisor has a unique `advisorId` on its storylets for UI character routing (Slice 3c).
 
@@ -503,7 +503,7 @@ interface SaveGame {
 **Auto-save:** Every season transition (4x per year), overwriting the previous auto-save.
 **Manual save:** Player can save to named slots. Limit to 3 manual slots.
 **Resume:** On page load, detect existing save and offer to continue or start new game.
-**Completion code:** Generated from final game state at year 30 (or bankruptcy). Contains player ID, score metrics, scenario ID, encoded + checksummed. Pre-fills a Google Form URL.
+**Completion code** *(Slice 6 target)*: Generated from final game state at year 30 (or bankruptcy). Contains player ID, score metrics, scenario ID, encoded + checksummed. Pre-fills a Google Form URL.
 
 ## 6. Data Files Structure
 
@@ -679,9 +679,9 @@ return 1.0 - (1.0 - declineFloor) × ((yp - declineStartYear) / (endOfLifeYear -
 ### Principle: Minimize data collection. No PII required by the app.
 
 - **Player identity:** Students enter a "Player ID" — a teacher-assigned code (e.g., "Period3-14") or a self-chosen nickname. **Real names are never required.** The field label should say "Player ID" not "Name." However, **students may still enter identifiable information** (e.g., their actual name as a nickname). The app cannot prevent this, so teachers should instruct students to use assigned codes.
-- **localStorage:** All save data stays on the student's device. Nothing is transmitted anywhere unless the student voluntarily submits a completion code.
-- **Completion code:** Contains the Player ID, score metrics, and scenario ID. The student manually submits this via Google Form — it's their action to click the link.
-- **Google Form:** The teacher controls the form and its data retention. The form may ask for real names separately (teacher's decision, outside our app). Our app never collects or stores real names.
+- **localStorage:** All save data stays on the student's device. Nothing is transmitted anywhere unless the student voluntarily submits a completion code *(Slice 6 target)*.
+- **Completion code** *(Slice 6 target)*: Will contain the Player ID, score metrics, and scenario ID. The student will manually submit this via Google Form — it's their action to click the link.
+- **Google Form** *(Slice 6 target)*: The teacher controls the form and its data retention. The form may ask for real names separately (teacher's decision, outside our app). Our app never collects or stores real names.
 - **No analytics, no tracking, no cookies** beyond localStorage for save data.
 - **Regulatory note:** This app is *designed* to avoid collecting PII: it requires no accounts, stores data only on-device, and transmits nothing without explicit student action. However, **we do not assert legal compliance with COPPA, FERPA, or any other regulation.** Schools deploying this should review it under their own data governance policies. Neal should consult with his school's IT/privacy office before classroom use if required by district policy.
 
@@ -763,7 +763,7 @@ Automated headless tests that run full 30-year games with scripted strategies. T
 - "Speed set to 4x → calendar advances visibly → auto-pauses on event"
 - "Glossary link on 'Nitrogen' opens glossary panel; game is paused"
 - "Save game, reload page, resume → game state matches"
-- "Complete 30-year game → completion code generated → Google Form link works"
+- "Complete 30-year game → completion code generated → Google Form link works" *(Slice 6 target)*
 
 ### Layer 4: Performance Tests (Vitest + Playwright)
 - "Simulation tick completes in <4ms on reference hardware"
@@ -836,7 +836,7 @@ The thinnest playable game. A student can plant crops, watch them grow, harvest,
 - Overripe crop lifecycle: 30-day grace period with linear yield decay (see SPEC.md DD-4)
 - Full engine unit tests + Playwright browser tests
 
-**Does NOT include:** Events, advisors, tech tree, perennials, automation, glossary, solar lease, K/Zn nutrients, cover crops, completion code. These are not stubbed — they simply don't exist yet.
+**Does NOT include:** Events, advisors, tech tree, perennials, automation, glossary, solar lease, K/Zn nutrients, cover crops, completion code. These are not stubbed — they simply don't exist yet. *(All except glossary, solar lease, Zn, and completion code are now implemented in Slices 2-5.)*
 
 **Acceptance gate:** A student can play through 5 in-game years, planting and harvesting annual crops, and their cash balance reflects realistic costs/revenues. Save/resume works. All controls are keyboard-accessible. All tests pass. Runs at 30fps on Chromebook.
 
@@ -875,7 +875,18 @@ Everything needed to hand this to students with confidence.
 
 **Stabilization:** TopBar CSS Grid layout (#78), perennial harvest UI fix (#79).
 
-**Deferred to Slice 5+:** Scoring + completion code, tech tree, automation policies, glossary, solar lease event chain, remaining advisors, insurance/credit systems, year-30 reflection panel.
+### Slice 5: Adapt or Fail (In Progress)
+Strategic depth, competing advisors, tech branching, and climate escalation. Transforms strategic flatness into genuine decision-making.
+
+**Sub-slices:**
+- 5a: System extensions ✅ COMPLETE — New condition types (`not_has_flag`, `tech_level_below`, `tech_level_at_least`), `getTechLevel()` reconvergence (3 tracks: water/soil/crop), K-lite potassium (per-cell depletion + price factor + symptom cues), auto-irrigation hook (tech-gated with cost multipliers), crop gating via `requiredFlag`, permanent regime shift modifiers (water/market/heat), separate tech/non-tech event clustering caps, harvest affordance count, `pickMessage()` for message variety, agave as first gated crop, save migration V7→V8 (SAVE_VERSION='8.0.0'). 666 unit tests passing.
+- 5b: Advisors + first tech branch (Marcus Chen + Valley Growers Forum, year-3 tech fork, auto-irrigation end-to-end, competing advice pattern)
+- 5c: Full content + regime shifts (remaining tech decisions years 6-24, 3 regime shifts, 2-3 novel crops, Year-30 reflection panel)
+- 5d: Balance + validate (bot updates for tech paths, Monte Carlo variety metrics, AI playtesting)
+
+**Key systems:** Tech decisions via storylets (not separate UI). Tech level abstraction (water 0-3, soil 0-3, crop 0-2) for reconvergence. Pain-triggered offers. Hybrid reoffer policy. Persistent regime shifts via flags.
+
+**Deferred to Slice 6+:** Scoring formula + completion code + Google Form, insurance/credit systems, glossary, solar lease event chain, automation policies beyond irrigation, full tech tree UI.
 
 ## 14. Open Questions
 

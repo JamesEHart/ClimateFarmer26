@@ -8,6 +8,7 @@ import type { Storylet, Condition, PendingForeshadow, ScheduledEvent } from './t
 import { SeededRNG } from '../rng.ts';
 import { GRID_ROWS, GRID_COLS } from '../types.ts';
 import { getCropDefinition } from '../../data/crops.ts';
+import { getTechLevel } from '../tech-levels.ts';
 
 export interface EvaluateEventsResult {
   fireEvent: Storylet | null;
@@ -80,6 +81,12 @@ export function evaluateCondition(
       return state.economy.debt === 0;
     case 'has_flag':
       return state.flags[condition.flag] === true;
+    case 'not_has_flag':
+      return state.flags[condition.flag] !== true;
+    case 'tech_level_below':
+      return getTechLevel(state.flags, condition.track) < condition.level;
+    case 'tech_level_at_least':
+      return getTechLevel(state.flags, condition.track) >= condition.level;
     case 'has_declining_perennial': {
       for (let r = 0; r < GRID_ROWS; r++) {
         for (let c = 0; c < GRID_COLS; c++) {
@@ -405,14 +412,23 @@ export function drawSeasonalEvents(
     candidates.push({ storylet, family: storylet.type });
   }
 
-  // Step 3: Apply family caps (max 1 per type per season)
-  // Array order = priority tiebreaker (first eligible wins)
+  // Step 3: Apply caps — separate pools for tech-unlock vs non-tech events
+  // Tech pool: max 1 tech-unlock per season (identified by 'tech-unlock' tag)
+  // Non-tech pool: max 1 per family type per season (existing family cap)
+  let techAccepted = false;
   const familySeen = new Set<string>();
   const accepted: Storylet[] = [];
   for (const { storylet, family } of candidates) {
-    if (familySeen.has(family)) continue;
-    familySeen.add(family);
-    accepted.push(storylet);
+    const isTech = storylet.tags?.includes('tech-unlock') ?? false;
+    if (isTech) {
+      if (techAccepted) continue;
+      techAccepted = true;
+      accepted.push(storylet);
+    } else {
+      if (familySeen.has(family)) continue;
+      familySeen.add(family);
+      accepted.push(storylet);
+    }
   }
 
   // Step 4: Schedule fire days

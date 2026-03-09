@@ -5,6 +5,7 @@
 // ============================================================================
 
 import type { Season, NotificationType } from '../types.ts';
+import type { TechTrack } from '../tech-levels.ts';
 
 // --- Conditions (preconditions for storylet eligibility) ---
 
@@ -22,7 +23,10 @@ export type Condition =
   | { type: 'no_debt' }
   | { type: 'no_perennial_planted' }
   | { type: 'has_flag'; flag: string }
+  | { type: 'not_has_flag'; flag: string }
   | { type: 'has_declining_perennial' }
+  | { type: 'tech_level_below'; track: TechTrack; level: number }
+  | { type: 'tech_level_at_least'; track: TechTrack; level: number }
   | { type: 'random'; probability: number };
 
 // --- Effects (what happens when a choice is selected) ---

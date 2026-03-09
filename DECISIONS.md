@@ -60,7 +60,7 @@ Format: **Date — Decision — Rationale**
 
 2026-02-12 — 12 crops + cover crop strategies — 7 current SJV crops + 5 future/adaptive crops. Future crops unlock via tech tree events. Data-driven (JSON definitions, generic engine).
 
-2026-02-12 — N/K/Zn nutrient tracking — Nitrogen (yield), Potassium (quality/defense), Zinc (critical checkpoint). Detection gated by tech investment. Without monitoring: narrative hints only.
+2026-02-12 — N/K/Zn nutrient tracking — Nitrogen (yield), Potassium (quality/defense), Zinc (critical checkpoint). Detection gated by tech investment. Without monitoring: narrative hints only. *(Superseded 2026-03-09: K-lite potassium implemented in Slice 5a as price modifier with symptom cues. Zn deferred to Slice 6+.)*
 
 2026-02-12 — 4 advisors (real-world-grounded) — Extension agent (reliable), Financial advisor (factual), Weather service (sometimes wrong), Farming community (unreliable but sometimes insightful). Advisors are storylets in the event system.
 
@@ -116,7 +116,7 @@ Format: **Date — Decision — Rationale**
 
 2026-02-12 — Overripe crops: auto-pause + 30-day grace period + linear yield decay (DD-4) — Game auto-pauses when crop becomes harvestable. Student can harvest or continue. If continued, 30-day grace period with yield decaying from 100% to 0%. After 30 days, crop rots (total loss). Future slice: sell rotting product as animal feed.
 
-2026-02-12 — Manual "weekly dose" watering with first-per-season auto-pause (DD-5) — Each Water action provides ~14 days of moisture. Auto-pause fires once per season when moisture first drops below 25% capacity. Visual warnings at 30% (yellow) and 15% (red/wilting) without pausing. Low-tech "garden hose sprinkler" level. Irrigation upgrades and water rights trading are Slice 3+ tech tree.
+2026-02-12 — Manual "weekly dose" watering with first-per-season auto-pause (DD-5) — Each Water action provides ~14 days of moisture. Auto-pause fires once per season when moisture first drops below 25% capacity. Visual warnings at 30% (yellow) and 15% (red/wilting) without pausing. Low-tech "garden hose sprinkler" level. Irrigation upgrades and water rights trading are Slice 3+ tech tree. *(Superseded 2026-03-09: Auto-irrigation implemented in Slice 5a as tech tree unlock — water tech level ≥ 1 auto-waters stressed cells with cost multipliers by tech level.)*
 
 2026-02-12 — Student-facing terminology: "plots" and "field" (not "cells" and "grid") — UI uses farm language. Code and data-testid use engineering terms for ARCHITECTURE.md consistency.
 
@@ -154,7 +154,7 @@ Format: **Date — Decision — Rationale**
 
 2026-02-24 — TAKE_LOAN command is parameterless — Engine computes loan amount from current state: `Math.ceil((Math.abs(cash) + 5000) / 1000) * 1000`. This prevents command tampering from bypassing loan rules. The UI shows the computed amount; the player accepts or declines.
 
-2026-02-24 — One loan per game, fixed 10% annual interest — `totalLoansReceived` is 0 or 1. No credit rating, variable rates, or insurance in Slice 2. Interest accrues daily via simple interest: `dailyInterest = debt * (0.10 / 365)`. Deferred to Slice 3+: credit rating, insurance, variable rates.
+2026-02-24 — One loan per game, fixed 10% annual interest — `totalLoansReceived` is 0 or 1. No credit rating, variable rates, or insurance in Slice 2. Interest accrues daily via simple interest: `dailyInterest = debt * (0.10 / 365)`. *(Originally deferred to Slice 3+; superseded 2026-03-09: credit rating, insurance, and variable rates deferred to Slice 6+.)*
 
 2026-02-24 — Loan repayment contract: 20% of gross harvest revenue — Triggered inside `harvestCell()` after revenue is calculated. Sequence: (1) compute grossRevenue = actualYield × actualPrice, (2) add grossRevenue to cash and yearlyRevenue, (3) if debt > 0: repayment = min(grossRevenue × 0.20, debt), subtract repayment from cash, subtract from debt, add to yearlyExpenses. Net to farmer = grossRevenue - repayment.
 
@@ -214,7 +214,7 @@ Format: **Date — Decision — Rationale**
 
 2026-02-25 — 4 sub-slices: 3a1 → 3a2 → 3b → 3c — Split from original 3-part plan after senior engineer review. 3a1 (stretch events + new crops) and 3a2 (yield curves) were originally one sub-slice, split to reduce risk.
 
-2026-02-25 — Explicit Slice 4+ deferrals — Tech tree, K+Zn nutrients, insurance/credit expansion, multi-scenario, Financial/Community advisors, automation policies, glossary, solar lease, sound. No crop unlock gating (all crops available from game start).
+2026-02-25 — Explicit Slice 4+ deferrals — Tech tree, K+Zn nutrients, insurance/credit expansion, multi-scenario, Financial/Community advisors, automation policies, glossary, solar lease, sound. No crop unlock gating (all crops available from game start). *(Superseded 2026-03-09: Tech tree (storylets + flags), K-lite potassium, auto-irrigation, competing advisors, and crop gating via `requiredFlag` all implemented in Slice 5. Multi-scenario resolved in Slice 4a. Remaining deferrals (Zn, insurance/credit, glossary, solar lease, full automation) moved to Slice 6+.)*
 
 ### Sub-slice 3a1: New Crops + Events
 
@@ -313,3 +313,59 @@ Format: **Date — Decision — Rationale**
 2026-03-04 — Anti-luck variance: hybrid ratio/absolute check for thin-margin bots — Original §30.3 anti-luck gate checked `p75/p25 < 2×` for all bots. After overhead, zero-irrigation's thin margins (~$1K p25, ~$5K p75) create high ratios even though absolute spread is small ($4K). Ratio-based checks are meaningless when the denominator is near zero. New rule: bots with p25 > $5,000 use ratio check (p75/p25 < 2×); bots with p25 ≤ $5,000 use absolute spread check (p75 - p25 < $10,000). Both gates prevent outcome-is-random-noise scenarios.
 
 2026-03-04 — Save migration V6→V7 — Adds `annualOverhead: 0` to `ExpenseBreakdown` in `tracking.currentExpenses` and all historical `yearSnapshots[].expenses`. SAVE_VERSION bumps to `'7.0.0'`. Full migration chain: V1→V2→V3→V4→V5→V6→V7.
+
+## Slice 5 Design Decisions
+
+### Scope & Vision
+
+2026-03-09 — Slice 5 objective: "Adapt or Fail" — Transform strategic flatness into genuine decision-making. Core problem: one dominant strategy (diversify + water + follow Santos). Fix via competing advice, either/or tech branches, regime shifts forcing pivots, and message variety eliminating repetitive text. Design rule: Pain → Choice → Consequence → Reflection.
+
+2026-03-09 — Completion code / Google Form deferred to Slice 6 — Year-30 reflection panel ships in 5c. Assessment via screenshots + bell ringer questions + classroom discussion.
+
+### Tech Tree Architecture
+
+2026-03-09 — Tech decisions via storylets, not separate UI — Choices arrive as advisor events with either/or options. Unlocks tracked in `state.flags`. No dedicated tech tree panel. ~7-8 decision points, years 3-24, roughly every 3 years.
+
+2026-03-09 — Tech level abstraction for reconvergence — Three tracks (water 0-3, soil 0-3, crop 0-2). Different specific techs map to same level. Late-game offers check levels, not specific flags. Prevents exponential content branching.
+
+2026-03-09 — Pain-triggered, time-limited tech offers — Offers appear when player has recently experienced relevant problems. Choices expire. Creates relevance and tension.
+
+2026-03-09 — Hybrid reoffer: skipped tech returns in different form — Core monotony reducers (irrigation) always re-offered at changed terms. Other techs may expire, but the underlying PROBLEM resurfaces with a different solution.
+
+2026-03-09 — Either/or with genuine tradeoffs + explicit advisor conflict — Santos recommends sustainability, banker recommends ROI. Neither always right. Community voice adds wild-card third perspective. Correct choice depends on uncertain future conditions.
+
+### Competing Advisors
+
+2026-03-09 — Two new advisor characters — Marcus Chen (Valley Farm Credit, `farm-credit`): ROI/profit perspective, sometimes pushy, blind spot is long-term risk. Valley Growers Forum (`growers-forum`): anecdotal, trend-following, sometimes wrong but occasionally visionary before anyone else. All advisors have character flaws.
+
+### Nutrient Model
+
+2026-03-09 — K-lite: potassium as optimization pressure — `SoilState.potassium` per cell. Slow depletion, price/quality impact (max 30% drop). Hidden until `tech_soil_testing` flag. Timebox: fall back to narrative K events if unstable.
+
+### Regime Shifts
+
+2026-03-09 — Three persistent regime shifts — (1) Permanent water allocation reduction (Y10-12, SGMA-inspired groundwater governance), (2) Market price crash for one dominant crop (Y15-18, varies by scenario), (3) Heat threshold crossing (Y20-25, permanent yield penalty on heat-sensitive crops). All choices lead to permanent change — player chooses HOW to cope. Informed by real CA policy: SGMA, DWR projections, PPIC research on SJV land transition.
+
+### Novel Crops
+
+2026-03-09 — 2-3 tech-gated novel crops — Agave (drought adaptation), heat-tolerant avocados (heat adaptation + high value), table grapes (stretch). `CropDefinition.requiredFlag` gates availability. Prioritize climate adaptation signal and student recognizability.
+
+### Anti-Monotony
+
+2026-03-09 — Message variety pools — Every recurring interaction (water stress, season change, harvest, advisor revisit) uses randomized text pools. Same text never appears twice consecutively for same event type.
+
+### Engineering Approach
+
+2026-03-09 — Systems-first, data-heavy — Small system extensions unlock large content variety. Sub-sliced: 5a (systems) → 5b (advisors + first tech branch) → 5c (full content + regime shifts) → 5d (balance + validate).
+
+2026-03-09 — Balance gates include variety metrics — No single dominant strategy, multiple viable tech paths, midgame pivots required, materially different decision sets across runs.
+
+### Refinements from Senior Engineer Review
+
+2026-03-09 — K affects ALL players, not just monitors — K depletion applies price/quality penalties regardless of whether the player has soil testing. Players without soil testing get ambiguous symptom cues ("leaf edges look stressed," "harvest quality seems lower than expected"). Soil testing reveals the CAUSE and enables targeted management. "Head in the sand" is not a winning strategy.
+
+2026-03-09 — Reoffers vary by economic context, not just tech level — Two players at the same tech level but different financial health get different reoffer terms. Cash, debt, crop age, and credit history complement tech levels in determining offer content. Reoffers are not strictly cheaper — they're contextually different.
+
+2026-03-09 — Event cap: separate pools for tech vs. non-tech — Max 1 tech-unlock event + max 1 non-tech event (climate/market/regulatory) per season. Prevents tech offers from starving climate pressure and vice versa. Condition-only advisors remain uncapped.
+
+2026-03-09 — Late-game decision gates include economic + regime state — Tech levels alone are too coarse for decisions 5-7. Add cash/debt band and active regime flags (water/market/heat) to storylet preconditions, so late-game offers stay simulation-accurate even when tech levels have converged.

@@ -1,5 +1,7 @@
 # HANDOFF.md — Post-Slice 4 Completion Snapshot
 
+> **ARCHIVAL DOCUMENT.** This snapshot reflects the project state as of 2026-03-06, after Slice 4 completion. Slice 5a implementation is now in progress — see CLAUDE.md, DECISIONS.md, and ARCHITECTURE.md for current status. Metrics, architecture references, and deferred feature lists below are stale.
+
 **Date:** 2026-03-06
 **Status:** Slice 4 complete (sub-slices 4a + 4b + 4b.5 + 4c + 4d + 4e + stabilization). Ready for Slice 5 planning.
 

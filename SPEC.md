@@ -1,6 +1,6 @@
 # SPEC.md — Acceptance Tests & Requirements
 
-> **Status: Living document. Slice 1 locked. Slices 2-3 implemented and reviewed. Slice 4 spec added (§30-32).**
+> **Status: Living document. Slices 1-4 implemented and reviewed. Slice 5 ("Adapt or Fail") in planning.**
 > Format: **When** [user action], **I should see** [expected result].
 > Negative cases use: **When** [action], **I should NOT see** [bad outcome] / **the system should** [prevent it].
 
@@ -44,7 +44,7 @@ For "Plant Row" and "Plant Column" (max 8 plots): all-or-nothing, since the cost
 For "Water Field" with insufficient cash: same pattern — round down to complete rows. "You can afford to water 5 rows (40 plots) for $200. Water 5 rows?"
 
 #### DD-2: Year 30 ending & bankruptcy
-**Year 30:** Game pauses with "You completed 30 years of farming! Final cash: $X." Simple message, no score or completion code (those are Slice 4).
+**Year 30:** Game pauses with "You completed 30 years of farming! Final cash: $X." Simple message, no score or completion code (deferred to Slice 6).
 
 **Bankruptcy:** Cash ≤ $0 is game over. The system shows a final report: what happened, what the student might try differently, and a "Start New Game" button. No emergency loans or further credit in Slice 1 (soft recovery with loans is Slice 2).
 
@@ -63,7 +63,7 @@ For "Water Field" with insufficient cash: same pattern — round down to complet
 
 **Visual indicators (no auto-pause):** Plots show a yellow moisture warning at 30% capacity and a red wilting indicator at 15% capacity. These are always visible regardless of auto-pause history.
 
-*Future slice note:* Irrigation system upgrades (drip, AI-driven), buying/leasing neighbor's water rights, and seasonal irrigation contracts are tech tree options in Slice 3+. Water rights trading is a real practice in California's San Joaquin Valley (~1.5M acre-feet traded annually).
+*Future slice note:* Irrigation system upgrades (drip, AI-driven), buying/leasing neighbor's water rights, and seasonal irrigation contracts are tech tree options in Slice 5+. Water rights trading is a real practice in California's San Joaquin Valley (~1.5M acre-feet traded annually).
 
 ---
 
@@ -832,7 +832,9 @@ Five reference strategies define the difficulty curve. All targets are evaluated
 - **When** a student ignores soil health entirely (no cover crops, no fertilizer events), **they should see** OM drop below 1.5% by year 20, with visible yield drag.
 - **When** comparing two otherwise-identical strategies, one with cover crops and one without, **the cover crop strategy should** outperform by a measurable margin (≥10% higher median final cash over 30 years).
 
-### 31. Scoring & End-of-Game Evaluation
+### 31. Scoring & End-of-Game Evaluation — DEFERRED TO SLICE 6
+
+> **Note:** Scoring formula, completion code, and Google Form integration are deferred to Slice 6. Slice 5 ships a Year-30 reflection panel using `yearSnapshots` data (narrative summary, not scored). For initial classroom use, assessment is via screenshots + bell ringer questions + classroom discussion. The spec below is retained as the design target for Slice 6.
 
 #### 31.1 Scoring Formula
 
@@ -874,10 +876,11 @@ The end-of-game score rewards **resilient, sustainable farming** — not just ma
 #### 32.3 Calendar Display Lag (#54)
 - **When** I click "Continue to Year N", **I should see** the calendar update immediately (not wait for next simulation tick).
 
-#### 32.4 Event Clustering Cap (#47) — DEFERRED TO SLICE 5
-- **Deferred.** Touches engine scheduling + balance. Will be designed alongside Slice 5 event surface expansion.
-- **When** events fire during a season, **the system should** cap at 2 events per season (excluding advisors, which have their own cadence).
-- **When** a third event would fire in the same season, **the system should** defer it to the next season or suppress it.
+#### 32.4 Event Clustering Cap (#47) — SLICE 5
+- **When** events fire during a season, **the system should** enforce separate caps: max 1 tech-unlock event + max 1 non-tech event per season (excluding condition-only advisors, which have their own cadence).
+- **When** a tech-unlock event has already fired this season, **the system should** suppress additional tech-unlock events until next season.
+- **When** a non-tech event (climate/market/regulatory) has already fired this season, **the system should** suppress additional non-tech events until next season.
+- Tech offers **must not** starve climate pressure events, and vice versa.
 
 #### 32.5 Pause-to-Play Transition (#50)
 - **When** the game is paused at 0x speed and I have taken an action (planted, watered, etc.), **I should see** a visual prompt near the speed controls indicating I need to press play to continue.
@@ -895,16 +898,16 @@ The end-of-game score rewards **resilient, sustainable farming** — not just ma
 
 ### Slice 4 data-testid Coverage
 
-#### Scoring & End Game
-- `score-panel` — final score display container
-- `score-total` — total composite score
-- `score-financial` — financial stability sub-score
-- `score-soil` — soil health sub-score
-- `score-diversity` — crop diversity sub-score
-- `score-adaptation` — climate adaptation sub-score
-- `score-consistency` — consistency sub-score
-- `completion-code` — completion code display
-- `completion-copy` — copy code button
+#### Scoring & End Game — DEFERRED TO SLICE 6
+- `score-panel` — final score display container (Slice 6)
+- `score-total` — total composite score (Slice 6)
+- `score-financial` — financial stability sub-score (Slice 6)
+- `score-soil` — soil health sub-score (Slice 6)
+- `score-diversity` — crop diversity sub-score (Slice 6)
+- `score-adaptation` — climate adaptation sub-score (Slice 6)
+- `score-consistency` — consistency sub-score (Slice 6)
+- `completion-code` — completion code display (Slice 6)
+- `completion-copy` — copy code button (Slice 6)
 
 #### UX Improvements
 - `expense-breakdown` — year-end expense category breakdown
@@ -970,4 +973,102 @@ The end-of-game score rewards **resilient, sustainable farming** — not just ma
 
 ---
 
-*Slice 5+ specs will be added as Slice 4 balance testing and classroom readiness are completed.*
+---
+
+## Slice 5: Adapt or Fail
+
+### 33. Tech Decision Framework
+
+#### 33.1 Tech Levels & Reconvergence
+- The engine tracks three capability tracks: water (0-3), soil (0-3), crop (0-2). Levels are computed from `state.flags`, not stored separately.
+- **When** two students have reached the same tech level via different specific technologies, **they should see** equivalent downstream tech offers. Different paths, same capability = same future options.
+
+#### 33.2 Tech Decisions via Storylets
+- **When** a tech decision fires (roughly every 3 years, years 3-24), **I should see** an advisor event with 2-3 mutually exclusive choices.
+- **When** I pick a tech choice, **I should see** a flag set and an immediate or progressive mechanical benefit (e.g., auto-irrigation, K visibility, novel crop unlocked).
+- **When** I skip/dismiss a tech decision, **the underlying problem should** resurface later with a different solution at different terms (hybrid reoffer).
+- **When** a reoffer appears, **the terms should** reflect my current financial and farm state (cash, debt, crop health), not be a fixed cheaper version.
+
+#### 33.3 Pain-Triggered Offers
+- **When** I have experienced water stress repeatedly, **tech offers related to irrigation should** appear.
+- **When** I have experienced yield loss or quality decline, **tech offers related to soil/nutrients should** appear.
+- **When** I have not experienced a specific pain, **the corresponding tech offer may still appear** but with lower priority.
+
+#### 33.4 Auto-Irrigation
+- **When** I have any water-level-1+ tech (drip, deficit, smart irrigation), **the system should** auto-irrigate when moisture drops below threshold instead of showing a water_stress auto-pause.
+- **When** auto-irrigation fires, **I should see** a notification (with varied text — never the same message twice in a row).
+- **When** auto-irrigation fires, **it should** cost money (reduced from manual: 30% savings at level 1, 50% at level 2).
+- **When** I can't afford auto-irrigation, **the system should** fall back to a water_stress auto-pause.
+
+### 34. Competing Advisors
+
+- **When** a major decision appears (tech choices, regime shift responses), **I should see** conflicting recommendations from different advisors.
+- **When** Dr. Santos recommends a sustainability option, **Marcus Chen (Valley Farm Credit) should** recommend the ROI-maximizing option.
+- **When** a novel or unconventional option exists, **the Valley Growers Forum should** be the source.
+- Advisors should have visible character flaws: Santos can be too conservative, Chen too focused on short-term returns, the Forum sometimes wrong.
+
+### 35. K-Lite Potassium
+
+- **When** any crop is harvested, **the system should** deplete potassium from the cell's soil based on crop-specific uptake.
+- **When** potassium is low, **harvest prices should** be reduced (quality penalty, max 30% reduction). This affects ALL players regardless of soil testing.
+- **When** potassium is low and I do NOT have soil testing tech, **I should see** ambiguous symptom cues: "leaf edges look stressed," "harvest quality seems lower than expected," "quality likely reduced by an unmeasured nutrient issue."
+- **When** potassium is low and I DO have soil testing tech, **I should see** the K level numerically in SidePanel and specific advisor guidance on K management.
+- **When** I do not monitor K, **I should NOT** gain a strategic advantage over players who do — K penalties apply equally regardless of awareness.
+
+### 36. Regime Shifts (Persistent)
+
+- **When** a regime shift fires, **ALL choices should** lead to the permanent state change. The player chooses HOW to cope, not WHETHER the shift happens.
+- **When** the water regime shift fires (year 10-12), **water allocation should** permanently drop to 80% for the rest of the game.
+- **When** the market regime shift fires (year 15-18), **one dominant crop's price should** permanently drop 25-40%. Which crop is affected varies by scenario.
+- **When** the heat regime shift fires (year 20-25), **heat-sensitive crops should** receive a permanent yield penalty.
+
+### 37. Novel Crops (Tech-Gated)
+
+- **When** I have NOT unlocked a novel crop via tech research, **I should NOT see** it in the crop menu or be able to plant it.
+- **When** I unlock a novel crop, **I should see** it appear in the crop menu with a "NEW" indicator and be able to plant it.
+- Novel crops: agave (drought-adapted perennial), heat-tolerant avocados (heat-adapted perennial), table grapes (high-value, heat-vulnerable perennial — stretch).
+
+### 38. Message Variety
+
+- **When** water stress fires repeatedly, **I should see** different notification text each time (pool of ≥5 variants).
+- **When** a season changes, **I should see** contextual messages that reference current farm state, not identical text every season.
+- **When** the same auto-pause reason fires again, **I should NOT see** the exact same message text as last time.
+
+### 39. Year-30 Reflection Panel
+
+- **When** I complete 30 years, **I should see** a reflection panel summarizing my farming arc: financial trajectory, soil health trend, key decisions, crops grown, advisors consulted, regime shifts weathered.
+- **When** I go bankrupt, **I should see** a similar panel for the years I survived.
+- The reflection panel uses `yearSnapshots` data. No composite score yet (Slice 6).
+
+### 40. Harvest Affordance (#62)
+
+- **When** any plots on the field are harvestable, **the Harvest Field button should** show "(N ready)" with the count of harvestable plots.
+- **When** no plots are harvestable, **the button should** show no count.
+
+### Slice 5 data-testid Coverage
+
+#### Tech Decisions
+- `tech-choice-{choiceId}` — tech decision choice button
+- `tech-decision-panel` — tech decision event panel
+
+#### Advisors
+- `advisor-panel-farm-credit` — banker advisor panel
+- `advisor-panel-growers-forum` — community advisor panel
+
+#### Novel Crops
+- `menu-crop-agave` — agave option in crop menu (when unlocked)
+- `menu-crop-heat-avocado` — heat-tolerant avocado option (when unlocked)
+- `menu-crop-table-grapes` — table grape option (when unlocked)
+- `crop-locked-{cropId}` — locked crop indicator (not yet researched)
+
+#### Reflection
+- `reflection-panel` — year-30 reflection display
+- `reflection-financial` — financial arc summary
+- `reflection-soil` — soil health trajectory
+- `reflection-decisions` — key decisions summary
+
+#### Soil (K-lite)
+- `sidebar-soil-k` — potassium display (when soil testing unlocked)
+- `sidebar-soil-k-hidden` — hidden K indicator ("???")
+
+*Slice 6 specs (scoring, completion code, Google Form) will be added after Slice 5 ships.*

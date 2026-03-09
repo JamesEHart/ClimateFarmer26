@@ -53,6 +53,18 @@ A slice is done only when all are true:
 4. Write acceptance tests for that slice.
 5. Implement via TDD.
 
+## MCP-Assisted Codebase Review (jcodemunch)
+- Default to `jcodemunch` first for structural understanding in large files/repositories.
+- Re-index local repo before deep review if code changed materially:
+  - `index_folder(path="/Users/naddicott/ClimateFarmer26", incremental=true)`
+- Use tool by intent:
+  - `get_repo_outline` / `get_file_tree`: architecture and file-map orientation.
+  - `search_symbols` + `get_symbol`: API surface and exact symbol source.
+  - `get_file_outline`: fast per-file symbol map before reading raw source.
+  - `search_text` or `rg`: string-level references, data arrays, tests, and parser edge cases.
+- Supervisory rule: for review comments, cite exact files/lines from source of truth (not only symbol summaries).
+- If jcodemunch and raw grep disagree, trust raw source and note the index staleness risk explicitly.
+
 ## Reviewer Checklist (Senior Pass)
 Review every contribution as untrusted until proven:
 1. Spec compliance: does behavior match acceptance checks exactly?
@@ -102,12 +114,12 @@ Keep these current at all times:
 4. What must be measured (performance, reliability, usability) before moving on?
 5. What assumptions are still unverified?
 
-## Current State Snapshot (2026-03-06, Post-Slice 4 Complete)
+## Current State Snapshot (2026-03-09, Slice 5a Planning/In-Progress)
 
 ### Executive Status
 1. Slice 4 is **complete** (4a balance infrastructure → 4b event refactor → 4c economic rebalancing → 4d overhead tuning → 4e classroom UX pass → stabilization fixes).
-2. Project is **ready for Slice 5 planning**.
-3. Classroom-critical UX issues from external QA rounds resolved. Water fatigue (#59, HIGH) remains open — recommended for Slice 5 tech tree unlock.
+2. Slice 5 planning is active; Sub-Slice 5a foundations are being implemented/tested.
+3. Classroom-critical UX issues from external QA rounds resolved. Water fatigue (#59, HIGH) remains open and is now tied to irrigation automation work in 5a/5b.
 
 ### Latest Verified Signals
 1. Unit tests: 589 passing (19 test files).
@@ -136,9 +148,10 @@ Keep these current at all times:
 - **#70:** Confirm dialog overwrite (automation hardening)
 
 ### Recommended Next Step (Supervisory)
-1. Begin **Slice 5 planning** — scoring/completion code, tech tree, additional content.
-2. Prioritize items by classroom impact: #59 (water fatigue) and #65 (year-30 summary) likely highest value.
-3. Consider web-aware AI exploratory QA sweep before Slice 5 implementation starts.
+1. Keep Slice 5a strict: engine/data foundations first (conditions, tech-level reconvergence, K-lite baseline, gating, regime modifiers, event-pool caps, migration).
+2. Hold scoring/completion code and Google Form integration for Slice 6 unless explicitly re-approved.
+3. Require proof-of-foundation before content scale-up: deterministic tests, migration chain, and no vacuous passes.
+4. Start 5b/5c content only after 5a acceptance gates are green.
 
 ## Historical Bootstrap (2026-02-26, Post-Slice-3)
 
@@ -158,12 +171,12 @@ Run these first in any new session:
 4. `npm run test:browser` (Playwright tests — expect all passing except known flaky foreshadow test).
 5. `npm run build` (expect successful production build, <200KB gzipped).
 
-### Slice 5 Review Priorities (Proposed)
-1. **Scoring + completion code:** weighted composite formula (SPEC §31) + Google Form integration for teacher assessment.
-2. **Year-30 reflection panel (#65):** educational summary using yearSnapshots data — most important screen students see.
-3. **Water fatigue / tech tree (#59):** automated irrigation as first tech tree unlock — highest-impact UX win.
-4. **Event clustering (#47):** per-season event cap or mutual exclusion groups.
-5. **Scope discipline:** prioritize classroom-impact outcomes over speculative mechanics.
+### Slice 5 Review Priorities (Updated)
+1. **5a foundation integrity:** no local test stubs, no conditional/vacuous assertions, migration and determinism must fail-then-pass correctly.
+2. **Water fatigue / automation (#59):** verify reduced click-tax without removing decision consequences.
+3. **Event pressure quality (#47 + new cap model):** verify tech and non-tech pools are both represented without clustering spam.
+4. **Pedagogy signal quality:** K-lite affects all players; monitoring adds clarity, not immunity.
+5. **Scope discipline:** defer scoring/completion pipeline to Slice 6 unless explicitly reopened.
 
 Review discipline reminders:
 - Never accept pass-count claims without rerunning tests locally.

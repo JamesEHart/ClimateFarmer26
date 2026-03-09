@@ -32,7 +32,11 @@ export function CropMenu(_props: CropMenuProps) {
 
   if (!state) return null;
 
-  const allCropIds = getAllCropIds();
+  // Filter out crops gated by requiredFlag (tech-locked crops are invisible until unlocked)
+  const allCropIds = getAllCropIds().filter(id => {
+    const def = getCropDefinition(id);
+    return !def.requiredFlag || state.flags[def.requiredFlag];
+  });
   const currentMonth = state.calendar.month;
   const cash = state.economy.cash;
 
