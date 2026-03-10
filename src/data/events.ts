@@ -363,7 +363,7 @@ export const STORYLETS: readonly Storylet[] = [
     id: 'advisor-soil-nitrogen',
     type: 'advisor',
     title: 'Soil Health Check',
-    description: "I've been looking at the soil test results for your fields, and the nitrogen levels are getting low. Depleted soils mean weaker crops and lower yields. You have some options to restore fertility.",
+    description: "I've been watching your crops closely, and the growth patterns tell me your soil nitrogen is getting low. Depleted soils mean weaker crops and lower yields. You have some options to restore fertility.",
     preconditions: [
       { type: 'min_year', year: 2 },
       { type: 'avg_nitrogen_below', level: 50 },
@@ -679,7 +679,7 @@ export const STORYLETS: readonly Storylet[] = [
         effects: [
           { type: 'modify_cash', amount: -600 },
           { type: 'set_flag', flag: 'tech_soil_testing', value: true },
-          { type: 'add_notification', message: 'Soil testing commissioned. Lab results reveal detailed nutrient levels — including potassium, which affects crop quality and market price. Santos: "Now you can see exactly what your soil needs."', notificationType: 'event_result' },
+          { type: 'add_notification', message: 'Soil testing commissioned! Click any plot to see the new Potassium reading in your soil details. Low potassium reduces crop quality and market price. Santos: "Now you can see exactly what your soil needs — and manage it."', notificationType: 'event_result' },
         ],
       },
       {

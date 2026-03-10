@@ -2130,3 +2130,85 @@ test.describe('5d: Bulk Plant Full-Field Feedback (#81)', () => {
     await expect(page.getByTestId('confirm-dialog')).not.toBeVisible();
   });
 });
+
+// ==========================================================================
+// Observer Layer (AI test agent affordances)
+// ==========================================================================
+
+test.describe('Observer Layer', () => {
+  test('game-observer element is present with correct attributes', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    const observer = page.getByTestId('game-observer');
+    await expect(observer).toHaveAttribute('data-blocked', 'false');
+    await expect(observer).toHaveAttribute('data-speed', '0');
+    await expect(observer).toHaveAttribute('data-year', '1');
+    await expect(observer).toHaveAttribute('data-season', 'spring');
+  });
+
+  test('game-observer reflects blocked state when autopause fires', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    // Trigger an event via debug hook
+    await page.evaluate(() => {
+      (window as Record<string, any>).__gameDebug.triggerEvent('heatwave-advisory');
+    });
+
+    const observer = page.getByTestId('game-observer');
+    await expect(observer).toHaveAttribute('data-blocked', 'true');
+    await expect(observer).toHaveAttribute('data-block-reason', 'event');
+    await expect(observer).toHaveAttribute('data-panel', 'event-panel');
+  });
+
+  test('getBlockingState() returns structured data via debug hook', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    const result = await page.evaluate(() => {
+      return (window as Record<string, any>).__gameDebug.getBlockingState();
+    });
+
+    expect(result.blocked).toBe(false);
+    expect(result.year).toBe(1);
+    expect(result.season).toBe('spring');
+    expect(result.notificationCount).toBeGreaterThanOrEqual(0);
+  });
+
+  test('getBlockingState() includes event choices when blocked by event', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    await page.evaluate(() => {
+      (window as Record<string, any>).__gameDebug.triggerEvent('heatwave-advisory');
+    });
+
+    const result = await page.evaluate(() => {
+      return (window as Record<string, any>).__gameDebug.getBlockingState();
+    });
+
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe('event');
+    expect(result.eventId).toBe('heatwave-advisory');
+    expect(result.choices.length).toBeGreaterThan(0);
+    expect(result.choices[0].testid).toContain('event-choice-');
+  });
+
+  test('fastForwardUntilBlocked() stops at autopause', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    // Plant corn so there will be a harvest autopause eventually
+    await page.getByTestId('action-plant-all-silage-corn').click();
+    await page.getByTestId('confirm-accept').click();
+
+    const result = await page.evaluate(() => {
+      return (window as Record<string, any>).__gameDebug.fastForwardUntilBlocked(5000);
+    });
+
+    expect(result.stopped).toBe(true);
+    expect(result.ticksRun).toBeGreaterThan(0);
+    expect(result.reason).toBeDefined();
+  });
+});

@@ -386,6 +386,14 @@ Resolution: Three-part fix:
 Result: diversified ($301K) > corn ($193K) > citrus ($86K). All 100% survival. Corn stays attractive but continuous corn gets progressively fragile via visible agronomic causes.
 Deferred to Slice 6: Corn pollination heat/drought quality penalty (needs proper heat stress tracking separate from waterStressDays). Monoculture pest event chain (rootworm, corn rot) as foreshadowed storylets.
 
+**90. Soil testing payoff not visible enough to students.** RESOLVED (5d copy fix).
+Severity: MEDIUM (pedagogy). Students reported "I bought the tech and nothing changed." Soil testing unlocks potassium visibility in plot details, but students don't know to look there.
+Resolution: Updated notification copy to explicitly say "Click any plot to see the new Potassium reading." Future: consider auto-selecting a plot or pulsing the K row on first reveal.
+
+**91. Nitrogen advisor copy references "soil test results" before soil testing is available.** RESOLVED (5d copy fix).
+Severity: MEDIUM (content consistency). `advisor-soil-nitrogen` said "I've been looking at the soil test results for your fields" but fires at Year 2 before soil testing tech (Year 6). Confuses the relationship between nitrogen advice and the later soil testing decision.
+Resolution: Changed copy to "I've been watching your crops closely, and the growth patterns tell me your soil nitrogen is getting low."
+
 **Non-issues confirmed:**
 - Avocado planting not showing confirmation dialog: correct behavior. Perennial confirm dialog only shows for the first-ever perennial plant (`perennialWarningShown` flag). If another perennial was planted first, subsequent perennials skip the confirm. Not a bug.
 
@@ -401,6 +409,8 @@ Deferred to Slice 6: Corn pollination heat/drought quality penalty (needs proper
 - **Scoring + Completion code + Google Form** — Weighted composite scoring (SPEC §31) + end-of-game reporting for teacher assessment.
 - ~~**Year-30 reflection panel**~~ — RESOLVED in Slice 5c (#65), loan-decline gap fixed in 5d (#88). `buildReflectionData()` + `buildReflectionSummary()` in AutoPausePanel. Covers financial arc, soil trend, tech decisions, crop diversity. Shows on year-30 completion, bankruptcy, and loan-decline paths.
 - ~~**SPEC §30 balance targets need revision**~~ — MOSTLY RESOLVED in 5d.2. Balance tests broadened: qualitative ordering constraints (diversified > corn > almond), regression floors from observed data, anti-luck variance checks. Old per-bot exact targets replaced with floors. One structural gate remains: "≥3 strategy families survive ≥60% of runs" (retained as a genuine quality constraint — ensures multiple viable paths exist). Corn dominance fixed via monoculture streak penalty (#89).
+- **QA test protocol: require fresh saves** — AI tester sessions sometimes inherit prior-state perennials and costs, making results confusing. Not a product bug — test protocol should require fresh games unless continuity is intentional.
+- **Chromebook performance sanity pass** — AI tester reported background-tab throttling, apparent freezes, and large notification queues. Likely environmental (extension disconnects, Chrome throttling), but worth one manual pass on real hardware with many tabs open and a long notification history before classroom launch.
 - **Advanced accessibility** (colorblind modes, full screen reader support) — Baseline keyboard nav + ARIA in Slice 1.
 - **Sound / music** — Not essential for classroom use.
 - **Farm expansion (neighbor buyout)** — Likely v2, not Classroom-Ready Build.

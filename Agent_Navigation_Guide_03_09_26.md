@@ -1,56 +1,103 @@
 # Climate Farmer — Agent Navigation Guide
-Purpose: reliable UI navigation for AI/QA agents. Navigation only, not gameplay strategy.
-Verified against: regression runs 1–3 (2026-03).
+Purpose: reliable UI navigation and state observation for AI/QA agents.
+Updated: 2026-03-10. Build: Slice 5d.2 complete.
 
 ---
 
-## 1. Start Flow
+## 1. Recommended Playtest Flow
+
+Play the game as a student would. Do not skip mechanics with debug shortcuts — the goal is to produce observations about UX, pacing, and pedagogy.
 
 ```
-newgame-player-id   ← text input; see §1.1 below
+1. Start new game (§2)
+2. Set speed to 1× or 2× (not 4×) — observe notifications, advisor text, pacing
+3. When blocked, read game-observer (§3) to understand why
+4. Make deliberate choices at each autopause — record what you chose and why
+5. At year-end, read the expense breakdown before dismissing
+6. Every ~5 years, pause and record: cash, soil health, crop mix, observations
+7. If testing a specific mechanic, play naturally until it triggers — don't inject it
+```
+
+**What makes a useful playtest report:**
+- What the student saw and how they interpreted it
+- Where the student felt confused, bored, or stuck
+- Whether cause-and-effect was clear (did the student understand WHY something happened?)
+- Specific notification/advisor text that was misleading or unhelpful
+
+---
+
+## 2. Start Flow
+
+```
+newgame-player-id   ← type into this input (use keyboard, not JS value assignment)
 newgame-start       ← "Start New Game" button
-tutorial-skip       ← dismisses tutorial overlay (may not appear every run)
+tutorial-skip       ← dismisses tutorial overlay (may not appear if previously dismissed)
 ```
 
-**§1.1 Player ID input — React gotcha**
-Simple `input.value = 'X'; input.dispatchEvent(new Event('input'))` is insufficient; React validation fires but `newgame-start` stays blocked. Use the native setter:
+Always start a **fresh game** for each test session unless continuity is explicitly part of the test plan. Inherited saves with established orchards confuse observations.
+
+---
+
+## 3. Observer Layer (Primary Navigation Tool)
+
+### DOM element: `data-testid="game-observer"`
+Hidden div with reactive attributes. Read this ONE element to know the game's state:
+
+```
+data-blocked              "true" | "false"
+data-block-reason         "harvest_ready" | "water_stress" | "year_end" | "event" | "advisor" | "loan_offer" | "bankruptcy" | "year_30" | ""
+data-panel                "autopause-panel" | "event-panel" | "advisor-panel" | "loan-panel" | "gameover-panel" | "year30-panel" | ""
+data-speed                "0" | "1" | "2" | "4"
+data-notification-count   number as string
+data-year                 current game year
+data-season               "spring" | "summer" | "fall" | "winter"
+data-day                  total simulation day
+```
+
+### `window.__gameDebug.getBlockingState()`
+Structured version of the same data, plus actionable choice info:
 ```js
-const inp = document.querySelector('[data-testid="newgame-player-id"]');
-Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')
-  .set.call(inp, 'QA-1');
-inp.dispatchEvent(new Event('input', { bubbles: true }));
+{
+  blocked: true,
+  reason: "event",
+  panelTestId: "event-panel",
+  eventId: "heatwave-advisory",
+  choices: [
+    { testid: "event-choice-accept-risk", label: "Accept the Risk" },
+    { testid: "event-choice-pre-irrigate", label: "Pre-irrigate ($200)" }
+  ],
+  speed: 0,
+  notificationCount: 3,
+  year: 4,
+  season: "summer",
+  day: 1275
+}
 ```
-Or type directly via automation keyboard actions.
 
-**Return to title (in-game)**
-Clicking "New Game" shows a bare modal: "Return to title screen? Your game is auto-saved at each season boundary." — Cancel / **Confirm** (text-matched buttons, no testid). Confirm to proceed.
+**Best practice:** Before every action, call `getBlockingState()`. If `blocked: true`, handle the blocking panel first by clicking the appropriate `testid` from `choices`. Do not click speed buttons while blocked.
+
+### `window.__gameDebug.fastForwardUntilBlocked(maxTicks)`
+Runs simulation ticks until ANY autopause fires. Unlike `fastForward()`, does **not** auto-dismiss anything. Returns:
+```js
+{ stopped: true, reason: "harvest_ready", ticksRun: 47 }
+// or
+{ stopped: false, ticksRun: 5000 }  // all ticks completed, no block
+```
+
+Use this instead of `fastForward()` for playtesting — it preserves every autopause for the agent to observe and respond to.
+
+### `window.__gameDebug.getNotifications()`
+Returns the full notification queue (the DOM only shows the newest):
+```js
+[{ message: "Dr. Santos: ...", type: "event_result", day: 412 }, ...]
+```
+
+### `window.__gameDebug.dismissAllNotifications()`
+Clears notification backlog if it's interfering with testing.
 
 ---
 
-## 2. Debug API (`window.__gameDebug`)
-
-```
-getState()                 mutable live reference — call publish() after mutation
-publish()                  triggers UI re-render after direct state mutation
-setFlag(flagId, bool)      confirmed: tech_crop_agave, tech_drip_irrigation
-setCash / setDebt / setTotalLoansReceived / setScenario
-setDay(n)                  sets calendar day + season/month (no intermediate ticks simulated)
-                           DOES affect planting-window gating — use to bypass seasonal locks
-fastForward(n)             ← see §2.1
-triggerEvent(storyletId)
-```
-
-**§2.1 fastForward — critical correction**
-`fastForward(1)` does **not** advance 1 tick. It runs the simulation forward until the next autopause event (crop harvest, year-end, heatwave advisory, etc.), which is typically **150–250 game days** per call. Cash deltas measured across two `fastForward(1)` calls are not comparable because run durations differ.
-
-For single-event granularity: set state, click `speed-play`, `await` a fixed real-time interval, click `speed-pause`.
-
-**§2.2 activeEffects mutation**
-Pushing to `s.activeEffects` after `getState()` + `publish()` correctly stores the entry in state (visible via subsequent `getState()`). However, `irrigation_cost_modifier` effectType is not wired to the drip irrigation cost function — `s.irrigationCostMultiplier` remains 1 regardless. Treat custom effect injection as unimplemented for irrigation cost in current build.
-
----
-
-## 3. Speed Controls
+## 4. Speed Controls
 
 ```
 speed-pause    0×
@@ -59,159 +106,118 @@ speed-fast     2×
 speed-fastest  4×
 ```
 
-- Speed is set to 0 after every auto-pause. Must click a speed button to resume.
-- `play-prompt` (`data-testid="play-prompt"`) appears in the topbar centerGroup when paused. **Known active bug:** inserting play-prompt into centerGroup expands it from 159px → 320px, shifting speed controls ~80px left. Recovers on resume.
+- Speed resets to 0 after every autopause. Click a speed button to resume.
+- `play-prompt` appears when paused after an action — it means "click play to continue."
 
 ---
 
-## 4. Grid
+## 5. Grid & Actions
 
-- 8×8, 64 cells. Container: `role="grid"`.
-- Cells: `data-testid="farm-cell-{row}-{col}"` (0-indexed). `role="gridcell"`.
+8×8 grid, 64 cells. Cells: `data-testid="farm-cell-{row}-{col}"` (0-indexed).
 
----
+**Click a cell first** — single-cell and row/col actions only render after selection.
 
-## 5. Plant / Harvest / Water
-
-**Click a cell first** — most single-cell and row/col actions only render after a cell is selected.
-
-### Planting flow (two-step)
+### Planting (two-step)
 ```
-1. action-plant          ← "Plant…" button in single-cell ACTIONS panel
-2. menu-crop-<cropId>    ← individual crop button in the submenu
+1. action-plant             ← "Plant…" button (cell must be selected)
+2. menu-crop-<cropId>       ← crop button in submenu
 ```
-Known `menu-crop-*` ids: `processing-tomatoes`, `silage-corn`, `winter-wheat`, `sorghum`,
-`almonds`, `pistachios`, `citrus-navels`, `agave` (requires `tech_crop_agave` flag).
+Crop IDs: `silage-corn`, `winter-wheat`, `processing-tomatoes`, `sorghum`, `almonds`, `pistachios`, `citrus-navels`, `agave` (requires `tech_crop_agave` flag), `heat-tolerant-avocado` (requires flag).
 
-Locked crops are absent from the DOM entirely — they do not appear disabled.
+Locked crops are absent from the DOM — they don't appear disabled.
 
-### Bulk actions (after cell selected)
+### Bulk actions
 ```
-action-plant-all-<cropId>
+action-plant-all-<cropId>       Confirm dialog follows (testid: confirm-accept / confirm-cancel)
+action-harvest-all
+action-water-all
 action-plant-row-<row>-<cropId>
 action-plant-col-<col>-<cropId>
-action-harvest-all
-action-harvest-row-<row>
-action-harvest-col-<col>
-action-water-all
-action-water-row-<row>
-action-water-col-<col>
+action-harvest-row-<row> / action-harvest-col-<col>
+action-water-row-<row> / action-water-col-<col>
 ```
 
-### Summer lockout
-In Summer months all annual crop planting is unavailable. `action-plant` disappears; side panel shows "No crops available this season." Use `setDay(450)` (≈ Spring Year 2) to re-enable planting window.
+### Planting windows
+- **Spring (Mar-May):** corn, tomatoes, sorghum, citrus, agave, avocado
+- **Fall (Sep-Nov):** winter wheat, cover crops
+- **Winter (Jan-Feb):** almonds, pistachios, citrus
+- In Summer, annual crop planting is unavailable.
 
 ---
 
 ## 6. Dialog Handling
 
-### Auto-pause panels
+### Autopause panels
+Check `getBlockingState()` first. Then click the appropriate testid:
+
+| Block reason | Panel testid | Primary testid | Secondary testid |
+|-------------|-------------|---------------|-----------------|
+| harvest_ready | autopause-panel | autopause-action-primary | autopause-dismiss |
+| water_stress | autopause-panel | autopause-action-primary | autopause-dismiss |
+| year_end | autopause-panel | autopause-action-primary | autopause-dismiss |
+| event | event-panel | event-choice-{id} | (choices vary) |
+| advisor | advisor-panel | advisor-choice-{id} | (choices vary) |
+| loan_offer | loan-panel | loan-accept | autopause-dismiss |
+| bankruptcy | gameover-panel | gameover-new-game | — |
+| year_30 | year30-panel | year30-new-game | — |
+
+### Confirm dialogs
+Bulk plant/water and perennial planting show confirm dialogs:
 ```
-autopause-panel              root element of any autopause overlay
-autopause-action-primary     green primary action button (e.g. "Harvest Field", "Continue")
-```
-Dismiss any autopause with:
-```js
-document.querySelector('[data-testid="autopause-action-primary"]')?.click();
-```
-For "Harvest Time!" — clicking primary auto-harvests. Use text-matched "Continue" button to skip harvest:
-```js
-[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Continue')?.click();
+confirm-dialog      ← container
+confirm-accept      ← "Confirm" button
+confirm-cancel      ← "Cancel" button
 ```
 
-### Plant confirm dialogs
-Long-maturation crops (agave, almonds, pistachios, citrus) show a bare modal with **Cancel** / **Confirm** text buttons. No `confirm-dialog` / `confirm-accept` testids observed in current build. Use text matching:
-```js
-[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Confirm')?.click();
-```
-
-### Other overlay testids (carry-forward from prior doc — unverified in current runs)
-`event-panel`, `advisor-panel`, `loan-panel`, `gameover-panel`, `year30-panel`, `year30-new-game`
+### Event/advisor panels
+Choices have testids: `event-choice-{choiceId}` or `advisor-choice-{choiceId}`. Use `getBlockingState().choices` to get exact testids.
 
 ---
 
-## 7. Year-End
-
-Year-end auto-pause fires via `autopause-panel`. Primary button text is typically "Continue to Year N+1" — clickable via `autopause-action-primary` or text match.
-
----
-
-## 8. Save / Load
-
-- Auto-save key: `climateFarmer_autosave`
-- Manual saves: `climateFarmer_save_*`
-- "Continue Saved Game" validates auto-save integrity before rendering.
-- Avoid full page reloads mid-run — JS context (including any in-memory log arrays) is lost.
-
----
-
-## 9. Quick Reference
+## 7. Key Testids Reference
 
 ```
-newgame-player-id        Player ID input (see §1.1 for React input method)
-newgame-start            Start New Game
-tutorial-skip            Skip tutorial
-farm-cell-{r}-{c}        Grid cell (0-indexed)
+newgame-player-id / newgame-start / tutorial-skip
+farm-cell-{r}-{c}
 speed-pause / speed-play / speed-fast / speed-fastest
-action-plant             Single-cell plant button (cell must be selected)
-menu-crop-{cropId}       Crop option in plant submenu
-action-plant-all-{id}    Bulk plant entire field
-action-plant-row-{r}-{id}
-action-plant-col-{c}-{id}
-action-harvest-all
-action-water-all
-autopause-panel          Any autopause overlay root
-autopause-action-primary Primary action button on autopause
-topbar-cash              Cash display
-topbar-date              Date display
-topbar-debt              Debt display (conditional)
-play-prompt              Paused-state prompt in centerGroup (see §3 bug note)
+game-observer                    ← machine-readable state (§3)
+action-plant / menu-crop-{id}
+action-plant-all-{id} / action-harvest-all / action-water-all
+confirm-dialog / confirm-accept / confirm-cancel
+autopause-panel / autopause-action-primary / autopause-dismiss
+event-panel / advisor-panel / loan-panel / gameover-panel / year30-panel
+topbar-cash / topbar-date / topbar-debt / topbar-year-net
+notify-bar                       ← newest notification
+sidebar-cell-detail              ← selected cell info
+sidebar-soil-n / sidebar-soil-om / sidebar-soil-k (K requires tech_soil_testing)
+save-new-game                    ← return to title (shows confirm dialog)
 ```
 
 ---
 
-## 10. Minimal Automation Skeleton
+## 8. Cheats & Debug Shortcuts
 
-```javascript
-if (window._cfHandler) clearInterval(window._cfHandler);
-window._cfHandler = setInterval(() => {
-  // 1) Resolve confirm dialogs (text-matched — no confirm-dialog testid in current build)
-  const confirmBtn = [...document.querySelectorAll('button')]
-    .find(b => b.textContent.trim() === 'Confirm' && b.offsetParent);
-  if (confirmBtn) { confirmBtn.click(); return; }
+**Only use if explicitly allowed by your test plan.** These bypass normal game flow and produce observations that don't reflect student experience.
 
-  // 2) Resolve auto-pause overlays
-  const primary = document.querySelector('[data-testid="autopause-action-primary"]');
-  if (primary) { primary.click(); return; }
+```js
+// State manipulation
+__gameDebug.setCash(amount)
+__gameDebug.setDebt(amount)
+__gameDebug.setDay(totalDay)       // Calendar surgery — no intermediate simulation
+__gameDebug.setFlag(flag, bool)    // e.g. 'tech_crop_agave', 'tech_drip_irrigation', 'tech_soil_testing'
+__gameDebug.setScenario(id)        // 'gradual-warming', 'early-drought', 'whiplash', 'late-escalation', 'mild-baseline'
+__gameDebug.publish()              // Force UI re-render after direct state mutation
 
-  // 3) Fallback: any alertdialog
-  const dialogs = [...document.querySelectorAll('[role="alertdialog"]')];
-  for (const d of dialogs) {
-    const btns = [...d.querySelectorAll('button')];
-    if (!btns.length) continue;
-    const preferred = btns.find(b =>
-      /Continue|Good to Know|Accept|Show Me/.test(b.textContent.trim())
-    );
-    (preferred || btns[btns.length - 1]).click();
-  }
+// Event injection
+__gameDebug.triggerEvent(id)       // Bypasses RNG/conditions. See src/data/events.ts for IDs.
 
-  // 4) Keep running
-  document.querySelector('[data-testid="speed-fastest"]')?.click();
-}, 400);
+// Old-style fast forward (auto-dismisses most pauses — NOT recommended for playtesting)
+__gameDebug.fastForward(ticks)     // Runs ticks, auto-dismisses non-event pauses. Returns 'done'|'event'|'gameover'.
+
+// Direct state access
+__gameDebug.getState()             // Mutable live reference. Call publish() after mutation.
 ```
-Stop: `clearInterval(window._cfHandler);`
 
----
+**`setDay()` warning:** Moves the calendar without simulating intermediate weather/growth. Use only for jumping to specific planting windows in targeted tests. Do not use for "time travel" during a playtest — it creates unrealistic state.
 
-## 11. Known Issues / Caveats
-
-| Issue | Detail |
-|-------|--------|
-| `fastForward(n)` ≠ n ticks | Runs to next autopause (~150–250 days). Use speed-play + timed wait for per-event granularity. |
-| Player ID input React bug | JS value assignment bypasses React state; use native setter or keyboard input. |
-| play-prompt topbar drift | ~80px speed-control shift during autopause states. Active bug. |
-| `confirm-dialog` testid | Not present in current build. Use text-matched button approach. |
-| `irrigation_cost_modifier` in activeEffects | Not applied to irrigation cost function. `irrigationCostMultiplier` stays 1 regardless. |
-| `setDay()` scope | Moves calendar + season (affects planting windows). Does not simulate intermediate growth/weather. |
-| Summer planting lockout | Annual crop planting unavailable in Summer. Use `setDay()` to reach Spring/Fall. |
-| Agave post-unlock copy | Plot detail shows "Requires technology unlock to plant" even after unlock. |
+**`fastForward()` warning:** Auto-dismisses harvest, water stress, year-end, advisor, and loan pauses. This hides exactly the interactions you want to observe in a playtest. Use `fastForwardUntilBlocked()` (§3) instead.

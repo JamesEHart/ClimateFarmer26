@@ -12,6 +12,7 @@ import { autoSave, loadAutoSave, hasSaveData, hasManualSaves, saveGame, loadGame
 import type { SaveSlotInfo } from '../save/storage.ts';
 import { isSeasonChange, getSeasonName, totalDayToCalendar } from '../engine/calendar.ts';
 import { STORYLETS } from '../data/events.ts';
+import { getBlockingState, fastForwardUntilBlocked, getNotificationsDebug, dismissAllNotificationsDebug } from './observer.ts';
 
 // ============================================================================
 // Scenario Resolution
@@ -1002,5 +1003,35 @@ function gameLoop(now: number): void {
     }
     publishState();
     return 'done';
+  },
+  // --- Observer Layer (AI test agent affordances) ---
+  /**
+   * Returns structured blocking state for AI agents.
+   * Single call answers: am I blocked? Why? What testids dismiss it?
+   */
+  getBlockingState() {
+    if (!_liveState) return { blocked: false, speed: 0, notificationCount: 0, year: 0, season: 'spring', day: 0 };
+    return getBlockingState(_liveState);
+  },
+  /**
+   * Run ticks until ANY autopause fires or game ends. Unlike fastForward(),
+   * does NOT auto-dismiss any pauses — stops and returns what blocked it.
+   */
+  fastForwardUntilBlocked(maxTicks: number) {
+    if (!_liveState) return { stopped: false, ticksRun: 0 };
+    const result = fastForwardUntilBlocked(_liveState, _activeScenario, maxTicks);
+    publishState();
+    return result;
+  },
+  /** Return all notifications (AI agents normally only see the newest). */
+  getNotifications() {
+    if (!_liveState) return [];
+    return getNotificationsDebug(_liveState);
+  },
+  /** Clear all notifications. Prevents backlog confusion in AI test sessions. */
+  dismissAllNotifications() {
+    if (!_liveState) return;
+    dismissAllNotificationsDebug(_liveState);
+    publishState();
   },
 };
