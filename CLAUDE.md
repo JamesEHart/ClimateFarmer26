@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ClimateFarmer26 is a browser-based educational simulation game where students role-play as California farmers across 30 years, making season-by-season decisions as climate impacts challenge their operations. 100% client-side, hosted on GitHub Pages, targeting Chromebooks.
 
-**Status: Slice 5c complete ("Full Content + Regime Shifts").** Slices 1-5c complete. 9 crops (incl. agave + heat-avocado), 4 advisors (Santos, NWS, Chen, Forum), K-lite potassium with soil testing visibility toggle, auto-irrigation, tech tree (water/soil/crop tracks 0-2), 3 regime shifts (water/market/heat), Year-30 reflection panel, message variety pools, 5 scenarios. `SAVE_VERSION = '8.0.0'`.
+**Status: Slice 5d.2 complete ("Corn Dominance Fix").** Slices 1-5d complete. 5d.2: monoculture streak penalty (escalating yield loss for consecutive same-crop annual), cover crop OM protection reduction (50% vs 100%), diversified bot rewrite (proper rotation). Balance: diversified ($301K) > corn ($193K) > citrus ($86K), all 100% survival. `SAVE_VERSION = '8.0.0'`.
 
 ## Workflow Rules
 

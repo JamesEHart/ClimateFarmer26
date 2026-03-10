@@ -728,7 +728,7 @@ test.describe('Field Confirmation Dialog', () => {
 
     // Confirmation dialog should appear with action metadata
     await expect(page.getByTestId('confirm-dialog')).toBeVisible();
-    await expect(page.getByTestId('confirm-message')).toContainText('Plant all');
+    await expect(page.getByTestId('confirm-message')).toContainText('Silage Corn');
     await expect(page.getByTestId('confirm-dialog')).toHaveAttribute('data-confirm-action', 'plant-all');
     await expect(page.getByTestId('confirm-dialog')).toHaveAttribute('data-confirm-origin', 'manual');
 
@@ -977,7 +977,7 @@ test.describe('Loan Panel', () => {
     await expect(page.getByTestId('topbar-debt')).toBeVisible();
   });
 
-  test('declining loan returns to title screen', async ({ page }) => {
+  test('declining loan shows reflection panel then returns to title', async ({ page }) => {
     await startNewGame(page);
     await waitForGameScreen(page);
 
@@ -989,10 +989,15 @@ test.describe('Loan Panel', () => {
     await page.getByTestId('speed-play').click();
     await expect(page.getByTestId('loan-panel')).toBeVisible({ timeout: 10000 });
 
-    // Decline the loan
+    // Decline the loan — should show gameover panel with reflection, not go straight to title
     await page.getByTestId('autopause-dismiss').click();
 
-    // Game over → returns to title screen
+    // Gameover panel should appear with reflection summary (#88)
+    await expect(page.getByTestId('gameover-panel')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('gameover-report')).toBeVisible();
+
+    // Click "Start New Game" to return to title
+    await page.getByTestId('gameover-new-game').click();
     await expect(page.getByTestId('newgame-start')).toBeVisible({ timeout: 5000 });
   });
 });
@@ -2099,5 +2104,29 @@ test.describe('Perennial Harvest Badge Regression', () => {
 
     // Harvest button should be disabled
     await expect(page.getByTestId('action-harvest')).toBeDisabled();
+  });
+});
+
+// ==========================================================================
+// §5d: Bulk Plant Full-Field Feedback (#81)
+// ==========================================================================
+
+test.describe('5d: Bulk Plant Full-Field Feedback (#81)', () => {
+  test('bulk plant shows notification when all plots are already planted', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    // Bulk plant corn on all cells
+    await page.getByTestId('action-plant-all-silage-corn').click();
+    await expect(page.getByTestId('confirm-dialog')).toBeVisible();
+    await page.getByTestId('confirm-accept').click();
+    await expect(page.getByTestId('confirm-dialog')).not.toBeVisible();
+
+    // Attempt bulk plant again — field is full
+    await page.getByTestId('action-plant-all-silage-corn').click();
+
+    // Should show notification instead of confirm dialog (#81)
+    await expect(page.getByTestId('notify-bar')).toContainText('All plots are already planted');
+    await expect(page.getByTestId('confirm-dialog')).not.toBeVisible();
   });
 });

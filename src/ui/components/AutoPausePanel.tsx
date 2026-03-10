@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import {
-  autoPauseQueue, handleDismissAutoPause,
+  autoPauseQueue, handleDismissAutoPause, declineLoan,
   harvestBulk, waterBulk, returnToTitle,
   gameState, dispatch,
 } from '../../adapter/signals.ts';
@@ -78,8 +78,8 @@ function AutoPauseOverlay({ event }: { event: AutoPauseEvent }) {
 
   function handleSecondary() {
     if (event.reason === 'loan_offer') {
-      // Declining the loan = game over stays true
-      handleDismissAutoPause();
+      // Declining the loan — show bankruptcy reflection before title (#88)
+      declineLoan();
       return;
     }
     handleDismissAutoPause();
@@ -162,6 +162,7 @@ interface YearEndData {
   net: number;
   cash: number;
   breakdown?: ExpenseLineItem[];
+  hasLoans?: boolean;
 }
 
 function getEventConfig(event: AutoPauseEvent, state: import('../../engine/types.ts').GameState | null): EventConfig {
@@ -210,6 +211,7 @@ function getEventConfig(event: AutoPauseEvent, state: import('../../engine/types
           net: data.netProfit as number,
           cash: data.cash as number,
           breakdown: breakdownLines,
+          hasLoans: (state?.economy.totalLoansReceived ?? 0) > 0,
         } : undefined,
       };
     }
@@ -350,7 +352,7 @@ function YearEndTable({ data }: { data: YearEndData }) {
           </td>
         </tr>
         <tr>
-          <td>Cash Balance (before loan)</td>
+          <td>{data.hasLoans ? 'Cash Balance (before loan)' : 'Cash Balance'}</td>
           <td>${Math.floor(data.cash).toLocaleString()}</td>
         </tr>
       </tbody>

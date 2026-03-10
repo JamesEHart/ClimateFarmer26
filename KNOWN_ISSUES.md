@@ -345,13 +345,13 @@ Severity: HIGH (gameplay — blocks all downstream tech).
 Root cause: Dismissing an advisor auto-pause (e.g., `advisor-forum-intro`) logged `__dismissed__` as an eventLog occurrence, consuming `maxOccurrences` without setting the `met_forum` flag. Downstream tech events (`tech-water-irrigation`, `tech-soil-management`) had `has_flag: met_forum` / `has_flag: met_chen` preconditions, permanently gating the tech tree.
 Resolution: Removed `has_flag: met_chen` and `has_flag: met_forum` preconditions from `tech-water-irrigation` and `tech-soil-management` storylets. Advisor intros remain valuable as content but are no longer hard gates for tech progression.
 
-**81. Bulk planting silent no-op when field is full.**
+**81. Bulk planting silent no-op when field is full.** PARTIALLY RESOLVED (5d).
 Severity: MEDIUM (UX). With a full field (e.g., all citrus), bulk plant buttons remain green/clickable but silently do nothing. Separately, a first corn bulk action showed 57/64 plots planted — confusing count that looked like the game skipped cells.
-Status: Deferred to 5d. Fix: disable bulk CTAs when no eligible plots exist and/or show explicit toast. Investigate 57/64 count discrepancy (likely partially-occupied rows excluded from field-scope bulk).
+Resolution: Silent no-op fixed — bulk plant on zero empty cells now shows "All plots are already planted." notification. Row/col scope failures now surface engine's failure reason. Field-scope confirm dialog clarified with "(fully empty rows only)" to explain DD-1 semantics (57/64 is correct — field-scope only plants fully-empty rows). DD-1 planting behavior unchanged.
 
-**82. Financial Recovery advisor over-repeats.**
+**82. Financial Recovery advisor over-repeats.** RESOLVED (5d).
 Severity: MEDIUM (content quality). `advisor-financial-recovery` fired at starts of Years 4, 5, and 6 with identical choices, even after a profitable year. Reads as boilerplate rather than context-aware advising.
-Status: Deferred to 5d. Fix: tighten trigger conditions (e.g., require cash below threshold or consecutive unprofitable years), add message variety or branching follow-ups.
+Resolution: Tightened `advisor-drought-recovery` thresholds — `cash_below` $30K→$25K (filters perennial-investment false positives), `cooldownDays` 365→730 (biennial, primary anti-spam lever), `maxOccurrences` 3→2. Pure data change.
 
 **83. Economic tension under-signaled in UI.**
 Severity: MEDIUM (pedagogy). Student run had a compelling "will we go bankrupt before the orchard pays off?" arc, but the UI gave almost no help interpreting it. Year 6 revenue drop looked arbitrary. Year-end summary dismissed and not revisitable.
@@ -369,13 +369,22 @@ Status: Deferred to 5d/6. Fix: consider central-dialog acknowledgement for "yes,
 Severity: LOW (onboarding). After harvesting annuals in summer, new players face empty fields with no valid planting window and no explanation of what to do next.
 Status: Deferred to 5d. Fix: one lightweight tutorial/advisor line the first time a player enters a season with no valid planting window.
 
-**87. Year-end "Cash Total (before loan)" copy polish.**
-Severity: LOW (copy). "Before loan" annotation on year-end cash display is confusing when the player hasn't interacted with the loan system. Should only mention loans after the player has seen a loan offer.
-Status: Deferred to 5d. Fix: conditionally show loan annotation based on `state.totalLoansReceived > 0` or `state.flags['seen_loan_offer']`.
+**87. Year-end "Cash Total (before loan)" copy polish.** RESOLVED (5d).
+Severity: LOW (copy). "Before loan" annotation on year-end cash display is confusing when the player hasn't interacted with the loan system.
+Resolution: Year-end table conditionally shows "Cash Balance (before loan)" only when `totalLoansReceived > 0`. Otherwise shows "Cash Balance". Data flows through `YearEndData.hasLoans` interface field.
 
-**88. Bankruptcy path skips reflection summary on loan decline.**
-Severity: LOW (product decision). When a player declines the emergency loan, the game routes straight to title screen without showing any reflection/game-over summary. The reflection data exists and renders on year-30 completion.
-Status: Deferred to 5d. Fix: show game-over reflection panel (same as bankruptcy panel) before returning to title when loan is declined.
+**88. Bankruptcy path skips reflection summary on loan decline.** RESOLVED (5d).
+Severity: LOW (product decision). When a player declines the emergency loan, the game routes straight to title screen without showing any reflection/game-over summary.
+Resolution: Added `declineLoan()` in `signals.ts` — sets `gameOverReason = 'bankruptcy'`, pushes bankruptcy auto-pause with decline message, then dismisses loan_offer. Existing bankruptcy panel renders `buildReflectionSummary()` automatically.
+
+**89. Corn monoculture dominates diversified strategy.** RESOLVED (5d.2).
+Severity: HIGH (educational). Corn monoculture with cover crops + tech ($793K median) outperformed diversified ($220K median), violating the educational goal that diversification should be rewarded.
+Resolution: Three-part fix:
+1. **Monoculture streak penalty** — escalating yield loss for consecutive same annual crop in same cell: 2nd year 0.85, 3rd 0.70, 4th 0.55, 5th+ floored at 0.50. Based on NIFA/Illinois rotation data + SDSU rootworm research.
+2. **Cover crop OM protection reduction** — cover crops reduce OM decomposition by 50% (not halt it entirely). More realistic soil dynamics.
+3. **Diversified bot rewrite** — bot now rotates corn/tomatoes from Y1 (avoids streak penalty), starts cover crops at Y2. Tests what a student who understands rotation would actually do.
+Result: diversified ($301K) > corn ($193K) > citrus ($86K). All 100% survival. Corn stays attractive but continuous corn gets progressively fragile via visible agronomic causes.
+Deferred to Slice 6: Corn pollination heat/drought quality penalty (needs proper heat stress tracking separate from waterStressDays). Monoculture pest event chain (rootworm, corn rot) as foreshadowed storylets.
 
 **Non-issues confirmed:**
 - Avocado planting not showing confirmation dialog: correct behavior. Perennial confirm dialog only shows for the first-ever perennial plant (`perennialWarningShown` flag). If another perennial was planted first, subsequent perennials skip the confirm. Not a bug.
@@ -383,14 +392,15 @@ Status: Deferred to 5d. Fix: show game-over reflection panel (same as bankruptcy
 ### Deferred to Slice 5+ / Later Discussion
 
 - ~~**Balance testing suite**~~ — RESOLVED in Slice 4a. 5 bots × 5 scenarios × 20 seeds = 500 headless 30-year runs.
-- ~~**Economic rebalancing**~~ — RESOLVED in Slice 4c/4d. Four levers + annual overhead.
+- ~~**Economic rebalancing**~~ — RESOLVED in Slice 4c/4d. Four levers + annual overhead. Monoculture streak penalty added in 5d.2.
 - **Event system tuning** — Per-season event cap, mutual exclusion groups (see #47).
 - **Web-aware AI exploratory QA** — Supplement headless bots with AI agents playing the web UI. Six player personas defined. Not yet executed as a full sweep.
 - **Automation policies** — Replant-same, harvest-when-ready, water-when-dry. Unlocked via tech tree.
 - **Glossary / Information Index** — In-game educational reference with progressive disclosure.
 - **Solar lease event chain** — Multi-phase storylet (option → construction → operations → agrivoltaics).
 - **Scoring + Completion code + Google Form** — Weighted composite scoring (SPEC §31) + end-of-game reporting for teacher assessment.
-- ~~**Year-30 reflection panel**~~ — RESOLVED in Slice 5c (#65). `buildReflectionData()` + `buildReflectionSummary()` in AutoPausePanel. Covers financial arc, soil trend, tech decisions, crop diversity. Shows on year-30 completion and bankruptcy game-over. Gap: loan-decline path still skips reflection (#88).
+- ~~**Year-30 reflection panel**~~ — RESOLVED in Slice 5c (#65), loan-decline gap fixed in 5d (#88). `buildReflectionData()` + `buildReflectionSummary()` in AutoPausePanel. Covers financial arc, soil trend, tech decisions, crop diversity. Shows on year-30 completion, bankruptcy, and loan-decline paths.
+- ~~**SPEC §30 balance targets need revision**~~ — MOSTLY RESOLVED in 5d.2. Balance tests broadened: qualitative ordering constraints (diversified > corn > almond), regression floors from observed data, anti-luck variance checks. Old per-bot exact targets replaced with floors. One structural gate remains: "≥3 strategy families survive ≥60% of runs" (retained as a genuine quality constraint — ensures multiple viable paths exist). Corn dominance fixed via monoculture streak penalty (#89).
 - **Advanced accessibility** (colorblind modes, full screen reader support) — Baseline keyboard nav + ARIA in Slice 1.
 - **Sound / music** — Not essential for classroom use.
 - **Farm expansion (neighbor buyout)** — Likely v2, not Classroom-Ready Build.

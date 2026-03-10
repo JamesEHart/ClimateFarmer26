@@ -1,14 +1,18 @@
 /**
- * Diversified Adaptive Bot — Mixed rotation with outcome-based adaptation.
+ * Diversified Adaptive Bot — Crop rotation with perennial investment.
  *
- * This represents the "good student" strategy that should score well across
+ * Represents the "good student" strategy that should score well across
  * all metrics: financial stability, soil health, diversity, and adaptation.
  *
+ * Key principle: ROTATE annuals to avoid monoculture yield penalty.
+ * Real students who understand rotation would alternate crops on each row.
+ *
  * Strategy phases:
- * - Years 1-4: Corn (rows 0-2), tomatoes (rows 3-4), sorghum (rows 5-6), wheat in fall (rows 6-7)
- * - Year 5+: Plant pistachios in rows 5-6. Cover crops on empties in fall.
- * - Year 10+: Shift toward citrus if chill hours declining. Rotate annuals.
- * - Year 15+: Continue cover crops. React to revenue declines.
+ * - Years 1-4: Rotate corn/tomatoes on rows 0-4 (alternate by year).
+ *              Sorghum on rows 5-7 (spring). Wheat on rows 6-7 (fall).
+ * - Year 5+:   Plant pistachios in rows 5-6. Continue corn/tomato rotation rows 0-4.
+ *              Cover crops on empties in fall.
+ * - Year 10+:  Shift toward citrus if chill hours declining. Continue rotation.
  *
  * Does NOT read advisor text — purely outcome-based adaptation.
  */
@@ -37,7 +41,6 @@ export function createDiversifiedAdaptive(): StrategyBot {
         case 'advisor':
           if (state.activeEvent && state.activeEvent.choices.length > 0) {
             // Pick the protective option (usually the last choice, which costs more but protects)
-            // Simple heuristic: pick the LAST choice (often the "invest in protection" option)
             const choices = state.activeEvent.choices;
             return [{
               type: 'RESPOND_EVENT',
@@ -55,41 +58,38 @@ export function createDiversifiedAdaptive(): StrategyBot {
       const { year, month } = state.calendar;
       const cmds: Command[] = [];
 
-      // --- Spring planting (Mar-May for most, Apr-Jun for sorghum) ---
+      // --- Spring planting (March) ---
       if (month === 3) {
-        // Only plant once per spring (month 3 = first opportunity for most crops)
+        // Corn/tomato rotation: alternate by year on each row to avoid monoculture penalty.
+        // Even years: rows 0,2,4 = corn; rows 1,3 = tomatoes
+        // Odd years:  rows 0,2,4 = tomatoes; rows 1,3 = corn
+        const useTomatoes = year % 2 === 0;
+
         if (year <= 4) {
-          // Phase 1: Diverse annuals
-          plantRowIfEmpty(state, cmds, 0, 'silage-corn');
-          plantRowIfEmpty(state, cmds, 1, 'silage-corn');
-          plantRowIfEmpty(state, cmds, 2, 'silage-corn');
-          plantRowIfEmpty(state, cmds, 3, 'processing-tomatoes');
-          plantRowIfEmpty(state, cmds, 4, 'processing-tomatoes');
-          // Rows 5-7: sorghum planted in April (see month 4 block)
-        } else if (year <= 9) {
-          // Phase 2: Start perennials, keep some annuals
+          // Phase 1: Rotation on rows 0-4, sorghum on 5-7
+          plantRowIfEmpty(state, cmds, 0, useTomatoes ? 'processing-tomatoes' : 'silage-corn');
+          plantRowIfEmpty(state, cmds, 1, useTomatoes ? 'silage-corn' : 'processing-tomatoes');
+          plantRowIfEmpty(state, cmds, 2, useTomatoes ? 'processing-tomatoes' : 'silage-corn');
+          plantRowIfEmpty(state, cmds, 3, useTomatoes ? 'silage-corn' : 'processing-tomatoes');
+          plantRowIfEmpty(state, cmds, 4, useTomatoes ? 'processing-tomatoes' : 'silage-corn');
+        } else {
+          // Phase 2+: Pistachios on rows 5-6, rotation continues on rows 0-4
           if (!pistachiosPlanted) {
             plantRowIfEmpty(state, cmds, 5, 'pistachios');
             plantRowIfEmpty(state, cmds, 6, 'pistachios');
             pistachiosPlanted = true;
           }
-          plantRowIfEmpty(state, cmds, 0, 'silage-corn');
-          plantRowIfEmpty(state, cmds, 1, 'processing-tomatoes');
-          plantRowIfEmpty(state, cmds, 2, 'silage-corn');
-          plantRowIfEmpty(state, cmds, 3, 'processing-tomatoes');
-          plantRowIfEmpty(state, cmds, 4, 'silage-corn');
-        } else {
-          // Phase 3: Rotate annuals, consider citrus
-          // Check if chill hours are declining — scenario data
-          const yearClimate = scenario.years[Math.min(year - 1, 29)];
-          if (!citrusStarted && yearClimate.chillHours < 650) {
-            // Replace row 7 with citrus (no chill requirement)
-            plantRowIfEmpty(state, cmds, 7, 'citrus-navels');
-            citrusStarted = true;
+
+          // Phase 3 (Y10+): Consider citrus if chill hours declining
+          if (year >= 10 && !citrusStarted) {
+            const yearClimate = scenario.years[Math.min(year - 1, 29)];
+            if (yearClimate.chillHours < 650) {
+              plantRowIfEmpty(state, cmds, 7, 'citrus-navels');
+              citrusStarted = true;
+            }
           }
 
-          // Alternate corn and tomatoes for diversity
-          const useTomatoes = year % 2 === 0;
+          // Continue corn/tomato rotation on rows 0-4
           plantRowIfEmpty(state, cmds, 0, useTomatoes ? 'processing-tomatoes' : 'silage-corn');
           plantRowIfEmpty(state, cmds, 1, useTomatoes ? 'silage-corn' : 'processing-tomatoes');
           plantRowIfEmpty(state, cmds, 2, useTomatoes ? 'processing-tomatoes' : 'silage-corn');
@@ -98,7 +98,7 @@ export function createDiversifiedAdaptive(): StrategyBot {
         }
       }
 
-      // Sorghum in April (planting window: Apr-Jun)
+      // Sorghum in April (planting window: Apr-Jun) — only in early years before pistachios
       if (month === 4 && year <= 4) {
         plantRowIfEmpty(state, cmds, 5, 'sorghum');
         plantRowIfEmpty(state, cmds, 6, 'sorghum');
@@ -113,8 +113,8 @@ export function createDiversifiedAdaptive(): StrategyBot {
           plantRowIfEmpty(state, cmds, 7, 'winter-wheat');
         }
 
-        // Cover crops on empty cells (year 5+)
-        if (year >= 5) {
+        // Cover crops on empty cells (Y2+ — same timing as corn bot)
+        if (year >= 2) {
           for (let r = 0; r < 8; r++) {
             if (state.grid[r].some(c => !c.crop && c.coverCropId === null)) {
               cmds.push({ type: 'SET_COVER_CROP_BULK', scope: 'row', index: r, coverCropId: 'legume-cover' });

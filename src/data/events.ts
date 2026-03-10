@@ -472,12 +472,12 @@ export const STORYLETS: readonly Storylet[] = [
     title: 'Financial Recovery Planning',
     description: "Times are tough, but I've seen farms recover from worse. Let's look at some strategies to rebuild your finances. The key is cutting costs where you can while keeping your most profitable acres producing.",
     preconditions: [
-      { type: 'cash_below', amount: 30000 },
+      { type: 'cash_below', amount: 25000 },
       { type: 'min_year', year: 4 },
     ],
     priority: 90,
-    cooldownDays: 365,
-    maxOccurrences: 3,
+    cooldownDays: 730,
+    maxOccurrences: 2,
     advisorId: 'extension-agent',
     choices: [
       {

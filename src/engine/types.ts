@@ -190,6 +190,8 @@ export interface Cell {
   // Slice 4a: Tracking for adaptation scoring
   lastCropId: string | null;
   lastHarvestYieldRatio: number | null;
+  // Slice 5d: Monoculture streak counter (optional for save compat, default 0)
+  consecutiveSameCropCount?: number;
 }
 
 // --- Tracking (Slice 4a) ---
@@ -417,6 +419,21 @@ export const N_MINERALIZATION_RATE = 10;     // lbs N per year per 1% OM (tuned:
 // Organic matter decomposition rate (annual, applied compound-daily)
 // 6%/year under monoculture without cover crops — visible decline within 30-year game
 export const OM_DECOMP_RATE = 0.06;
+
+// Cover crop OM protection: cover crops reduce OM decomposition rate, not halt it entirely
+export const COVER_CROP_OM_PROTECTION = 0.50; // 50% decomposition reduction (effective rate = 3%/year)
+
+// Monoculture streak penalty: escalating yield loss for consecutive same annual crop in same cell
+// Real-world: pest/disease buildup compounds over years (rootworm adaptation, allelopathy, nutrient cycling)
+// Sources: NIFA/Illinois rotation project, SDSU rootworm management data
+export const MONOCULTURE_PENALTY_PER_YEAR = 0.15; // 15% additional penalty per consecutive year
+export const MONOCULTURE_PENALTY_FLOOR = 0.50;     // maximum penalty: 50% yield loss at 5th+ consecutive year
+// Streak: 1st=1.0, 2nd=0.85, 3rd=0.70, 4th=0.55, 5th+=0.50
+
+// Corn drought quality penalty: DEFERRED TO SLICE 6
+// Needs proper heat stress tracking (separate from waterStressDays to avoid double-counting with waterFactor)
+// Real-world: heat + drought during pollination reduce grain quality (mycotoxin/aflatoxin contamination)
+// Sources: UMN Extension, Nebraska CropWatch, USDA ARS aflatoxin research
 
 // Loan constants
 export const LOAN_INTEREST_RATE = 0.10; // 10% annual

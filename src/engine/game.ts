@@ -15,6 +15,8 @@ import {
   N_MINERALIZATION_RATE, OM_DECOMP_RATE,
   STARTING_POTASSIUM, K_MAX, K_MINERALIZATION_RATE, K_PRICE_FLOOR, K_SYMPTOM_THRESHOLD,
   AUTO_IRRIGATION_COST_MULTIPLIERS, REGIME_WATER_REDUCTION, REGIME_MARKET_CRASH_FACTOR,
+  MONOCULTURE_PENALTY_PER_YEAR, MONOCULTURE_PENALTY_FLOOR,
+  COVER_CROP_OM_PROTECTION,
   createEmptyTrackingState, createEmptyExpenseBreakdown,
 } from './types.ts';
 import { getTechLevel } from './tech-levels.ts';
@@ -1333,12 +1335,11 @@ function simulateSoil(cell: Cell, weather: DailyWeather): void {
   // Precipitation (water gain)
   soil.moisture = Math.min(soil.moisture + weather.precipitation, soil.moistureCapacity);
 
-  // Organic matter decomposition (~5%/year compound-daily of current OM)
-  // Cover crop roots protect soil — halt decomposition when cover crop is present
-  if (!cell.coverCropId) {
-    const omDecompRate = OM_DECOMP_RATE / DAYS_PER_YEAR;
-    soil.organicMatter = Math.max(OM_FLOOR, soil.organicMatter - soil.organicMatter * omDecompRate);
-  }
+  // Organic matter decomposition (~6%/year compound-daily of current OM)
+  // Cover crop roots slow decomposition (50% reduction) but don't halt it entirely
+  const coverCropProtection = cell.coverCropId ? COVER_CROP_OM_PROTECTION : 1.0;
+  const omDecompRate = OM_DECOMP_RATE / DAYS_PER_YEAR * coverCropProtection;
+  soil.organicMatter = Math.max(OM_FLOOR, soil.organicMatter - soil.organicMatter * omDecompRate);
 
   // Update moisture capacity based on OM
   soil.moistureCapacity = BASE_MOISTURE_CAPACITY + (soil.organicMatter - 2.0) * OM_MOISTURE_BONUS_PER_PERCENT;
@@ -1609,6 +1610,20 @@ export function harvestCell(state: GameState, cell: Cell, silent?: boolean): num
     yieldAmount *= cropDef.heatSensitivity;
   }
 
+  // Slice 5d: Monoculture streak penalty — escalating yield loss for consecutive same annual crop
+  // Real-world: pest/disease buildup compounds (rootworm adaptation, allelopathy, nutrient cycling)
+  // Perennials exempt (same tree producing, not replanting). Streak: 1st=1.0, 2nd=0.85, 3rd=0.70, 4th=0.55, 5th+=0.50
+  if (!crop.isPerennial && cell.lastCropId === crop.cropId) {
+    const streak = (cell.consecutiveSameCropCount ?? 0) + 1; // +1 because current harvest extends the streak
+    const penaltyFactor = Math.max(MONOCULTURE_PENALTY_FLOOR, 1.0 - MONOCULTURE_PENALTY_PER_YEAR * streak);
+    yieldAmount *= penaltyFactor;
+    if (!silent && !state.flags['monoculture_penalty_shown']) {
+      addNotification(state, 'info',
+        `${cropDef.name}: yield reduced by planting the same crop repeatedly. Crop rotation helps prevent pest buildup and soil depletion.`);
+      state.flags['monoculture_penalty_shown'] = true;
+    }
+  }
+
   yieldAmount = Math.max(0, yieldAmount);
 
   // Slice 5a: K-lite — potassium affects price quality, not yield
@@ -1686,7 +1701,12 @@ export function harvestCell(state: GameState, cell: Cell, silent?: boolean): num
     crop.plantedDay = state.calendar.totalDay; // Fix #1: reset so next season's water-stress denominator is fresh
     crop.harvestedThisSeason = true;           // Fix #2: prevent multiple harvests per season
   } else {
-    // Annual: set lastCropId at harvest time (perennials set at planting)
+    // Annual: update streak counter and set lastCropId at harvest time (perennials set at planting)
+    if (cell.lastCropId === crop.cropId) {
+      cell.consecutiveSameCropCount = (cell.consecutiveSameCropCount ?? 0) + 1;
+    } else {
+      cell.consecutiveSameCropCount = 0;
+    }
     cell.lastCropId = crop.cropId;
     cell.crop = null;
   }

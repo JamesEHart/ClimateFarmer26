@@ -348,7 +348,11 @@ export function plantBulk(scope: 'all' | 'row' | 'col', cropId: string, index?: 
     // SPEC §2.3: Always show confirmation for field-scope plant
     const cropDef = getCropDefinition(cropId);
     const emptyCells = _liveState.grid.flat().filter(c => c.crop === null);
-    if (emptyCells.length === 0) return;
+    if (emptyCells.length === 0) {
+      addNotification(_liveState, 'info', 'All plots are already planted.');
+      publishState();
+      return;
+    }
 
     // Check how many fully-empty rows exist (DD-1)
     const fullRowCells: Cell[] = [];
@@ -381,7 +385,7 @@ export function plantBulk(scope: 'all' | 'row' | 'col', cropId: string, index?: 
         ? ` These trees take ${cropDef.yearsToEstablish ?? 3} years to produce their first harvest. You won't see revenue from them until Year ${_liveState.calendar.year + (cropDef.yearsToEstablish ?? 3)}.`
         : '';
       confirmDialog.value = {
-        message: `Plant all ${fullRowCells.length} plots with ${cropDef.name} for $${totalCost.toLocaleString()}?${perennialNote}`,
+        message: `Plant ${fullRowCells.length} plots (fully empty rows only) with ${cropDef.name} for $${totalCost.toLocaleString()}?${perennialNote}`,
         onConfirm: () => {
           if (!_liveState) return;
           if (isPerennialFirst) _liveState.flags['perennialWarningShown'] = true;
@@ -463,6 +467,9 @@ export function plantBulk(scope: 'all' | 'row' | 'col', cropId: string, index?: 
   if (result.success) {
     publishState();
     maybeShowPlayPrompt();
+  } else if (result.reason && result.reason !== 'partial') {
+    addNotification(_liveState, 'info', result.reason);
+    publishState();
   }
 }
 
@@ -699,6 +706,27 @@ export function handleDismissAutoPause(): void {
     needsPlayPrompt.value = true;
   }
 
+  publishState();
+}
+
+/**
+ * Decline the emergency loan — pushes a bankruptcy auto-pause so the
+ * reflection/game-over panel shows before returning to title. (#88)
+ */
+export function declineLoan(): void {
+  if (!_liveState) return;
+  _liveState.gameOverReason = 'bankruptcy';
+  _liveState.autoPauseQueue.push({
+    reason: 'bankruptcy',
+    message: 'You declined the emergency loan. Without funding, the farm cannot continue.',
+    data: {
+      cash: _liveState.economy.cash,
+      debt: _liveState.economy.debt,
+      yearlyRevenue: _liveState.economy.yearlyRevenue,
+      yearlyExpenses: _liveState.economy.yearlyExpenses,
+    },
+  });
+  dismissAutoPause(_liveState);
   publishState();
 }
 
