@@ -41,7 +41,7 @@ describe('hasRandomCondition', () => {
     ]);
   });
 
-  it('identifies all 9 per-tick events', () => {
+  it('identifies all 14 per-tick events', () => {
     const perTickIds = STORYLETS.filter(s => !hasRandomCondition(s)).map(s => s.id);
     expect(perTickIds).toEqual([
       'advisor-orchard-decline',
@@ -53,6 +53,11 @@ describe('hasRandomCondition', () => {
       'advisor-chen-intro',
       'advisor-forum-intro',
       'tech-water-irrigation',
+      'tech-soil-management',
+      'tech-crop-agave',
+      'regime-water-restriction',
+      'regime-market-crash',
+      'regime-heat-threshold',
     ]);
   });
 });

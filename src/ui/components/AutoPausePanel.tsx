@@ -5,6 +5,9 @@ import {
   gameState, dispatch,
 } from '../../adapter/signals.ts';
 import type { AutoPauseEvent } from '../../engine/types.ts';
+import { STARTING_CASH } from '../../engine/types.ts';
+import { buildReflectionData } from '../../engine/game.ts';
+import { getCropDefinition } from '../../data/crops.ts';
 import { EventPanel } from './EventPanel.tsx';
 import styles from '../styles/Overlay.module.css';
 
@@ -212,24 +215,24 @@ function getEventConfig(event: AutoPauseEvent, state: import('../../engine/types
     }
 
     case 'bankruptcy': {
-      const data = event.data as Record<string, number> | undefined;
       const suggestion = getSuggestion(state);
       return {
-        title: 'Game Over',
+        title: `Game Over \u2014 Your Farm Reached Year ${state?.calendar.year ?? '?'}`,
         primaryLabel: 'Start New Game',
-        report: data
-          ? `Starting cash: $50,000. Final year revenue: $${Math.floor(data.yearlyRevenue).toLocaleString()}. Final year expenses: $${Math.floor(data.yearlyExpenses).toLocaleString()}.`
-          : undefined,
-        // TODO 4e: Replace with lifetime totals from tracking.yearSnapshots
+        wide: true,
+        report: state ? buildReflectionSummary(state) : undefined,
         suggestion,
       };
     }
 
-    case 'year_30':
+    case 'year_30': {
       return {
         title: 'Congratulations!',
         primaryLabel: 'Start New Game',
+        wide: true,
+        report: state ? buildReflectionSummary(state) : undefined,
       };
+    }
 
     case 'loan_offer': {
       const data = event.data as Record<string, number> | undefined;
@@ -274,6 +277,48 @@ function getSuggestion(state: import('../../engine/types.ts').GameState | null):
   }
 
   return 'Tip: Consider diversifying your crops and watching your expenses carefully.';
+}
+
+function buildReflectionSummary(state: import('../../engine/types.ts').GameState): string {
+  const ref = buildReflectionData(state);
+  const lines: string[] = [];
+
+  // Financial
+  const startCash = STARTING_CASH;
+  const finalCash = Math.floor(state.economy.cash);
+  lines.push(`Starting cash: $${startCash.toLocaleString()}. Final cash: $${finalCash.toLocaleString()}.`);
+
+  if (ref.financialArc.length > 0) {
+    const totalRevenue = ref.financialArc.reduce((sum, y) => sum + y.revenue, 0);
+    lines.push(`Total revenue across all years: $${Math.floor(totalRevenue).toLocaleString()}.`);
+
+    const bestYear = ref.financialArc.reduce((best, y) => y.revenue > best.revenue ? y : best);
+    if (bestYear.revenue > 0) {
+      lines.push(`Best year: Year ${bestYear.year} ($${Math.floor(bestYear.revenue).toLocaleString()} revenue).`);
+    }
+  }
+
+  // Soil
+  const trendText = ref.soilTrend === 'improved' ? 'Soil health improved over the game.'
+    : ref.soilTrend === 'declined' ? 'Soil health declined over the game.'
+    : 'Soil health was maintained.';
+  lines.push(trendText);
+
+  // Decisions
+  if (ref.decisions.length > 0) {
+    const labels = ref.decisions.map(d => d.label);
+    lines.push(`Technologies and events: ${labels.join(', ')}.`);
+  }
+
+  // Crop diversity
+  if (ref.diversity.uniqueCount > 0) {
+    const names = ref.diversity.cropsGrown.map(id => {
+      try { return getCropDefinition(id).name; } catch { return id; }
+    });
+    lines.push(`Crops grown: ${names.join(', ')} (${ref.diversity.uniqueCount} varieties).`);
+  }
+
+  return lines.join('\n');
 }
 
 function YearEndTable({ data }: { data: YearEndData }) {

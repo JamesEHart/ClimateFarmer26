@@ -650,4 +650,225 @@ export const STORYLETS: readonly Storylet[] = [
     ],
     tags: ['tech-unlock', 'advisor', 'water'],
   },
+
+  // --- Slice 5c: Soil Fork, Agave, Regime Shifts ---
+
+  {
+    id: 'tech-soil-management',
+    type: 'advisor',
+    title: 'Soil Management Decision',
+    description: "Dr. Santos spreads out a soil map at her office. \"Your fields have been producing well, but I'm seeing early signs of nutrient depletion. We should get ahead of this before it becomes a problem.\" She recommends commissioning a professional soil test — lab analysis of nitrogen, potassium, organic matter, the works.\n\nMarcus Chen walks in with a different suggestion. \"UC Extension publishes regional soil reports every quarter — free or nearly free. You'd get general guidance without the lab costs.\"\n\nAt the Growers Forum, old-timer Jake Mendoza shrugs. \"I've been farming forty years without a soil test. You learn to read the plants.\"",
+    preconditions: [
+      { type: 'min_year', year: 6 },
+      { type: 'has_crop' },
+      { type: 'tech_level_below', track: 'soil', level: 1 },
+      { type: 'has_flag', flag: 'met_chen' },
+      { type: 'has_flag', flag: 'met_forum' },
+    ],
+    priority: 100,
+    cooldownDays: 365,
+    maxOccurrences: 3,
+    advisorId: 'extension-agent',
+    choices: [
+      {
+        id: 'soil-testing',
+        label: 'Commission Soil Testing',
+        description: 'Professional lab analysis of your soil. You\'ll see exact potassium levels and get specific nutrient recommendations. Costs $600.',
+        cost: 600,
+        requiresCash: 600,
+        effects: [
+          { type: 'modify_cash', amount: -600 },
+          { type: 'set_flag', flag: 'tech_soil_testing', value: true },
+          { type: 'add_notification', message: 'Soil testing commissioned. Lab results reveal detailed nutrient levels — including potassium, which affects crop quality and market price. Santos: "Now you can see exactly what your soil needs."', notificationType: 'event_result' },
+        ],
+      },
+      {
+        id: 'extension-reports',
+        label: 'Subscribe to Extension Reports',
+        description: 'Regional soil health bulletins from UC Extension. General guidance at low cost, but you won\'t get field-specific data. Costs $200.',
+        cost: 200,
+        requiresCash: 200,
+        effects: [
+          { type: 'modify_cash', amount: -200 },
+          { type: 'set_flag', flag: 'tech_extension_reports', value: true },
+          { type: 'add_notification', message: 'Subscribed to UC Extension soil reports. You\'ll receive quarterly bulletins on regional soil health trends. Chen: "Smart — professional guidance without breaking the bank."', notificationType: 'event_result' },
+        ],
+      },
+      {
+        id: 'not-now',
+        label: 'Not Right Now',
+        description: 'Your soil seems fine for now. You\'ll revisit this later.',
+        effects: [
+          { type: 'add_notification', message: 'You decided to hold off on soil management upgrades. Santos: "Your soil won\'t wait forever — nutrient depletion is invisible until it isn\'t." Forum: "Jake\'s been saying that for forty years and he\'s still farming."', notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['tech-unlock', 'advisor', 'soil'],
+  },
+
+  {
+    id: 'tech-crop-agave',
+    type: 'advisor',
+    title: 'Novel Crop Research: Agave',
+    description: "Dr. Santos brings a research paper to your attention. \"A team at UC Davis has been trialing agave cultivation in the San Joaquin Valley. It's a CAM plant — uses almost no water, thrives in heat, minimal soil demands.\"\n\nChen looks at the numbers: \"The margins aren't huge, but the costs are almost nothing. In a drought year, it's income when everything else is dying.\"\n\nThe Forum is skeptical but curious. \"Never grown it myself, but I've seen the Davis plots. Things look like they belong in a desert — because they do.\"",
+    preconditions: [
+      { type: 'min_year', year: 9 },
+      { type: 'has_crop' },
+      { type: 'not_has_flag', flag: 'tech_crop_agave' },
+    ],
+    priority: 95,
+    cooldownDays: 365,
+    maxOccurrences: 2,
+    advisorId: 'extension-agent',
+    choices: [
+      {
+        id: 'adopt-agave',
+        label: 'Research Agave Cultivation',
+        description: 'Invest in learning agave growing techniques. Unlocks agave as a plantable crop — extremely drought-tolerant but 5-year establishment. Costs $400.',
+        cost: 400,
+        requiresCash: 400,
+        effects: [
+          { type: 'modify_cash', amount: -400 },
+          { type: 'set_flag', flag: 'tech_crop_agave', value: true },
+          { type: 'add_notification', message: 'Agave cultivation research complete! You can now plant agave — a desert-adapted perennial with minimal water needs. Santos: "This could be your drought insurance."', notificationType: 'event_result' },
+        ],
+      },
+      {
+        id: 'not-now',
+        label: 'Not Right Now',
+        description: 'Agave is interesting but you have other priorities.',
+        effects: [
+          { type: 'add_notification', message: 'You passed on agave research for now. Santos: "The option remains open — agave isn\'t going anywhere." Chen: "When water gets scarce enough, you might reconsider."', notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['tech-unlock', 'advisor', 'crop'],
+  },
+
+  {
+    id: 'regime-water-restriction',
+    type: 'regulatory',
+    title: 'SGMA Water Conservation Mandate',
+    description: "Dr. Santos arrives with grim news. \"The Sustainable Groundwater Management Act has hit our basin. State regulators are enforcing a 20% reduction in agricultural water allocation — effective immediately and permanently.\"\n\nShe spreads out a diagram of a water recycling system. \"There's an investment option: install on-farm water recycling. It won't restore your full allocation, but it will make every drop count more — your automatic irrigation would operate at half its current cost.\"\n\nChen pulls up the financials. \"$1,200 for the recycling system. Not cheap, but the ongoing savings on irrigation costs could pay for itself within a few seasons.\"\n\nThe Forum's reaction is mixed. \"SGMA was always coming. Some of us saw the writing on the wall years ago.\"",
+    preconditions: [
+      { type: 'min_year', year: 10 },
+      { type: 'max_year', year: 12 },
+      { type: 'not_has_flag', flag: 'regime_water_reduced' },
+      { type: 'has_crop' },
+    ],
+    priority: 100,
+    cooldownDays: 0,
+    maxOccurrences: 1,
+    advisorId: 'extension-agent',
+    choices: [
+      {
+        id: 'invest-water-recycling',
+        label: 'Install Water Recycling',
+        description: 'On-farm water recycling system. Water allocation still drops 20%, but your auto-irrigation costs are cut in half. Costs $1,200.',
+        cost: 1200,
+        requiresCash: 1200,
+        effects: [
+          { type: 'modify_cash', amount: -1200 },
+          { type: 'set_flag', flag: 'regime_water_reduced', value: true },
+          { type: 'set_flag', flag: 'tech_water_recycling', value: true },
+          { type: 'add_notification', message: 'Water recycling system installed. Water allocation has been permanently reduced by 20%, but your irrigation system now operates at half cost. Santos: "Smart adaptation — you\'re making every drop count."', notificationType: 'event_result' },
+        ],
+      },
+      {
+        id: 'accept-restrictions',
+        label: 'Accept Reduced Allocation',
+        description: 'Comply with the new water restrictions without additional investment. Your water allocation drops 20% permanently.',
+        effects: [
+          { type: 'set_flag', flag: 'regime_water_reduced', value: true },
+          { type: 'add_notification', message: 'Water allocation has been permanently reduced by 20% under SGMA. Every irrigation delivers less water. Santos: "This is the new normal. Drought-tolerant crops and careful water management are more important than ever."', notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['regime-shift', 'advisor', 'water'],
+  },
+
+  {
+    id: 'regime-market-crash',
+    type: 'market',
+    title: 'Almond Market Collapse',
+    description: "Marcus Chen calls an emergency meeting. \"I need you to sit down for this. Global almond prices have crashed — oversupply from new Australian orchards, plus a trade dispute with the EU. Almond prices are down 30%, and analysts say this is permanent.\"\n\nHe pulls out a contract form. \"I've been working with a regional buyer who'll lock in a forward contract at a slight premium — it won't fully offset the crash, but it buys you a year to adjust your crop mix.\"\n\nSantos is already thinking ahead: \"If you're heavily invested in almonds, this is the moment to diversify. Pistachios and citrus aren't affected.\"\n\nThe Forum is rattled. \"Three of my neighbors are talking about pulling their almond orchards. Twenty years of investment, gone.\"",
+    preconditions: [
+      { type: 'min_year', year: 15 },
+      { type: 'max_year', year: 18 },
+      { type: 'not_has_flag', flag: 'regime_market_crash' },
+      { type: 'has_crop' },
+    ],
+    priority: 100,
+    cooldownDays: 0,
+    maxOccurrences: 1,
+    advisorId: 'farm-credit',
+    choices: [
+      {
+        id: 'negotiate-forward',
+        label: 'Negotiate Forward Contract',
+        description: 'Lock in a 15% premium on almond sales for the next year. Partially offsets the crash while you adjust your strategy. Costs $300.',
+        cost: 300,
+        requiresCash: 300,
+        effects: [
+          { type: 'modify_cash', amount: -300 },
+          { type: 'set_flag', flag: 'regime_market_crash', value: true },
+          // Source-of-truth coupling: cropId must match scenario.marketCrashTargetCropId (all scenarios = 'almonds' in 5c)
+          { type: 'modify_price_modifier', cropId: 'almonds', multiplier: 1.15, durationDays: 365 },
+          { type: 'add_notification', message: 'Forward contract negotiated. Almond prices have permanently dropped 30%, but your contract provides a 15% premium for the next year. Chen: "Use this breathing room wisely — diversify before the contract expires."', notificationType: 'event_result' },
+        ],
+      },
+      {
+        id: 'accept-crash',
+        label: 'Accept Market Conditions',
+        description: 'No forward contract. Almond prices drop 30% permanently. Consider diversifying your crop portfolio.',
+        effects: [
+          { type: 'set_flag', flag: 'regime_market_crash', value: true },
+          { type: 'add_notification', message: 'Almond prices have permanently dropped 30%. Chen: "The market doesn\'t care about your investment timeline. Diversify or absorb the loss." Santos: "Pistachios and citrus are unaffected — consider shifting your orchard mix."', notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['regime-shift', 'advisor', 'market'],
+  },
+
+  {
+    id: 'regime-heat-threshold',
+    type: 'climate',
+    title: 'Permanent Heat Threshold Crossed',
+    description: "Dr. Santos arrives with a stack of climate data and a grave expression. \"I've been tracking the temperature trends, and we've crossed a threshold. Average summer highs are now consistently above what most of our traditional crops can handle. This isn't a heatwave — this is the new baseline.\"\n\nShe shows yield projections: tomatoes down 25%, corn down 15%, almonds down 20%. Only sorghum, pistachios, and agave are unaffected.\n\n\"But there's an opportunity,\" she continues. \"UC Riverside has developed a heat-tolerant avocado variety specifically for inland valleys. It thrives in these temperatures and could become a high-value replacement for struggling crops.\"\n\nChen reviews the investment: \"$800 for the research license and starter rootstock. The avocados need 4 years to establish, but the long-term value is significant.\"\n\nThe Forum has been watching the thermometer too. \"My grandfather never saw summers like this. The valley is changing — we either change with it or we're done.\"",
+    preconditions: [
+      { type: 'min_year', year: 20 },
+      { type: 'max_year', year: 25 },
+      { type: 'not_has_flag', flag: 'regime_heat_threshold' },
+      { type: 'has_crop' },
+    ],
+    priority: 100,
+    cooldownDays: 0,
+    maxOccurrences: 1,
+    advisorId: 'extension-agent',
+    choices: [
+      {
+        id: 'research-heat-crops',
+        label: 'Research Heat-Adapted Varieties',
+        description: 'Invest in heat-tolerant avocado rootstock and growing techniques. Unlocks avocados — high value, no heat penalty, but 4-year establishment. Costs $800.',
+        cost: 800,
+        requiresCash: 800,
+        effects: [
+          { type: 'modify_cash', amount: -800 },
+          { type: 'set_flag', flag: 'regime_heat_threshold', value: true },
+          { type: 'set_flag', flag: 'tech_crop_avocado', value: true },
+          { type: 'add_notification', message: 'Heat threshold permanently crossed. Traditional crops will yield less, but you\'ve unlocked heat-tolerant avocado cultivation. Santos: "The future belongs to crops that thrive in heat, not just survive it."', notificationType: 'event_result' },
+        ],
+      },
+      {
+        id: 'accept-heat',
+        label: 'Accept Yield Losses',
+        description: 'No investment in new varieties. Heat-sensitive crops (tomatoes, corn, wheat, almonds, citrus) permanently yield less.',
+        effects: [
+          { type: 'set_flag', flag: 'regime_heat_threshold', value: true },
+          { type: 'add_notification', message: 'Heat threshold permanently crossed. Tomatoes, corn, wheat, almonds, and citrus will all produce lower yields going forward. Santos: "Without adaptation, you\'re farming against the climate instead of with it."', notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['regime-shift', 'advisor', 'heat', 'tech-unlock'],
+  },
 ] as const;

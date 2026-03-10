@@ -250,6 +250,21 @@ function CellDetail({ cell, row, col }: { cell: import('../../engine/types.ts').
           unit="%"
           color="var(--color-primary)"
         />
+        {state?.flags['tech_soil_testing'] ? (
+          <SoilBar
+            label="Potassium"
+            testId="sidebar-soil-k"
+            value={soil.potassium}
+            max={200}
+            unit="lbs/acre"
+            color="var(--color-primary)"
+          />
+        ) : (
+          <div data-testid="sidebar-soil-k-hidden" class={styles.soilRow}>
+            <span class={styles.soilLabel}>Potassium</span>
+            <span class={styles.soilValue}>???</span>
+          </div>
+        )}
       </div>
 
       <div class={styles.section}>
@@ -396,7 +411,10 @@ function FieldSummary() {
       const cell = state.grid[r][c];
       if (cell.crop) {
         planted++;
-        if (cell.crop.growthStage === 'harvestable' || cell.crop.growthStage === 'overripe') {
+        // Correct predicate: exclude dormant and already-harvested perennials
+        if ((cell.crop.growthStage === 'harvestable' || cell.crop.growthStage === 'overripe') &&
+            !cell.crop.isDormant &&
+            !(cell.crop.isPerennial && cell.crop.harvestedThisSeason)) {
           harvestableCount++;
         }
       }
@@ -453,9 +471,19 @@ function BulkActions() {
   const sel = selectedCell.value;
   const cropsAvailable = availableCrops.value;
   const hasCrops = state.grid.some(row => row.some(c => c.crop !== null));
-  const hasHarvestable = state.grid.some(row => row.some(c =>
-    c.crop && (c.crop.growthStage === 'harvestable' || c.crop.growthStage === 'overripe'),
-  ));
+  // Correct harvest-ready predicate: exclude dormant and already-harvested perennials
+  let harvestReadyCount = 0;
+  for (const row of state.grid) {
+    for (const c of row) {
+      if (c.crop &&
+          (c.crop.growthStage === 'harvestable' || c.crop.growthStage === 'overripe') &&
+          !c.crop.isDormant &&
+          !(c.crop.isPerennial && c.crop.harvestedThisSeason)) {
+        harvestReadyCount++;
+      }
+    }
+  }
+  const hasHarvestable = harvestReadyCount > 0;
   const isFall = state.calendar.season === 'fall';
   const hasEligibleForCover = isFall && state.grid.some(row => row.some(c => {
     if (c.coverCropId) return false;
@@ -517,7 +545,7 @@ function BulkActions() {
           onClick={() => harvestBulk('all')}
           disabled={!hasHarvestable}
         >
-          Harvest Field
+          Harvest Field{hasHarvestable ? ` (${harvestReadyCount} ready)` : ''}
         </button>
 
         {sel && (

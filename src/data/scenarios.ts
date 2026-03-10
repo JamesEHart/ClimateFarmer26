@@ -38,6 +38,9 @@ export interface ScenarioConfig {
   droughtHeatwaveProb: number;  // heatwave prob during drought
   extraHeatStartYear: number;   // year when extra heatwave prob kicks in
   extraHeatAmount: number;      // additional heatwave prob
+  // Slice 5c: Market crash targeting
+  marketCrashTargetCropId: string;   // which crop's price crashes permanently
+  marketCrashFactor: number;         // price multiplier (e.g., 0.70 = 30% drop)
 }
 
 // ============================================================================
@@ -131,6 +134,8 @@ function generateScenario(config: ScenarioConfig): ClimateScenario {
     description: config.description,
     seed: config.baseSeed,
     years,
+    marketCrashTargetCropId: config.marketCrashTargetCropId,
+    marketCrashFactor: config.marketCrashFactor,
   };
 }
 
@@ -164,6 +169,8 @@ const GRADUAL_WARMING_CONFIG: ScenarioConfig = {
   droughtHeatwaveProb: 0.4,
   extraHeatStartYear: 10,
   extraHeatAmount: 0.02,
+  marketCrashTargetCropId: 'almonds',
+  marketCrashFactor: 0.70,
 };
 
 /**
@@ -192,6 +199,8 @@ const EARLY_DROUGHT_CONFIG: ScenarioConfig = {
   droughtHeatwaveProb: 0.5,
   extraHeatStartYear: 8,
   extraHeatAmount: 0.03,
+  marketCrashTargetCropId: 'almonds',
+  marketCrashFactor: 0.70,
 };
 
 /**
@@ -220,6 +229,8 @@ const WHIPLASH_CONFIG: ScenarioConfig = {
   droughtHeatwaveProb: 0.45,
   extraHeatStartYear: 12,
   extraHeatAmount: 0.02,
+  marketCrashTargetCropId: 'almonds',
+  marketCrashFactor: 0.70,
 };
 
 /**
@@ -248,6 +259,8 @@ const LATE_ESCALATION_CONFIG: ScenarioConfig = {
   droughtHeatwaveProb: 0.5,
   extraHeatStartYear: 15,
   extraHeatAmount: 0.04,
+  marketCrashTargetCropId: 'almonds',
+  marketCrashFactor: 0.70,
 };
 
 /**
@@ -276,6 +289,8 @@ const MILD_BASELINE_CONFIG: ScenarioConfig = {
   droughtHeatwaveProb: 0.3,
   extraHeatStartYear: 20,
   extraHeatAmount: 0.01,
+  marketCrashTargetCropId: 'almonds',
+  marketCrashFactor: 0.70,
 };
 
 // ============================================================================

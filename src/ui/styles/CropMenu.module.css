@@ -63,3 +63,14 @@
   font-style: italic;
   padding: 0 12px 2px;
 }
+
+.newBadge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+  background: #2a7d2a;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}

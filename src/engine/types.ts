@@ -87,6 +87,9 @@ export interface ClimateScenario {
   description: string;
   seed: number;
   years: YearClimate[];       // 30 entries
+  // Slice 5c: Scenario-specific market crash targeting
+  marketCrashTargetCropId?: string;  // which crop's price crashes (e.g., 'almonds')
+  marketCrashFactor?: number;        // price multiplier (e.g., 0.70 = 30% drop)
 }
 
 // --- Daily Weather (generated from scenario params) ---
@@ -329,6 +332,9 @@ export interface GameState {
   yearStressLevel: number;
   // Slice 5b: Auto-irrigation message rotation (no-repeat guarantee)
   autoIrrigationMsgIdx?: number;
+  // Slice 5c: Message variety rotation indices
+  waterStressMsgIdx?: number;
+  seasonChangeMsgIdx?: number;
 }
 
 // --- Save/Load ---

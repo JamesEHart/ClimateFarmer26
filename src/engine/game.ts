@@ -25,6 +25,7 @@ import { totalDayToCalendar, isYearEnd, isSeasonChange, isInPlantingWindow, getS
 import { generateDailyWeather, updateExtremeEvents } from './weather.ts';
 import { getCropDefinition, getAllCropIds } from '../data/crops.ts';
 import { getCoverCropDefinition } from '../data/cover-crops.ts';
+import { resolveScenarioId } from '../data/scenarios.ts';
 import { SeededRNG } from './rng.ts';
 import { logCommand, logEventFired, logEventChoice, logLoanOffer, logLoanTaken, logYearEnd, logGameOver, logHarvest } from './playtest-log.ts';
 
@@ -253,6 +254,9 @@ function processPlantCrop(state: GameState, row: number, col: number, cropId: st
     state.flags['chillHoursRevealed'] = true;
   }
 
+  // Slice 5c: Track first planting of each crop (for "NEW" badge dismissal)
+  state.flags['planted_crop_' + cropId] = true;
+
   return { success: true, cost, cellsAffected: 1 };
 }
 
@@ -392,6 +396,9 @@ export function executeBulkPlant(
   if (!state.flags['chillHoursRevealed'] && isPerennial) {
     state.flags['chillHoursRevealed'] = true;
   }
+
+  // Slice 5c: Track first planting of each crop (for "NEW" badge dismissal)
+  state.flags['planted_crop_' + cropId] = true;
 
   return { success: true, cost: totalCost, cellsAffected: cells.length };
 }
@@ -934,7 +941,17 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
     state.notifications = state.notifications.filter(n => (newTotalDay - n.day) <= maxAge);
 
     const seasonName = getSeasonName(state.calendar.season);
-    addNotification(state, 'season_change', `${seasonName} — Year ${state.calendar.year}`);
+    const year = state.calendar.year;
+    const SEASON_CHANGE_MESSAGES = [
+      `${seasonName} — Year ${year}`,
+      `Year ${year}, ${seasonName} begins.`,
+      `The ${seasonName.toLowerCase()} season arrives — Year ${year}.`,
+      `${seasonName} of Year ${year} is here.`,
+      `A new season: ${seasonName}, Year ${year}.`,
+    ];
+    const scIdx = ((state.seasonChangeMsgIdx ?? -1) + 1) % SEASON_CHANGE_MESSAGES.length;
+    state.seasonChangeMsgIdx = scIdx;
+    addNotification(state, 'season_change', SEASON_CHANGE_MESSAGES[scIdx]);
 
     // Cover crop incorporation at winter→spring transition
     if (state.calendar.season === 'spring') {
@@ -1055,18 +1072,14 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
       } else if (!state.waterStressPausedThisSeason) {
         // Can't afford auto-irrigation — fall back to manual pause (once per season)
         state.waterStressPausedThisSeason = true;
-        state.autoPauseQueue.push({
-          reason: 'water_stress',
-          message: 'Some of your crops need water!',
-        });
+        const wsMsg = nextWaterStressMessage(state);
+        state.autoPauseQueue.push({ reason: 'water_stress', message: wsMsg });
       }
     } else if (!state.waterStressPausedThisSeason) {
       // No irrigation tech or watering restricted — manual pause (once per season)
       state.waterStressPausedThisSeason = true;
-      state.autoPauseQueue.push({
-        reason: 'water_stress',
-        message: 'Some of your crops need water!',
-      });
+      const wsMsg = nextWaterStressMessage(state);
+      state.autoPauseQueue.push({ reason: 'water_stress', message: wsMsg });
     }
   }
 
@@ -1099,9 +1112,9 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
           choices: storylet.choices,
           firedOnDay: newTotalDay,
         };
-        // Guardrail HIGH 2: use correct auto-pause reason based on storylet type
+        // Route as advisor panel when storylet has an advisorId (not just type === 'advisor')
         state.autoPauseQueue.push({
-          reason: storylet.type === 'advisor' ? 'advisor' : 'event',
+          reason: storylet.advisorId ? 'advisor' : 'event',
           message: storylet.title,
         });
         logEventFired(state, storylet.id, storylet.type, storylet.title, storylet.choices.map(c => c.id));
@@ -1132,8 +1145,9 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
       choices: storylet.choices,
       firedOnDay: newTotalDay,
     };
+    // Route as advisor panel when storylet has an advisorId
     state.autoPauseQueue.push({
-      reason: storylet.type === 'advisor' ? 'advisor' : 'event',
+      reason: storylet.advisorId ? 'advisor' : 'event',
       message: storylet.title,
     });
     logEventFired(state, storylet.id, storylet.type, storylet.title, storylet.choices.map(c => c.id));
@@ -1604,8 +1618,11 @@ export function harvestCell(state: GameState, cell: Cell, silent?: boolean): num
   // Apply event price modifier
   const priceMod = getPriceModifier(state, crop.cropId);
 
-  // Slice 5a: Market crash regime reduces all prices
-  const regimePriceMod = state.flags['regime_market_crash'] ? REGIME_MARKET_CRASH_FACTOR : 1.0;
+  // Slice 5c: Market crash targets scenario-specific crop (e.g., almonds)
+  // Source-of-truth coupling: scenario.marketCrashTargetCropId must match event text + forward-contract cropId
+  const { scenario: activeScenario } = resolveScenarioId(state.scenarioId ?? 'gradual-warming');
+  const isCrashedCrop = state.flags['regime_market_crash'] && crop.cropId === activeScenario.marketCrashTargetCropId;
+  const regimePriceMod = isCrashedCrop ? (activeScenario.marketCrashFactor ?? REGIME_MARKET_CRASH_FACTOR) : 1.0;
 
   const actualPrice = cropDef.basePrice * priceMod * kFactor * regimePriceMod;
 
@@ -1843,6 +1860,21 @@ export function getAvailableCrops(state: GameState): string[] {
   });
 }
 
+// Slice 5c: Water stress message variety pool (rotating index, no repeats)
+const WATER_STRESS_MESSAGES = [
+  'Some of your crops need water!',
+  'Crops are showing signs of water stress — consider irrigating.',
+  'Soil moisture is critically low in several plots.',
+  'Your fields are drying out — water soon to avoid yield loss.',
+  'Water stress detected! Crops may suffer without irrigation.',
+];
+
+function nextWaterStressMessage(state: GameState): string {
+  const idx = ((state.waterStressMsgIdx ?? -1) + 1) % WATER_STRESS_MESSAGES.length;
+  state.waterStressMsgIdx = idx;
+  return WATER_STRESS_MESSAGES[idx];
+}
+
 /**
  * Select a message from a variety pool using the provided RNG.
  * Used by message variety system to prevent players reading the same text twice.
@@ -1865,4 +1897,123 @@ export function getYieldPercentage(crop: CropInstance): number {
 export function getGrowthProgress(crop: CropInstance): number {
   const cropDef = getCropDefinition(crop.cropId);
   return Math.min(1, crop.gddAccumulated / cropDef.gddToMaturity);
+}
+
+// ============================================================================
+// Reflection Data (Year 30 / Game Over summary)
+// ============================================================================
+
+/** Human-readable names for tech/regime flags */
+const FLAG_LABELS: Record<string, string> = {
+  tech_drip_irrigation: 'Drip Irrigation',
+  tech_smart_irrigation: 'Smart Irrigation',
+  tech_water_recycling: 'Water Recycling',
+  tech_soil_testing: 'Soil Testing',
+  tech_extension_reports: 'Extension Reports',
+  tech_crop_agave: 'Agave Cultivation',
+  tech_crop_avocado: 'Heat-Tolerant Avocado',
+  regime_water_reduced: 'SGMA Water Restriction',
+  regime_market_crash: 'Market Crash',
+  regime_heat_threshold: 'Heat Threshold Crossed',
+};
+
+export interface ReflectionData {
+  financialArc: { year: number; cash: number; revenue: number }[];
+  soilTrend: 'improved' | 'maintained' | 'declined';
+  decisions: { flag: string; label: string }[];
+  diversity: { cropsGrown: string[]; uniqueCount: number };
+}
+
+/**
+ * Build reflection summary from game state. Handles:
+ * - Full snapshots: reads yearSnapshots
+ * - Zero snapshots (early bankruptcy): falls back to live economy/grid
+ * - Partial current year: appends synthetic entry from live state
+ * - Flags: always available regardless of snapshot count
+ */
+export function buildReflectionData(state: GameState): ReflectionData {
+  const snapshots = state.tracking.yearSnapshots;
+
+  // Financial arc from snapshots
+  const financialArc: { year: number; cash: number; revenue: number }[] = [];
+  for (const snap of snapshots) {
+    financialArc.push({ year: snap.year, cash: snap.cashAtYearEnd, revenue: snap.revenue });
+  }
+
+  // If current year is beyond last snapshot, add live state as partial year
+  const lastSnapshotYear = snapshots.length > 0 ? snapshots[snapshots.length - 1].year : 0;
+  if (state.calendar.year > lastSnapshotYear) {
+    financialArc.push({
+      year: state.calendar.year,
+      cash: state.economy.cash,
+      revenue: state.economy.yearlyRevenue,
+    });
+  }
+
+  // If no snapshots at all, ensure at least one entry from live state
+  if (financialArc.length === 0) {
+    financialArc.push({
+      year: state.calendar.year,
+      cash: state.economy.cash,
+      revenue: state.economy.yearlyRevenue,
+    });
+  }
+
+  // Soil trend
+  let soilTrend: 'improved' | 'maintained' | 'declined' = 'maintained';
+  if (snapshots.length >= 2) {
+    const firstOM = snapshots[0].avgOrganicMatter;
+    const lastOM = snapshots[snapshots.length - 1].avgOrganicMatter;
+    if (lastOM > firstOM + 0.1) soilTrend = 'improved';
+    else if (lastOM < firstOM - 0.1) soilTrend = 'declined';
+  } else {
+    // Fall back to grid average vs starting OM
+    let totalOM = 0;
+    let cellCount = 0;
+    for (const row of state.grid) {
+      for (const cell of row) {
+        totalOM += cell.soil.organicMatter;
+        cellCount++;
+      }
+    }
+    const avgOM = cellCount > 0 ? totalOM / cellCount : STARTING_ORGANIC_MATTER;
+    if (avgOM > STARTING_ORGANIC_MATTER + 0.1) soilTrend = 'improved';
+    else if (avgOM < STARTING_ORGANIC_MATTER - 0.1) soilTrend = 'declined';
+  }
+
+  // Decisions from flags
+  const decisions: { flag: string; label: string }[] = [];
+  for (const [flag, label] of Object.entries(FLAG_LABELS)) {
+    if (state.flags[flag]) {
+      decisions.push({ flag, label });
+    }
+  }
+
+  // Crop diversity: planted_crop_* flags are the authoritative source (set on every planting)
+  // This catches crops planted and harvested in the current partial year that are no longer on the grid
+  const cropsGrown = new Set<string>();
+  const plantedPrefix = 'planted_crop_';
+  for (const flag of Object.keys(state.flags)) {
+    if (flag.startsWith(plantedPrefix) && state.flags[flag]) {
+      cropsGrown.add(flag.slice(plantedPrefix.length));
+    }
+  }
+  // Fallback: also check snapshots + grid for saves that predate the planted_crop_ flags
+  for (const snap of snapshots) {
+    for (const cropId of Object.keys(snap.cropCounts)) {
+      cropsGrown.add(cropId);
+    }
+  }
+  for (const row of state.grid) {
+    for (const cell of row) {
+      if (cell.crop) cropsGrown.add(cell.crop.cropId);
+    }
+  }
+
+  return {
+    financialArc,
+    soilTrend,
+    decisions,
+    diversity: { cropsGrown: Array.from(cropsGrown), uniqueCount: cropsGrown.size },
+  };
 }

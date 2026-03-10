@@ -324,6 +324,50 @@ export const CROPS: Record<string, CropDefinition> = {
 
     shortDescription: 'Desert-adapted perennial. Minimal water needs, thrives in heat. Long establishment but very low maintenance.',
   },
+  // --- Slice 5c: Heat-Tolerant Avocado (gated by tech unlock) ---
+
+  'heat-avocado': {
+    id: 'heat-avocado',
+    name: 'Heat-Tolerant Avocado',
+    type: 'perennial',
+
+    gddBase: 55,
+    gddToMaturity: 2600,
+    plantingWindow: { startMonth: 2, endMonth: 4 }, // February–April
+
+    waterUsePerDay: 0.25,        // needs consistent water even in heat
+    cropCoefficients: [
+      { stage: 'seedling', kc: 0.35 },
+      { stage: 'vegetative', kc: 0.60 },
+      { stage: 'flowering', kc: 0.85 },
+      { stage: 'mature', kc: 0.75 },
+      { stage: 'harvestable', kc: 0.45 },
+      { stage: 'overripe', kc: 0.25 },
+    ],
+    ky: 0.85,                     // moderate water sensitivity
+
+    nitrogenUptake: 80,
+    potassiumUptake: 70,
+
+    yieldPotential: 8000,         // lbs/acre
+    yieldUnit: 'lbs',
+    basePrice: 1.20,              // $/lb → ~$9,600/acre potential
+    seedCostPerAcre: 1200,        // high establishment
+    laborCostPerAcre: 400,
+
+    yearsToEstablish: 4,
+    removalCost: 600,
+    annualMaintenanceCost: 250,
+    // No dormancy, no chill hours — subtropical
+    productiveLifespan: 30,
+    yieldCurve: { rampUpYears: 4, declineStartYear: 22, endOfLifeYear: 30, declineFloor: 0.3 },
+
+    // No heatSensitivity — thrives in heat (the whole point of this crop)
+
+    requiredFlag: 'tech_crop_avocado',
+
+    shortDescription: 'Heat-adapted perennial. High value, needs consistent water. No heat yield penalty — thrives when other crops struggle.',
+  },
 };
 
 export function getCropDefinition(cropId: string): CropDefinition {

@@ -71,7 +71,12 @@ export function CropMenu(_props: CropMenuProps) {
               }
               title={disabled ? disabledReason : def.shortDescription}
             >
-              <span class={styles.cropName}>{def.name}</span>
+              <span class={styles.cropName}>
+                {def.name}
+                {def.requiredFlag && state.flags[def.requiredFlag] && !state.flags['planted_crop_' + cropId] && (
+                  <span data-testid={`crop-new-badge-${cropId}`} class={styles.newBadge}> NEW</span>
+                )}
+              </span>
               <span class={styles.cropCost}>${def.seedCostPerAcre}/plot</span>
             </button>
             {disabled && (

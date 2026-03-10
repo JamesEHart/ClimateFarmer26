@@ -54,6 +54,10 @@ function plantAndMature(state: GameState, row: number, col: number, cropId: stri
   crop.gddAccumulated = cropDef.gddToMaturity;
   crop.growthStage = 'harvestable';
   crop.waterStressDays = 0;
+  // For perennials: force established so they yield > 0
+  if (crop.isPerennial) {
+    crop.perennialEstablished = true;
+  }
 }
 
 // ============================================================================
@@ -564,19 +568,58 @@ describe('Slice 5a: Permanent modifiers (regime flags)', () => {
   });
 
   describe('regime_market_crash', () => {
-    it('market crash regime reduces harvest revenue', () => {
+    /** Helper: plant almonds with full setup for positive revenue */
+    function plantAlmondForHarvest(state: GameState, row: number, col: number): void {
+      state.calendar.month = 2; // February — in almond planting window
+      processCommand(state, { type: 'PLANT_CROP', cellRow: row, cellCol: col, cropId: 'almonds' }, SLICE_1_SCENARIO);
+      const crop = state.grid[row][col].crop!;
+      const cropDef = getCropDefinition('almonds');
+      crop.gddAccumulated = cropDef.gddToMaturity;
+      crop.growthStage = 'harvestable';
+      crop.waterStressDays = 0;
+      crop.isPerennial = true;
+      crop.perennialEstablished = true;
+      crop.perennialAge = 5;
+      crop.chillHoursAccumulated = cropDef.chillHoursRequired ?? 0;
+      // Ensure high soil nutrient levels for reliable positive revenue
+      state.grid[row][col].soil.nitrogen = 200;
+      state.grid[row][col].soil.potassium = 200;
+      state.grid[row][col].soil.organicMatter = 2.0;
+    }
+
+    it('market crash regime reduces harvest revenue for targeted crop (almonds)', () => {
+      // Harvest without crash
+      const stateA = makeState();
+      plantAlmondForHarvest(stateA, 0, 0);
+      const cashBefore = stateA.economy.cash;
+      harvestCell(stateA, stateA.grid[0][0], true);
+      const revenueNormal = stateA.economy.cash - cashBefore;
+
+      // Harvest with crash — targets almonds per scenario config
+      const stateB = makeState();
+      stateB.flags['regime_market_crash'] = true;
+      plantAlmondForHarvest(stateB, 0, 0);
+      const cashBeforeB = stateB.economy.cash;
+      harvestCell(stateB, stateB.grid[0][0], true);
+      const revenueCrash = stateB.economy.cash - cashBeforeB;
+
+      expect(revenueNormal).toBeGreaterThan(0); // Guard: normal revenue is positive
+      expect(revenueCrash).toBeLessThan(revenueNormal);
+    });
+
+    it('market crash does NOT reduce non-targeted crops', () => {
       // Harvest without crash
       const stateA = makeState();
       plantAndMature(stateA, 0, 0, 'silage-corn');
       const revenueNormal = harvestCell(stateA, stateA.grid[0][0]);
 
-      // Harvest with crash
+      // Harvest with crash — silage-corn is not the target
       const stateB = makeState();
       stateB.flags['regime_market_crash'] = true;
       plantAndMature(stateB, 0, 0, 'silage-corn');
       const revenueCrash = harvestCell(stateB, stateB.grid[0][0]);
 
-      expect(revenueCrash).toBeLessThan(revenueNormal);
+      expect(revenueCrash).toBe(revenueNormal);
     });
   });
 
