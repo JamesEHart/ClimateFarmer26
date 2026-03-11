@@ -355,19 +355,19 @@ Resolution: Tightened `advisor-drought-recovery` thresholds — `cash_below` $30
 
 **83. Economic tension under-signaled in UI.**
 Severity: MEDIUM (pedagogy). Student run had a compelling "will we go bankrupt before the orchard pays off?" arc, but the UI gave almost no help interpreting it. Year 6 revenue drop looked arbitrary. Year-end summary dismissed and not revisitable.
-Status: Deferred to 5d/6. Fix: add danger-zone signaling (cash trend indicator, bankruptcy warning), year-over-year breakdown in year-end summary, consider making year-end summary revisitable.
+Status: Deferred to Slice 6. Fix: add danger-zone signaling (cash trend indicator, bankruptcy warning), year-over-year breakdown in year-end summary, consider making year-end summary revisitable.
 
 **84. Crop/water messaging inconsistency.**
 Severity: LOW (copy). Winter Wheat described as "low water needs" but player still gets repeated water warnings. Warning copy reads like severity tiers without visible outcome differences.
-Status: Deferred to 5d. Fix: either soften crop water description or make warning tiers visibly meaningful in gameplay.
+Status: Deferred to Slice 6. Fix: either soften crop water description or make warning tiers visibly meaningful in gameplay.
 
 **85. Advisor advice delivered in notification bar feels like background toast.**
 Severity: LOW (UX/product). When player accepts advisor choices (e.g., "tell me the advice"), the response lands in the bottom notification bar — easy to miss. Students may not read it as important guidance.
-Status: Deferred to 5d/6. Fix: consider central-dialog acknowledgement for "yes, tell me" choices; keep decline paths lightweight.
+Status: Deferred to Slice 6 (see #92 for design direction). Fix: consider central-dialog acknowledgement for "yes, tell me" choices; keep decline paths lightweight.
 
 **86. No guidance after mid-summer harvest leaves nothing plantable.**
 Severity: LOW (onboarding). After harvesting annuals in summer, new players face empty fields with no valid planting window and no explanation of what to do next.
-Status: Deferred to 5d. Fix: one lightweight tutorial/advisor line the first time a player enters a season with no valid planting window.
+Status: Deferred to Slice 6. Fix: one lightweight tutorial/advisor line the first time a player enters a season with no valid planting window.
 
 **87. Year-end "Cash Total (before loan)" copy polish.** RESOLVED (5d).
 Severity: LOW (copy). "Before loan" annotation on year-end cash display is confusing when the player hasn't interacted with the loan system.
@@ -396,6 +396,31 @@ Resolution: Changed copy to "I've been watching your crops closely, and the grow
 
 **Non-issues confirmed:**
 - Avocado planting not showing confirmation dialog: correct behavior. Perennial confirm dialog only shows for the first-ever perennial plant (`perennialWarningShown` flag). If another perennial was planted first, subsequent perennials skip the confirm. Not a bug.
+
+### Playtest Findings — Lead Playthrough (2026-03-10)
+
+Neal's full 30-year playthrough + student tester observations on Slice 5d.2 build. No regressions found. All major Slice 5 beats fired (irrigation, soil testing, agave, market crash Y15, heat threshold Y20, orchard decline Y23). Diversification was resilient and profitable. Climate pressure visible in last decade. Findings are design/content priorities for Slice 6.
+
+**92. Advisor "yes, tell me" guidance buried in notification bar.** MUST-HAVE for Slice 6.
+Severity: MEDIUM (pedagogy — educational payoff channel). When players accept advisor advice (e.g., "Apply Nitrogen Fertilizer," "Tell me about soil testing"), the follow-up explanation lands in the bottom notification bar as a toast. Students who chose "yes, explain" are signaling they *want* the information, but the delivery channel treats it as background noise. Players who decline ("nah, I'm good") get an appropriately lightweight dismiss.
+Fix: "Yes/tell me more" choices should show a central follow-up dialog (reusing advisor panel frame — same character, same visual context) with the explanatory text. Decline choices dismiss cleanly as today. Notification still added as a log record in both cases. This is the difference between "here's important information you asked for" (center screen, must acknowledge) and "oh by the way" (bottom toast, easy to miss).
+See also: #85 (same root issue identified in 5c testing).
+
+**93. Potassium visibility lacks actionable levers.**
+Severity: MEDIUM (pedagogy — information without agency). After unlocking soil testing tech, students see potassium values but have no clear understanding of what depletes K, what restores it, or what they can do about it. The number is effectively noise without a legible cause-and-effect loop. K is consumed at harvest (per-crop uptake rates), but without visible replenishment mechanics or clear price impact signaling, the information doesn't drive decisions.
+Two directions for Slice 6: (A) Add a K lever — potassium fertilizer purchase option. (B) Make K's effect more visible at harvest — "Potassium-depleted soil reduced crop quality — sale price dropped 15%." Option B is more pedagogically interesting: it connects to rotation (different crops have different K uptake rates) without adding new mechanics. Either way, students need to see the consequence AND understand the lever.
+
+**94. Avocado unlock arrives too late for economic impact.**
+Severity: MEDIUM (pacing). `regime-heat-threshold` fires ~Year 20, unlocking heat-tolerant avocado research. With a 4-year establishment period, meaningful production starts ~Year 24-25. Only 5-6 years of production before Year 30 — too little runway for the crop to feel like a compelling profit pivot.
+Fix options for Slice 6: move the unlock earlier (Y15-17), shorten establishment period, or reframe avocado's value as resilience/scoring rather than late-game cash pivot. The crop needs to matter in actual play, not just on paper.
+
+**95. Growers Forum effectively disappears after intro.**
+Severity: MEDIUM (content). Only the intro storylet (`growers-forum-intro`) exists. In a 30-year playthrough, the Forum appears once and then vanishes as an ongoing voice. Santos and Chen have recurring presence; the Forum does not.
+Fix for Slice 6: add recurring forum-driven content — peer rumors, crop failure stories, foreshadowing of upcoming regime shifts, "interactive novel" moments. The Forum's narrative role (anecdotal, community-based, sometimes wrong) is distinct from Santos (scientific) and Chen (financial) but needs actual content to fill it.
+
+**96. Successful diversified runs lack late-game drama.**
+Severity: MEDIUM (engagement/pedagogy). A well-played diversified run finishes very safely ($640K cash, $1.5M total revenue). The last decade is margin erosion, not existential threat. There's no moment where the student thinks "I might actually lose this."
+Fix for Slice 6: foreshadowed catastrophic events with mitigation options (not random punishment). Design candidates: crop insurance mechanic, total crop loss / severe damage events (pest outbreak, disease, extreme weather), community-rumor foreshadowing, mutual aid / "help another farmer" narrative choices. The goal is drama and stakes, not numerical harshness — the player should have seen it coming and had choices about how to prepare.
 
 ### Deferred to Slice 5+ / Later Discussion
 

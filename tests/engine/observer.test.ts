@@ -110,6 +110,17 @@ describe('Observer — getBlockingState()', () => {
     expect(result.choices![0].testid).toBe('advisor-choice-follow');
   });
 
+  it('returns year_end with dynamic year label', () => {
+    const state = makeState();
+    state.calendar.year = 3;
+    state.autoPauseQueue.push({ reason: 'year_end', message: 'Year complete' });
+    const result = getBlockingState(state);
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe('year_end');
+    expect(result.choices!.some(c => c.testid === 'autopause-action-primary' && c.label === 'Continue to Year 4')).toBe(true);
+    expect(result.choices!.some(c => c.testid === 'autopause-dismiss' && c.label === 'Continue')).toBe(true);
+  });
+
   it('returns water_stress with descriptive labels', () => {
     const state = makeState();
     state.autoPauseQueue.push({ reason: 'water_stress', message: 'Crops need water' });

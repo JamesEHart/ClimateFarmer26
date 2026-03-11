@@ -35,12 +35,21 @@ Remaining tech decisions (soil testing, crop tech, advanced water, late-game reg
 - **5d.1:** UX fixes — advisor threshold tuning (#82), bulk plant full-field feedback (#81), year-end "before loan" conditional copy (#87), bankruptcy reflection on loan decline (#88).
 - **5d.2 "Corn Dominance Fix":** Monoculture streak penalty (escalating yield loss: 2nd=0.85, 3rd=0.70, 4th=0.55, 5th+=0.50 floor), cover crop OM protection reduction (50% vs 100%), diversified bot rewrite (proper rotation). Balance result: diversified ($301K) > corn ($193K) > citrus ($86K), all 100% survival. 6 bots × 5 scenarios tested.
 
+### Observer Layer (Post-5d.2)
+Debug-only affordances for AI test agents (`src/adapter/observer.ts`). Machine-readable state queries exposed via `window.__gameDebug`:
+- `getBlockingState()` — single call returning `{ blocked, reason, panelTestId, choices[], speed, year, season, day }` with descriptive button labels matching actual UI text
+- `fastForwardUntilBlocked(maxTicks)` — runs ticks until any autopause fires (does NOT auto-dismiss, unlike `fastForward()`)
+- `getNotifications()` / `dismissAllNotifications()` — full notification queue access
+- `game-observer` DOM element — hidden div with reactive `data-*` attributes for lightweight state polling
+
+See `Agent_Navigation_Guide_03_09_26.md` for AI agent usage patterns.
+
 ## Current Metrics
 
 ```
-npm test             # 783 unit tests, all passing (23 test files)
-npm run test:browser # 99 Playwright browser tests (all passing; foreshadow natural-flow test may flake under --repeat-each stress)
-npm run build        # ~52.1 KB gzipped JS, ~5.1 KB CSS
+npm test             # 800 unit tests, all passing (24 test files)
+npm run test:browser # 104 Playwright browser tests (all passing; foreshadow natural-flow test may flake under --repeat-each stress)
+npm run build        # ~53.1 KB gzipped JS, ~5.1 KB CSS
 SAVE_VERSION         # '8.0.0'
 ```
 
@@ -66,7 +75,11 @@ src/
   adapter/
     signals.ts       Bridges engine↔UI. _liveState → structuredClone → gameState signal
                      Debug hooks: window.__gameDebug (setCash, setDay, setDebt, triggerEvent,
-                     setFlag, getState, publish, setScenario, fastForward)
+                     setFlag, getState, publish, setScenario, fastForward,
+                     getBlockingState, fastForwardUntilBlocked, getNotifications,
+                     dismissAllNotifications)
+    observer.ts      AI agent observer layer: getBlockingState, fastForwardUntilBlocked,
+                     getNotificationsDebug, dismissAllNotificationsDebug
   data/
     crops.ts         9 crop definitions (4 annual + 5 perennial) with yield curves, requiredFlag gating
     cover-crops.ts   Cover crop definitions (legume-cover)
@@ -83,9 +96,9 @@ tests/
   engine/            Unit tests: game, weather, calendar, save, rng, events, chill,
                      advisors, perennials, yieldcurve, covercrop, weather-advisor,
                      slice3a1, economy, seasonal-events, balance-harness, tracking,
-                     slice5a, slice5b, slice5c, slice5d (23 files)
+                     slice5a, slice5b, slice5c, slice5d, observer (24 files)
   engine/balance/    Bot runner + 6 bots + smoke/full balance suites + scenario tests
-  browser/           Playwright specs (game.spec.ts — 99 tests)
+  browser/           Playwright specs (game.spec.ts — 104 tests)
 ```
 
 ## Key Balance Mechanics
@@ -120,7 +133,14 @@ tests/
 - **#85:** Advisor advice in notification bar feels like background toast.
 - **#86:** No guidance after mid-summer harvest leaves nothing plantable.
 
-### Deferred features → Slice 6+
+### Slice 6 design priorities (from 5d.2 playtesting — see KNOWN_ISSUES #92-96, DECISIONS.md)
+- **Advisor follow-up panel (MUST-HAVE)** — "Yes, tell me more" choices show central dialog with guidance text, not just notification toast. Reuse advisor panel frame. #92.
+- **Potassium agency** — K visibility without levers feels pointless. Either add K fertilizer or make price penalty more visible at harvest so rotation becomes the implicit lever. #93.
+- **Avocado unlock timing** — Fires ~Y20, 4-year establishment → too little runway. Move earlier, shorten establishment, or reframe value. #94.
+- **Growers Forum recurring content** — Only intro storylet exists. Needs peer rumors, crop failure stories, foreshadowing. #95.
+- **Late-game catastrophe/insurance layer** — Successful diversified runs lack drama. Foreshadowed catastrophic events + mitigation options (insurance, mutual aid, crop loss). #96.
+
+### Other deferred features → Slice 6+
 - **Scoring + completion code + Google Form** — Weighted composite scoring (SPEC §31) + end-of-game reporting
 - **Corn heat/drought quality penalty** — Needs proper heat stress day tracking (separate from waterStressDays to avoid double-counting with waterFactor)
 - **Monoculture pest event chain** — Rootworm, corn rot as foreshadowed storylets connecting to pellagra case study
@@ -131,15 +151,15 @@ tests/
 - **Additional crops** — Table grapes (stretch). Stone Fruit, Opuntia, Guayule unlikely.
 - **Zinc nutrient** — Deferred from K-lite implementation
 - **Advanced accessibility** — Colorblind modes, full screen reader support
-- **5 avocado art files** — ASSETS.md has specs
+
 
 ## Verification Commands
 
 ```bash
-npm test             # 783 unit tests (23 files)
-npm run test:browser # 99 Playwright browser tests (builds first)
+npm test             # 800 unit tests (24 files)
+npm run test:browser # 104 Playwright browser tests (builds first)
 npm run test:all     # All tests in sequence
-npm run build        # Production build (~52KB gzipped JS)
+npm run build        # Production build (~53KB gzipped JS)
 npm run test:balance # Balance smoke (75 runs, ~5-8 min)
 ```
 

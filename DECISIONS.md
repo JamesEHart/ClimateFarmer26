@@ -393,3 +393,21 @@ Format: **Date — Decision — Rationale**
 2026-03-10 — Corn drought/heat quality penalty deferred to Slice 6 — Adding waterStressDays-based penalty double-counts with existing `waterFactor = 1 - ky * stressFraction` in the yield chain. Needs separate heat stress day tracking. Price/quality lever (not yield) is the right approach for drought effects on corn.
 
 2026-03-10 — Diversified bot must actually rotate to be a valid diagnostic — Original diversified bot planted same crops on same rows every year, making it "3-4 parallel monocultures." Fixing the bot to rotate corn/tomatoes by year was as important as the penalty mechanic itself.
+
+## Slice 6 Design Priorities (from 5d.2 playtesting)
+
+### Advisor Follow-Up Panel (must-have)
+
+2026-03-10 — "Yes, tell me more" advisor choices must show a central follow-up dialog, not just a notification toast — When a student explicitly asks for guidance, burying the response in the bottom notification bar is a missed teaching moment. The information hierarchy is backwards. Fix: reuse the advisor panel frame (same character, same visual context) for a second "beat" showing the explanatory text. "No thanks" choices dismiss cleanly as today. Notification still added as a log record either way. This is a design change, not a bug fix. See KNOWN_ISSUES #85, #92.
+
+### Potassium Agency (design direction TBD)
+
+2026-03-10 — K-lite visibility without actionable levers feels pointless — Soil testing tech unlocks potassium display, but students have no legible cause-and-effect loop. Two candidate directions: (A) add K fertilizer purchase, (B) make K's price penalty more visible at harvest so rotation becomes the implicit lever. Option B is pedagogically richer — connects to rotation/monoculture theme without new mechanics. Decision deferred to Slice 6 planning. See KNOWN_ISSUES #93.
+
+### Late-Game Stakes (design direction TBD)
+
+2026-03-10 — Successful diversified runs need foreshadowed catastrophe, not random punishment — Margin erosion alone doesn't create drama. Insurance/catastrophe layer with foreshadowing and mitigation choices is the right next lever. Candidates: crop insurance, pest/disease total loss events, community-rumor foreshadowing, mutual aid narrative choices. Connects to pellagra case study (monoculture vulnerability). See KNOWN_ISSUES #94, #95, #96.
+
+### Content Pacing
+
+2026-03-10 — Avocado unlock timing and Forum content gaps are pacing problems, not mechanic bugs — Avocado arrives too late (~Y20) for its 4-year establishment to matter. Forum has one storylet and then vanishes. Both need Slice 6 content work. See KNOWN_ISSUES #94, #95.

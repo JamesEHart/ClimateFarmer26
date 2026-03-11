@@ -74,6 +74,23 @@ Structured version of the same data, plus actionable choice info:
 }
 ```
 
+Standard autopause example (labels match actual button text):
+```js
+{
+  blocked: true,
+  reason: "water_stress",
+  panelTestId: "autopause-panel",
+  choices: [
+    { testid: "autopause-action-primary", label: "Water Field" },
+    { testid: "autopause-dismiss", label: "Continue without watering" }
+  ],
+  speed: 0,
+  year: 3,
+  season: "summer",
+  day: 890
+}
+```
+
 **Best practice:** Before every action, call `getBlockingState()`. If `blocked: true`, handle the blocking panel first by clicking the appropriate `testid` from `choices`. Do not click speed buttons while blocked.
 
 **Preact state batching warning:** After clicking a dismiss/choice button, you MUST yield to the event loop (e.g., `await new Promise(r => setTimeout(r, 50))`) before calling `getBlockingState()` again. Preact batches state updates — a synchronous `.click()` followed by an immediate state read will see stale data. This applies to all panel dismissals, not just event/advisor panels.
@@ -124,7 +141,7 @@ speed-fastest  4×
 1. action-plant             ← "Plant…" button (cell must be selected)
 2. menu-crop-<cropId>       ← crop button in submenu
 ```
-Crop IDs: `silage-corn`, `winter-wheat`, `processing-tomatoes`, `sorghum`, `almonds`, `pistachios`, `citrus-navels`, `agave` (requires `tech_crop_agave` flag), `heat-tolerant-avocado` (requires flag).
+Crop IDs: `silage-corn`, `winter-wheat`, `processing-tomatoes`, `sorghum`, `almonds`, `pistachios`, `citrus-navels`, `agave` (requires `tech_crop_agave` flag), `heat-avocado` (requires flag).
 
 Locked crops are absent from the DOM — they don't appear disabled.
 

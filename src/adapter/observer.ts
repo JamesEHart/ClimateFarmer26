@@ -49,14 +49,14 @@ function getPanelTestId(reason: AutoPauseReason): string {
   }
 }
 
-function getPrimaryChoiceInfo(reason: AutoPauseReason): { testid: string; label: string } {
+function getPrimaryChoiceInfo(reason: AutoPauseReason, state: GameState): { testid: string; label: string } {
   switch (reason) {
     case 'bankruptcy': return { testid: 'gameover-new-game', label: 'Start New Game' };
     case 'year_30': return { testid: 'year30-new-game', label: 'Start New Game' };
     case 'loan_offer': return { testid: 'loan-accept', label: 'Accept Loan' };
     case 'harvest_ready': return { testid: 'autopause-action-primary', label: 'Harvest Field' };
     case 'water_stress': return { testid: 'autopause-action-primary', label: 'Water Field' };
-    case 'year_end': return { testid: 'autopause-action-primary', label: 'Continue to next year' };
+    case 'year_end': return { testid: 'autopause-action-primary', label: `Continue to Year ${state.calendar.year + 1}` };
     default: return { testid: 'autopause-action-primary', label: 'Continue' };
   }
 }
@@ -129,7 +129,7 @@ export function getBlockingState(state: GameState): BlockingState {
   }
 
   // For standard autopauses, return primary + dismiss buttons with real labels
-  const primary = getPrimaryChoiceInfo(reason);
+  const primary = getPrimaryChoiceInfo(reason, state);
   const choices: Array<{ testid: string; label: string }> = [primary];
 
   // Most autopauses have a dismiss/secondary button
