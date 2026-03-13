@@ -282,4 +282,8 @@
   .netPositive, .netNegative {
     max-width: 80px;
   }
+  .saveBtn, .newGameBtn {
+    padding: 4px 6px;
+    font-size: 0.7rem;
+  }
 }

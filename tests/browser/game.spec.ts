@@ -55,6 +55,23 @@ async function dismissAutoPausesUntil(page: Page, targetTestId: string, timeoutM
       continue;
     }
 
+    // Handle organic violation warning (cancel to avoid violation during automated play)
+    const organicCancel = page.getByTestId('organic-warning-cancel');
+    if (await organicCancel.isVisible().catch(() => false)) {
+      await organicCancel.click();
+      await page.waitForTimeout(50);
+      continue;
+    }
+
+    // Handle follow-up panels (appear after advisor/event choice with followUpText)
+    const followUpDismiss = page.getByTestId('follow-up-dismiss');
+    if (await followUpDismiss.isVisible().catch(() => false)) {
+      await followUpDismiss.click();
+      await page.getByTestId('speed-fastest').click().catch(() => {});
+      await page.waitForTimeout(50);
+      continue;
+    }
+
     // Handle non-target event panels (pick first choice to dismiss)
     if (targetTestId !== 'event-panel') {
       const firstEventChoice = page.locator('[data-testid^="event-choice-"]').first();
@@ -1754,6 +1771,38 @@ test.describe('Cover Crop UI', () => {
     // Game starts in spring
     await expect(page.getByTestId('action-plant-cover-crop-bulk')).not.toBeVisible();
   });
+
+  test('bulk cover crop counts evergreen perennials as eligible (regression)', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    // Plant citrus on 4 cells (evergreen with coverCropEffectiveness=0.60)
+    await page.evaluate(() => {
+      const d = (window as Record<string, any>).__gameDebug;
+      for (let c = 0; c < 4; c++) {
+        const state = d.getState();
+        state.grid[0][c].crop = {
+          cropId: 'citrus-navels', plantedDay: 100, gddAccumulated: 0,
+          isPerennial: true, establishmentYearsRemaining: 0, ageYears: 5,
+          growthStage: 'mature', isDormant: false, harvestedThisSeason: false,
+        };
+      }
+      d.publish();
+    });
+
+    // Set to fall for cover crop eligibility
+    await page.evaluate(() => {
+      (window as Record<string, any>).__gameDebug.setDay(244);
+    });
+
+    // Click bulk cover crop — confirmation should count ALL 64 cells as eligible
+    // (60 empty + 4 citrus with coverCropEffectiveness). Before the fix, citrus
+    // cells were excluded and the count would be only 60.
+    await page.getByTestId('action-plant-cover-crop-bulk').click();
+
+    const confirmText = await page.getByTestId('confirm-message').textContent();
+    expect(confirmText).toContain('64 eligible');
+  });
 });
 
 // ==========================================================================
@@ -2242,5 +2291,152 @@ test.describe('Observer Layer', () => {
     expect(result.stopped).toBe(true);
     expect(result.ticksRun).toBeGreaterThan(0);
     expect(result.reason).toBeDefined();
+  });
+});
+
+// ==========================================================================
+// §19 — Follow-Up Persona Regression
+// ==========================================================================
+
+test.describe('Follow-Up Persona Regression', () => {
+  test('catastrophe follow-up renders without advisor persona', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    // Give the player insurance so the claim choice is visible
+    await page.evaluate(() => {
+      const d = (window as Record<string, any>).__gameDebug;
+      d.setFlag('has_crop_insurance', true);
+      d.triggerEvent('catastrophe-rootworm');
+    });
+
+    // The catastrophe should render as an event panel (no advisorId)
+    await expect(page.getByTestId('event-panel')).toBeVisible();
+
+    // Click the insurance claim choice (has followUpText)
+    await page.getByTestId('event-choice-file-rootworm-claim').click();
+
+    // Follow-up panel should appear
+    await expect(page.getByTestId('follow-up-panel')).toBeVisible();
+    await expect(page.getByTestId('follow-up-text')).toBeVisible();
+
+    // Key assertion: NO advisor persona should be shown (catastrophe has no advisorId)
+    await expect(page.getByTestId('advisor-name')).not.toBeVisible();
+    await expect(page.getByTestId('advisor-portrait')).not.toBeVisible();
+
+    // Dismiss and verify cleanup
+    await page.getByTestId('follow-up-dismiss').click();
+    await expect(page.getByTestId('follow-up-panel')).not.toBeVisible();
+  });
+});
+
+// ==========================================================================
+// §20 — Planting Window Auto-Pause (Settings Gear + Integration)
+// ==========================================================================
+
+test.describe('Planting Window Auto-Pause', () => {
+  test('settings gear toggle persists in localStorage and triggers planting_options pause', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    // Open settings gear and enable the toggle
+    await page.getByTestId('settings-gear').click();
+    await expect(page.getByTestId('settings-dropdown')).toBeVisible();
+    const checkbox = page.getByTestId('setting-auto-pause-planting');
+    await expect(checkbox).toBeVisible();
+    await checkbox.check();
+
+    // Verify localStorage was set
+    const stored = await page.evaluate(() => localStorage.getItem('climateFarmer_pref_autoPausePlanting'));
+    expect(stored).toBe('true');
+
+    // Close settings dropdown
+    await page.getByTestId('settings-gear').click();
+    await expect(page.getByTestId('settings-dropdown')).not.toBeVisible();
+
+    // Start the game at max speed — planting window detection runs in the
+    // real game loop (rAF), so we need to let it tick naturally
+    await page.getByTestId('speed-fastest').click();
+
+    // Dismiss auto-pauses until we hit a planting_options pause or year_end.
+    // The planting window fires at month boundaries when crop availability changes.
+    let foundPlantingPause = false;
+    const deadline = Date.now() + 15000;
+
+    while (Date.now() < deadline) {
+      // Check for planting_options via getBlockingState
+      const bs = await page.evaluate(() => {
+        return (window as Record<string, any>).__gameDebug.getBlockingState();
+      });
+
+      if (bs.blocked && bs.reason === 'planting_options') {
+        foundPlantingPause = true;
+        // Verify the panel is actually visible and dismissible
+        await expect(page.getByTestId('autopause-action-primary')).toBeVisible();
+        break;
+      }
+
+      if (bs.blocked && bs.reason === 'year_end') {
+        // Didn't find planting_options before year end — might not fire in Y1
+        // depending on crop availability changes. Dismiss and keep going.
+        await page.getByTestId('autopause-action-primary').click();
+        await page.getByTestId('speed-fastest').click().catch(() => {});
+        await page.waitForTimeout(50);
+        continue;
+      }
+
+      // Dismiss any other autopause to keep the game running
+      if (bs.blocked) {
+        const dismiss = page.getByTestId('autopause-dismiss');
+        if (await dismiss.isVisible().catch(() => false)) {
+          await dismiss.click();
+        } else {
+          const primary = page.getByTestId('autopause-action-primary');
+          if (await primary.isVisible().catch(() => false)) {
+            await primary.click();
+          }
+        }
+        // Handle event/advisor panels
+        const eventChoice = page.locator('[data-testid^="event-choice-"]').first();
+        if (await eventChoice.isVisible().catch(() => false)) {
+          await eventChoice.click();
+        }
+        const advisorChoice = page.locator('[data-testid^="advisor-choice-"]').first();
+        if (await advisorChoice.isVisible().catch(() => false)) {
+          await advisorChoice.click();
+        }
+        const followUpBtn = page.getByTestId('follow-up-dismiss');
+        if (await followUpBtn.isVisible().catch(() => false)) {
+          await followUpBtn.click();
+        }
+        await page.getByTestId('speed-fastest').click().catch(() => {});
+        await page.waitForTimeout(50);
+        continue;
+      }
+
+      // Not blocked — game is running, wait a bit for the next tick
+      await page.waitForTimeout(100);
+    }
+
+    expect(foundPlantingPause).toBe(true);
+  });
+
+  test('setting persists across page reload', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    // Enable the toggle
+    await page.getByTestId('settings-gear').click();
+    await page.getByTestId('setting-auto-pause-planting').check();
+    await page.getByTestId('settings-gear').click();
+
+    // Reload and start fresh
+    await page.reload();
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    // Open settings and verify checkbox is still checked
+    await page.getByTestId('settings-gear').click();
+    await expect(page.getByTestId('setting-auto-pause-planting')).toBeChecked();
   });
 });

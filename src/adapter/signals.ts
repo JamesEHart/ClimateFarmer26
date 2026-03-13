@@ -730,7 +730,8 @@ function isCoverCropEligibleUI(cell: Cell): boolean {
   if (!cell.crop) return true;
   if (!cell.crop.isPerennial) return false;
   const def = getCropDefinition(cell.crop.cropId);
-  return (def.dormantSeasons?.length ?? 0) > 0;
+  if ((def.dormantSeasons?.length ?? 0) > 0) return true;         // deciduous
+  return (def.coverCropEffectiveness ?? 0) > 0;                    // evergreen with explicit effectiveness
 }
 
 // ============================================================================
@@ -1085,7 +1086,7 @@ function gameLoop(now: number): void {
    */
   getBlockingState() {
     if (!_liveState) return { blocked: false, speed: 0, notificationCount: 0, year: 0, season: 'spring', day: 0 };
-    return getBlockingState(_liveState);
+    return getBlockingState(_liveState, !!pendingFollowUp.value);
   },
   /**
    * Run ticks until ANY autopause fires or game ends. Unlike fastForward(),

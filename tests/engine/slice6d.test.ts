@@ -8,10 +8,11 @@
  */
 
 import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
-import { createInitialState } from '../../src/engine/game.ts';
+import { createInitialState, harvestCell } from '../../src/engine/game.ts';
 import { SLICE_1_SCENARIO } from '../../src/data/scenario.ts';
 import type { GameState, YearSnapshot } from '../../src/engine/types.ts';
 import { simulateTick } from '../../src/engine/game.ts';
+import { getCropDefinition } from '../../src/data/crops.ts';
 import {
   GRID_ROWS, GRID_COLS, STARTING_CASH, DAYS_PER_YEAR,
   createEmptyExpenseBreakdown,
@@ -937,29 +938,55 @@ describe('§13: Organic Price Premium', () => {
     expect(ORGANIC_PRICE_PREMIUM).toBe(1.20);
   });
 
-  it('premium applies only when organic_certified flag is set', () => {
-    // Certified farm gets premium
-    const certState = makeState();
-    certState.flags['organic_certified'] = true;
-    // The harvestCell function should multiply price by ORGANIC_PRICE_PREMIUM
-    // (integration test after implementation)
+  function makeHarvestReady(): GameState {
+    const cornDef = getCropDefinition('silage-corn');
+    const s = makeState();
+    s.grid[0][0].crop = {
+      cropId: 'silage-corn', plantedDay: 59, gddAccumulated: cornDef.gddToMaturity,
+      isPerennial: false, growthStage: 'harvestable',
+      waterStressDays: 0, chillHoursAccumulated: 0,
+      harvestedThisSeason: false, isDormant: false,
+      consecutiveSameCropCount: 0,
+    } as any;
+    s.grid[0][0].soil.organicMatter = 2.0;
+    s.grid[0][0].soil.nitrogen = 50;
+    s.grid[0][0].soil.potassium = 100;
+    return s;
+  }
 
-    // Non-certified farm does not get premium
-    const normalState = makeState();
-    expect(normalState.flags['organic_certified']).toBeUndefined();
+  it('certified harvest yields 20% more revenue than non-certified', () => {
+    const normalState = makeHarvestReady();
+    const cashBefore1 = normalState.economy.cash;
+    harvestCell(normalState, normalState.grid[0][0]);
+    const normalRevenue = normalState.economy.cash - cashBefore1;
+
+    const certState = makeHarvestReady();
+    certState.flags['organic_certified'] = true;
+    const cashBefore2 = certState.economy.cash;
+    harvestCell(certState, certState.grid[0][0]);
+    const certRevenue = certState.economy.cash - cashBefore2;
+
+    // Certified revenue should be ~20% higher
+    expect(normalRevenue).toBeGreaterThan(0);
+    expect(certRevenue).toBeGreaterThan(normalRevenue);
+    const ratio = certRevenue / normalRevenue;
+    expect(ratio).toBeCloseTo(ORGANIC_PRICE_PREMIUM, 1);
   });
 
   it('no premium during transition (enrolled but not certified)', () => {
-    const state = makeState();
-    state.flags['organic_enrolled'] = true;
-    // organic_certified is NOT set during transition
-    expect(state.flags['organic_certified']).toBeUndefined();
-  });
+    const normalState = makeHarvestReady();
+    const cashBefore1 = normalState.economy.cash;
+    harvestCell(normalState, normalState.grid[0][0]);
+    const normalRevenue = normalState.economy.cash - cashBefore1;
 
-  it('organic premium revenue flows into yearlyRevenue (is real revenue)', () => {
-    // Premium is a price multiplier at harvest — revenue increases, tracked normally
-    // This is tested via integration after implementation
-    expect(ORGANIC_PRICE_PREMIUM).toBeGreaterThan(1.0);
+    const transitionState = makeHarvestReady();
+    transitionState.flags['organic_enrolled'] = true;
+    const cashBefore2 = transitionState.economy.cash;
+    harvestCell(transitionState, transitionState.grid[0][0]);
+    const transitionRevenue = transitionState.economy.cash - cashBefore2;
+
+    // No premium during transition — same revenue as non-organic
+    expect(transitionRevenue).toBeCloseTo(normalRevenue, 0);
   });
 });
 

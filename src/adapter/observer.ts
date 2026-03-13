@@ -83,8 +83,12 @@ function getSeasonName(month: number): string {
 /**
  * Returns a structured snapshot of the game's blocking state.
  * AI agents call this to determine: am I blocked? Why? What should I click?
+ *
+ * @param hasPendingFollowUp — true when an advisor/event follow-up panel is
+ *   showing (pendingFollowUp signal is set). This lives in the adapter layer,
+ *   not GameState, so it must be passed in from the callsite.
  */
-export function getBlockingState(state: GameState): BlockingState {
+export function getBlockingState(state: GameState, hasPendingFollowUp = false): BlockingState {
   const base: BlockingState = {
     blocked: false,
     speed: state.speed,
@@ -111,6 +115,17 @@ export function getBlockingState(state: GameState): BlockingState {
   const pause = state.autoPauseQueue[0];
   const reason = pause.reason;
   const panelTestId = getPanelTestId(reason);
+
+  // Follow-up panel: activeEvent is cleared but follow-up text is showing
+  if ((reason === 'event' || reason === 'advisor') && !state.activeEvent && hasPendingFollowUp) {
+    return {
+      ...base,
+      blocked: true,
+      reason,
+      panelTestId: 'follow-up-panel',
+      choices: [{ testid: 'follow-up-dismiss', label: 'OK' }],
+    };
+  }
 
   // For event/advisor pauses with activeEvent, return the event's choices
   if ((reason === 'event' || reason === 'advisor') && state.activeEvent) {

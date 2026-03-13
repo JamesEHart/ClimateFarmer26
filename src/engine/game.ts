@@ -766,9 +766,9 @@ function processSetCoverCrop(state: GameState, row: number, col: number, coverCr
     return { success: false, reason: 'This plot already has a cover crop.' };
   }
 
-  // Eligible: empty cell OR perennial that will go dormant (deciduous orchard understory).
-  // In fall, deciduous perennials are still technically "growing" but about to shed leaves.
-  // Real agriculture: cover crops are sown under orchards in fall before leaf drop.
+  // Eligible: empty cell, deciduous perennial (orchard understory), or evergreen
+  // perennial with explicit coverCropEffectiveness (intercropping under canopy).
+  // In fall, deciduous perennials are still "growing" but about to shed leaves.
   if (cell.crop) {
     if (!cell.crop.isPerennial) {
       return { success: false, reason: 'Cannot plant cover crop on a cell with an annual crop.' };

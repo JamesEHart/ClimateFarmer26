@@ -110,6 +110,48 @@ describe('Observer — getBlockingState()', () => {
     expect(result.choices![0].testid).toBe('advisor-choice-follow');
   });
 
+  it('returns follow-up-panel when advisor choice was made but follow-up is pending', () => {
+    const state = makeState();
+    // After a choice, activeEvent is cleared but autopause reason is still 'advisor'
+    state.autoPauseQueue.push({ reason: 'advisor', message: 'Santos advice' });
+    state.activeEvent = null; // cleared by engine after choice
+    // Pass hasPendingFollowUp=true (mirrors pendingFollowUp signal being set)
+    const result = getBlockingState(state, true);
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe('advisor');
+    expect(result.panelTestId).toBe('follow-up-panel');
+    expect(result.choices).toHaveLength(1);
+    expect(result.choices![0].testid).toBe('follow-up-dismiss');
+    expect(result.choices![0].label).toBe('OK');
+  });
+
+  it('follow-up detection does not apply when activeEvent still exists', () => {
+    const state = makeState();
+    state.autoPauseQueue.push({ reason: 'advisor', message: 'Santos advice' });
+    state.activeEvent = {
+      storyletId: 'advisor-test',
+      title: 'Test',
+      description: 'Test.',
+      choices: [{ id: 'ok', label: 'OK', description: 'OK', effects: [] }],
+      firedOnDay: 100,
+    };
+    // Even with hasPendingFollowUp=true, activeEvent takes priority
+    const result = getBlockingState(state, true);
+    expect(result.panelTestId).toBe('advisor-panel');
+    expect(result.choices![0].testid).toBe('advisor-choice-ok');
+  });
+
+  it('without hasPendingFollowUp, advisor with no activeEvent falls through to standard panel', () => {
+    const state = makeState();
+    state.autoPauseQueue.push({ reason: 'advisor', message: 'Santos advice' });
+    state.activeEvent = null;
+    // hasPendingFollowUp defaults to false
+    const result = getBlockingState(state);
+    // Falls through to standard autopause (not follow-up)
+    expect(result.panelTestId).toBe('advisor-panel');
+    expect(result.choices!.some(c => c.testid === 'autopause-action-primary')).toBe(true);
+  });
+
   it('returns year_end with dynamic year label', () => {
     const state = makeState();
     state.calendar.year = 3;
