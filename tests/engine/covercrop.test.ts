@@ -178,16 +178,16 @@ describe('SET_COVER_CROP command', () => {
     }
   });
 
-  it('fails on cell with evergreen perennial', () => {
+  it('succeeds on cell with evergreen perennial that has coverCropEffectiveness', () => {
     const state = makeState();
     // Plant citrus (Feb-April window, game starts March)
     plantCrop(state, 0, 0, 'citrus-navels');
     advanceToSeason(state, 'fall');
 
-    // Citrus is evergreen (no dormantSeasons) — should fail
+    // Citrus is evergreen (no dormantSeasons) but has coverCropEffectiveness = 0.60
     const result = setCoverCrop(state, 0, 0, 'legume-cover');
-    expect(result.success).toBe(false);
-    expect(result.reason).toContain('evergreen');
+    expect(result.success).toBe(true);
+    expect(state.grid[0][0].coverCropId).toBe('legume-cover');
   });
 
   it('fails if already has cover crop', () => {

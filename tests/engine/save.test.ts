@@ -642,6 +642,34 @@ describe('Save/Load System', () => {
     });
   });
 
+  describe('v8 → v9 migration', () => {
+    it('migrates v8 auto-save by adding organicCompliantYears and expense fields', () => {
+      const state = createInitialState('test-player', SLICE_1_SCENARIO);
+
+      // Build a v8-shaped save (strip v9 fields)
+      const v8State = JSON.parse(JSON.stringify(state));
+      delete v8State.organicCompliantYears;
+      // Strip insurance/organic expense fields from tracking
+      delete v8State.tracking.currentExpenses.insurance;
+      delete v8State.tracking.currentExpenses.insurancePayouts;
+      delete v8State.tracking.currentExpenses.organicCertification;
+
+      const v8Save = {
+        version: '8.0.0',
+        state: v8State,
+        timestamp: Date.now(),
+      };
+      mockStorage[AUTOSAVE_KEY] = JSON.stringify(v8Save);
+
+      const loaded = loadAutoSave();
+      expect(loaded).not.toBeNull();
+      expect(loaded!.organicCompliantYears).toBe(0);
+      expect(loaded!.tracking.currentExpenses.insurance).toBe(0);
+      expect(loaded!.tracking.currentExpenses.insurancePayouts).toBe(0);
+      expect(loaded!.tracking.currentExpenses.organicCertification).toBe(0);
+    });
+  });
+
   describe('corrupt/unknown version saves', () => {
     it('returns null for unknown future version', () => {
       const state = createInitialState('test-player', SLICE_1_SCENARIO);

@@ -149,6 +149,11 @@ export interface CropDefinition {
   requiredFlag?: string;               // flag that must be true to plant this crop
   heatSensitivity?: number;            // yield multiplier under regime_heat_threshold (e.g. 0.75 = 25% loss)
 
+  // 6d.3: Evergreen understory cover crops
+  coverCropEffectiveness?: number;     // 0-1 multiplier for cover crop benefits AND costs under this perennial
+                                       // undefined/absent = use dormantSeasons check (deciduous = 1.0, no dormancy = blocked)
+                                       // 0 would mean blocked; >0 means allowed with scaled effects
+
   // Display
   shortDescription: string;
 }
@@ -277,7 +282,9 @@ export type AutoPauseReason =
   // Slice 2a
   | 'loan_offer'
   | 'event'
-  | 'advisor';
+  | 'advisor'
+  // 6d.3: QoL
+  | 'planting_options';
 
 export interface AutoPauseEvent {
   reason: AutoPauseReason;
@@ -294,6 +301,7 @@ export const AUTO_PAUSE_PRIORITY: Record<AutoPauseReason, number> = {
   advisor: 82,
   harvest_ready: 80,
   water_stress: 60,
+  planting_options: 50,
   year_end: 40,
 };
 
@@ -322,6 +330,7 @@ export interface GameState {
   pendingForeshadows: PendingForeshadow[];
   activeEffects: ActiveEffect[];
   cropFailureStreak: number;
+  organicCompliantYears: number; // 6d.2: clean years toward organic certification (reset on violation)
   flags: Record<string, boolean>;
   wateringRestricted: boolean;
   wateringRestrictionEndsDay: number;
@@ -376,6 +385,12 @@ export const WATER_DOSE_INCHES = 3.0; // inches per watering action (~14 days wo
 export const STARTING_DAY = 59; // March 1 (0-indexed totalDay) — Spring start per SPEC
 export const SAVE_VERSION = '9.0.0';
 export const INSURANCE_ANNUAL_PREMIUM = 500;
+
+// Slice 6d: Organic certification
+export const ORGANIC_CERT_ANNUAL_COST = 400;        // $/year during transition and after certification
+export const ORGANIC_PRICE_PREMIUM = 1.20;           // 20% price premium when certified
+export const ORGANIC_TRANSITION_YEARS = 3;            // clean years before certification eligibility
+export const ORGANIC_COVER_CROP_MIN = 16;             // min cells with cover crops for certification (~25% of grid)
 
 // Slice 5a: K-lite constants
 export const STARTING_POTASSIUM = 150;      // lbs/acre — initial K for all cells

@@ -25,6 +25,9 @@ import type { StrategyBot } from '../bot-runner.ts';
 /** Storylet-specific preferred choices — diversified bot buys insurance and files claims */
 const PREFERRED_CHOICES: Record<string, string> = {
   'chen-insurance-offer': 'enroll-insurance',
+  'santos-organic-offer': 'enroll-organic',
+  'advisor-soil-nitrogen': 'acknowledge',           // organic-compatible (no synthetic fertilizer)
+  'advisor-potassium-management': 'note-symptoms',  // organic-compatible (no synthetic potash)
   'catastrophe-rootworm': 'file-rootworm-claim',
   'catastrophe-pollination-failure': 'file-pollination-claim',
   'catastrophe-orchard-disease': 'file-disease-claim',

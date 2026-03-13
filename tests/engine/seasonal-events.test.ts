@@ -55,7 +55,7 @@ describe('hasRandomCondition', () => {
     ]);
   });
 
-  it('identifies all 16 per-tick events', () => {
+  it('identifies all 17 per-tick events', () => {
     const perTickIds = STORYLETS.filter(s => !hasRandomCondition(s)).map(s => s.id);
     expect(perTickIds).toEqual([
       'advisor-orchard-decline',
@@ -73,6 +73,7 @@ describe('hasRandomCondition', () => {
       'regime-market-crash',
       'regime-heat-threshold',
       'advisor-potassium-management',
+      'santos-organic-offer',
       'chen-insurance-offer',
     ]);
   });

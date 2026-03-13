@@ -382,6 +382,7 @@ export const STORYLETS: readonly Storylet[] = [
         effects: [
           { type: 'modify_cash', amount: -400 },
           { type: 'modify_nitrogen_all', amount: 60 },
+          { type: 'set_flag', flag: 'organic_violation_this_year', value: true },
           { type: 'add_notification', message: 'Dr. Santos helped you apply nitrogen fertilizer. Soil fertility improved.', notificationType: 'event_result' },
         ],
         followUpText: "Nitrogen is the engine of plant growth — it's the main ingredient in chlorophyll, which powers photosynthesis. When N runs low, leaves turn pale, growth slows, and yields drop. Commercial fertilizer gives you an immediate boost, but it's a band-aid: your soil's organic matter is the long-term nitrogen bank. As organic matter breaks down, microbes release nitrogen slowly over the season. That's why farms with healthy soil need less purchased fertilizer. Every crop you harvest takes nitrogen with it — heavy feeders like corn and tomatoes pull 150-200 lbs/acre.",
@@ -903,6 +904,7 @@ export const STORYLETS: readonly Storylet[] = [
         effects: [
           { type: 'modify_cash', amount: -500 },
           { type: 'modify_potassium_all', amount: 80 },
+          { type: 'set_flag', flag: 'organic_violation_this_year', value: true },
           { type: 'add_notification', message: 'Potash fertilizer applied across all fields. Soil potassium levels restored.', notificationType: 'event_result' },
         ],
         followUpText: "Potassium is one of the three primary nutrients plants need, along with nitrogen and phosphorus. Unlike nitrogen, which you can restore with cover crops and rotation, potassium is mainly replenished through mineral fertilizers or very slow rock weathering. Every harvest removes K from your soil — heavy feeders like tomatoes and corn deplete it fastest. The good news: this application should last several seasons. Keep an eye on crop quality at harvest for early warning signs.",
@@ -1185,6 +1187,56 @@ export const STORYLETS: readonly Storylet[] = [
     tags: ['community', 'forum', 'organic', 'foreshadow'],
   },
 
+  // --- Organic Certification Offer (6d.2) ---
+  // Condition-only advisor: Santos offers organic transition after foreshadow window.
+  // Three choices: enroll (commit to transition), later (allows re-offer), decline (permanent).
+  {
+    id: 'santos-organic-offer',
+    type: 'regulatory',
+    title: 'Organic Certification Opportunity',
+    description: "I've been watching your farm, and I think you might be a good candidate for USDA organic certification. The premium prices — about 20% above conventional — are real, but it's a serious commitment. There's a 3-year transition period where you pay $400/year in certification fees without getting the premium yet. During that time and after, you cannot use synthetic fertilizers, chemical pesticides, or potash — any violation resets your transition clock or revokes certification. You'll also need cover crops on at least 16 fields each winter — plant them in fall and they'll be checked at year-end. It rewards the kind of sustainable management I've seen you working toward.",
+    preconditions: [
+      { type: 'min_year', year: 7 },
+      { type: 'not_has_flag', flag: 'organic_enrolled' },
+      { type: 'not_has_flag', flag: 'organic_declined' },
+      { type: 'has_crop' },
+    ],
+    priority: 80,
+    cooldownDays: 365,
+    maxOccurrences: 3,
+    advisorId: 'extension-agent',
+    choices: [
+      {
+        id: 'enroll-organic',
+        label: 'Begin Organic Transition',
+        description: 'Commit to a 3-year transition period. $400/year certification fee charged at year-end.',
+        effects: [
+          { type: 'set_flag', flag: 'organic_enrolled', value: true },
+          { type: 'add_notification', message: 'You\'ve enrolled in organic certification! The 3-year transition begins now. No synthetic fertilizers, chemical pesticides, or potash allowed. Maintain cover crops on at least 16 fields for the 20% price premium.', notificationType: 'event_result' },
+        ],
+        followUpText: "Great decision. Here's what happens next: for the next 3 years, you'll pay $400 annually in certification fees while transitioning your farm. You won't get the premium prices yet — that's the hard part. During transition and after certification, you cannot use synthetic fertilizers, chemical pesticides, or potash — any violation resets your transition clock. After 3 clean years with cover crops on at least 16 fields, you'll earn USDA organic certification and a 20% premium on all your harvest revenue. It's an investment in your farm's future.",
+      },
+      {
+        id: 'organic-later',
+        label: 'Not Right Now',
+        description: 'Maybe next year. Santos will check back.',
+        effects: [
+          { type: 'add_notification', message: 'You decided to wait on organic certification. Dr. Santos will check in again next year.', notificationType: 'event_result' },
+        ],
+      },
+      {
+        id: 'decline-organic',
+        label: 'Not Interested',
+        description: 'Organic certification isn\'t for your farm.',
+        effects: [
+          { type: 'set_flag', flag: 'organic_declined', value: true },
+          { type: 'add_notification', message: 'You declined organic certification. Dr. Santos respects your decision.', notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['advisor', 'organic', 'regulatory'],
+  },
+
   {
     id: 'forum-bad-advice',
     type: 'community',
@@ -1299,6 +1351,7 @@ export const STORYLETS: readonly Storylet[] = [
         effects: [
           { type: 'modify_cash', amount: -800 },
           { type: 'damage_crops', target: 'silage-corn', percentage: 0.20 },
+          { type: 'set_flag', flag: 'organic_violation_this_year', value: true },
           { type: 'add_notification', message: 'Emergency rootworm treatment applied. You lost 20% of your corn but saved the rest.', notificationType: 'event_result' },
         ],
       },
@@ -1437,6 +1490,7 @@ export const STORYLETS: readonly Storylet[] = [
           { type: 'damage_crops', target: 'pistachios', percentage: 0.10 },
           { type: 'damage_crops', target: 'citrus', percentage: 0.10 },
           { type: 'damage_crops', target: 'heat-avocado', percentage: 0.10 },
+          { type: 'set_flag', flag: 'organic_violation_this_year', value: true },
           { type: 'modify_yield_modifier', cropId: 'almonds', multiplier: 0.90, durationDays: 180 },
           { type: 'modify_yield_modifier', cropId: 'pistachios', multiplier: 0.90, durationDays: 180 },
           { type: 'modify_yield_modifier', cropId: 'citrus', multiplier: 0.90, durationDays: 180 },

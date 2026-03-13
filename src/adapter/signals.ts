@@ -116,6 +116,39 @@ export const pendingFollowUp = signal<{
 } | null>(null);
 
 // ============================================================================
+// Player Preferences (localStorage-backed, not game state)
+// ============================================================================
+
+const PREF_AUTO_PAUSE_PLANTING = 'climateFarmer_pref_autoPausePlanting';
+
+/** Auto-pause when planting options change (new crops become plantable at season boundary). */
+export const autoPausePlanting = signal<boolean>(
+  typeof localStorage !== 'undefined' && localStorage.getItem(PREF_AUTO_PAUSE_PLANTING) === 'true',
+);
+
+export function setAutoPausePlanting(value: boolean): void {
+  autoPausePlanting.value = value;
+  try {
+    if (value) {
+      localStorage.setItem(PREF_AUTO_PAUSE_PLANTING, 'true');
+    } else {
+      localStorage.removeItem(PREF_AUTO_PAUSE_PLANTING);
+    }
+  } catch { /* quota exceeded — ignore */ }
+}
+
+/** Track previous planting options for change detection. */
+let _prevPlantableKey = '';
+let _prevMonth = -1;
+
+/** Build a comparable key from current planting options. */
+function getPlantableKey(state: GameState): string {
+  const crops = getAvailableCrops(state);
+  const isFall = state.calendar.season === 'fall';
+  return crops.join(',') + (isFall ? ',cover' : '');
+}
+
+// ============================================================================
 // State Publishing
 // ============================================================================
 
@@ -206,6 +239,8 @@ export function startNewGame(playerId: string, scenarioId?: string): void {
 
   _liveState = createInitialState(trimmed, _activeScenario);
   logSessionStart(_liveState);
+  _prevPlantableKey = getPlantableKey(_liveState);
+  _prevMonth = _liveState.calendar.month;
   batch(() => {
     publishState();
     screen.value = 'playing';
@@ -227,6 +262,8 @@ export function resumeGame(): void {
   _activeScenario = resolveScenario(state.scenarioId, state);
   _liveState = state;
   logSessionStart(_liveState);
+  _prevPlantableKey = getPlantableKey(_liveState);
+  _prevMonth = _liveState.calendar.month;
   batch(() => {
     publishState();
     screen.value = 'playing';
@@ -818,6 +855,8 @@ export function loadSavedGame(slotName: string): void {
   _activeScenario = resolveScenario(state.scenarioId, state);
   _liveState = state;
   logSessionStart(_liveState);
+  _prevPlantableKey = getPlantableKey(_liveState);
+  _prevMonth = _liveState.calendar.month;
   autoSave(_liveState); // #68: sync autosave to loaded manual save
   batch(() => {
     publishState();
@@ -893,6 +932,22 @@ function gameLoop(now: number): void {
         lastSeasonAutoSaveDay = _liveState.calendar.totalDay;
         autoSave(_liveState);
       }
+
+      // Auto-pause at calendar planting windows (6d.3 QoL) — check at every month boundary
+      if (autoPausePlanting.value && _liveState.calendar.month !== _prevMonth && _prevMonth !== -1) {
+        const plantableKey = getPlantableKey(_liveState);
+        if (_prevPlantableKey && plantableKey !== _prevPlantableKey) {
+          const season = _liveState.calendar.season;
+          _liveState.autoPauseQueue.push({
+            reason: 'planting_options',
+            message: season === 'fall'
+              ? 'Planting window: fall crops and cover crops are now available.'
+              : `Planting window: ${season.charAt(0).toUpperCase() + season.slice(1)} crop options have changed.`,
+          });
+        }
+        _prevPlantableKey = plantableKey;
+      }
+      _prevMonth = _liveState.calendar.month;
 
       if (_liveState.autoPauseQueue.length > 0 || _liveState.gameOver) {
         tickAccumulator = 0;

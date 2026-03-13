@@ -276,6 +276,7 @@ export const CROPS: Record<string, CropDefinition> = {
     yieldCurve: { rampUpYears: 3, declineStartYear: 28, endOfLifeYear: 35, declineFloor: 0.3 },
 
     heatSensitivity: 0.85, // 15% yield loss under heat regime (sunburn, fruit drop)
+    coverCropEffectiveness: 0.60, // moderate-density evergreen canopy, ~40-60% shade year-round
 
     shortDescription: 'Evergreen perennial. Stable income, no chill-hour risk, never declines — but less profitable than almonds at peak.',
   },
@@ -319,6 +320,7 @@ export const CROPS: Record<string, CropDefinition> = {
     yieldCurve: { rampUpYears: 2, declineStartYear: 20, endOfLifeYear: 25, declineFloor: 0.3 },
 
     // No heatSensitivity — thrives in heat
+    coverCropEffectiveness: 0.85, // wide row spacing, low rosette canopy — minimal shade on understory
 
     requiredFlag: 'tech_crop_agave',
 
@@ -363,6 +365,7 @@ export const CROPS: Record<string, CropDefinition> = {
     yieldCurve: { rampUpYears: 4, declineStartYear: 22, endOfLifeYear: 30, declineFloor: 0.3 },
 
     // No heatSensitivity — thrives in heat (the whole point of this crop)
+    coverCropEffectiveness: 0.50, // dense evergreen canopy, 60-80% shade year-round
 
     requiredFlag: 'tech_crop_avocado',
 

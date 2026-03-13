@@ -45,7 +45,8 @@ function CellDetail({ cell, row, col }: { cell: import('../../engine/types.ts').
   const canRemove = crop?.isPerennial === true;
   const isFall = state?.calendar.season === 'fall';
   const isDeciduousPerennial = crop?.isPerennial && cropDef?.dormantSeasons && cropDef.dormantSeasons.length > 0;
-  const canPlantCover = isFall && !coverCropId && (!crop || isDeciduousPerennial);
+  const hasUnderstoryCoverCrop = crop?.isPerennial && cropDef?.coverCropEffectiveness && cropDef.coverCropEffectiveness > 0;
+  const canPlantCover = isFall && !coverCropId && (!crop || isDeciduousPerennial || hasUnderstoryCoverCrop);
   const progress = crop ? getGrowthProgress(crop) : 0;
   const yieldPct = crop ? getYieldPercentage(crop) : 0;
 
@@ -490,7 +491,7 @@ function BulkActions() {
     if (!c.crop) return true;
     if (!c.crop.isPerennial) return false;
     const def = getCropDefinition(c.crop.cropId);
-    return (def.dormantSeasons?.length ?? 0) > 0;
+    return (def.dormantSeasons?.length ?? 0) > 0 || (def.coverCropEffectiveness ?? 0) > 0;
   }));
 
   return (

@@ -141,7 +141,7 @@ tests/
 - **Late-game catastrophe/insurance layer** — Successful diversified runs lack drama. Foreshadowed catastrophic events + mitigation options (insurance, mutual aid, crop loss). #96.
 
 ### Other deferred features → Slice 6+
-- **Scoring + completion code + Google Form** — Weighted composite scoring (SPEC §31) + end-of-game reporting
+- **Scoring + Google Sign-In submission** — Weighted composite scoring (SPEC §31) + authenticated result submission via Google Identity Services (6d.1 implemented; completion code is human-readable backup, not encoded/decodeable)
 - **Corn heat/drought quality penalty** — Needs proper heat stress day tracking (separate from waterStressDays to avoid double-counting with waterFactor)
 - **Monoculture pest event chain** — Rootworm, corn rot as foreshadowed storylets connecting to pellagra case study
 - **Insurance / credit systems** — Credit rating, variable loan rates, insurance premiums

@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'preact/hooks';
-import { gameState, currentWeather, dispatch, handleSave, returnToTitle, getActiveScenarioName, confirmDialog, needsPlayPrompt } from '../../adapter/signals.ts';
+import { useRef, useEffect, useState } from 'preact/hooks';
+import { gameState, currentWeather, dispatch, handleSave, returnToTitle, getActiveScenarioName, confirmDialog, needsPlayPrompt, autoPausePlanting, setAutoPausePlanting } from '../../adapter/signals.ts';
 import { getSeasonName, getMonthName } from '../../engine/calendar.ts';
 import type { GameSpeed, DailyWeather } from '../../engine/types.ts';
 import styles from '../styles/TopBar.module.css';
@@ -147,6 +147,8 @@ export function TopBar() {
           </span>
         )}
 
+        <SettingsGear />
+
         <button
           data-testid="save-button"
           class={styles.saveBtn}
@@ -174,5 +176,49 @@ export function TopBar() {
         </button>
       </div>
     </header>
+  );
+}
+
+function SettingsGear() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} class={styles.settingsWrapper}>
+      <button
+        data-testid="settings-gear"
+        class={styles.settingsBtn}
+        onClick={() => setOpen(!open)}
+        aria-label="Game settings"
+        aria-expanded={open}
+      >
+        {'\u2699\uFE0F'}
+      </button>
+      {open && (
+        <div class={styles.settingsDropdown} data-testid="settings-dropdown">
+          <label class={styles.settingsOption}>
+            <input
+              type="checkbox"
+              data-testid="setting-auto-pause-planting"
+              checked={autoPausePlanting.value}
+              onChange={(e) => setAutoPausePlanting((e.target as HTMLInputElement).checked)}
+            />
+            Auto-pause at calendar planting windows
+          </label>
+        </div>
+      )}
+    </div>
   );
 }

@@ -222,6 +222,53 @@
   50% { opacity: 0.5; }
 }
 
+/* Settings gear */
+.settingsWrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.settingsBtn {
+  padding: 4px 6px;
+  font-size: var(--font-size-base);
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.settingsBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.settingsDropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  min-width: 260px;
+  z-index: 100;
+  font-size: var(--font-size-sm);
+}
+
+.settingsOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.settingsOption input[type="checkbox"] {
+  accent-color: var(--color-primary);
+}
+
 /* Narrow viewport — hide scenario name */
 @media (max-width: 1100px) {
   .scenarioName { display: none; }

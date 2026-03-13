@@ -17,6 +17,7 @@ import {
   AUTO_IRRIGATION_COST_MULTIPLIERS, REGIME_WATER_REDUCTION, REGIME_MARKET_CRASH_FACTOR,
   MONOCULTURE_PENALTY_PER_YEAR, MONOCULTURE_PENALTY_FLOOR,
   COVER_CROP_OM_PROTECTION, INSURANCE_ANNUAL_PREMIUM,
+  ORGANIC_CERT_ANNUAL_COST, ORGANIC_PRICE_PREMIUM, ORGANIC_TRANSITION_YEARS, ORGANIC_COVER_CROP_MIN,
   createEmptyTrackingState, createEmptyExpenseBreakdown,
 } from './types.ts';
 import { getTechLevel } from './tech-levels.ts';
@@ -99,6 +100,7 @@ export function createInitialState(playerId: string, scenario: ClimateScenario):
     pendingForeshadows: [],
     activeEffects: [],
     cropFailureStreak: 0,
+    organicCompliantYears: 0,
     flags: {},
     wateringRestricted: false,
     wateringRestrictionEndsDay: 0,
@@ -706,12 +708,21 @@ function processRemoveCrop(state: GameState, row: number, col: number): CommandR
 // Cover Crop Commands
 // ============================================================================
 
-/** Check if a cell is eligible for cover crop planting (empty or deciduous perennial). */
+/** Check if a cell is eligible for cover crop planting (empty, deciduous perennial, or evergreen with coverCropEffectiveness). */
 function isCoverCropEligible(cell: Cell): boolean {
   if (!cell.crop) return true;
   if (!cell.crop.isPerennial) return false;
   const def = getCropDefinition(cell.crop.cropId);
-  return (def.dormantSeasons?.length ?? 0) > 0;
+  if ((def.dormantSeasons?.length ?? 0) > 0) return true;         // deciduous
+  return (def.coverCropEffectiveness ?? 0) > 0;                    // evergreen with explicit effectiveness
+}
+
+/** Get cover crop effectiveness multiplier for a cell (1.0 for empty/deciduous, crop-specific for evergreen). */
+function getCoverCropEffectiveness(cell: Cell): number {
+  if (!cell.crop || !cell.crop.isPerennial) return 1.0;
+  const def = getCropDefinition(cell.crop.cropId);
+  if ((def.dormantSeasons?.length ?? 0) > 0) return 1.0;          // deciduous = full benefit
+  return def.coverCropEffectiveness ?? 1.0;                        // evergreen = scaled
 }
 
 /**
@@ -764,7 +775,9 @@ function processSetCoverCrop(state: GameState, row: number, col: number, coverCr
     }
     const def = getCropDefinition(cell.crop.cropId);
     if (!def.dormantSeasons || def.dormantSeasons.length === 0) {
-      return { success: false, reason: 'Cannot plant cover crop under an evergreen perennial.' };
+      if (!def.coverCropEffectiveness || def.coverCropEffectiveness <= 0) {
+        return { success: false, reason: 'Cannot plant cover crop under an evergreen perennial.' };
+      }
     }
   }
 
@@ -884,15 +897,16 @@ function incorporateCoverCrops(state: GameState): void {
       if (!cell.coverCropId) continue;
 
       const coverDef = getCoverCropDefinition(cell.coverCropId);
+      const eff = getCoverCropEffectiveness(cell);
 
-      // Apply nitrogen fixation (clamped to 200)
-      cell.soil.nitrogen = Math.min(200, cell.soil.nitrogen + coverDef.nitrogenFixation);
+      // Apply nitrogen fixation (clamped to 200), scaled by effectiveness
+      cell.soil.nitrogen = Math.min(200, cell.soil.nitrogen + coverDef.nitrogenFixation * eff);
 
-      // Apply organic matter bonus
-      cell.soil.organicMatter += coverDef.organicMatterBonus;
+      // Apply organic matter bonus, scaled by effectiveness
+      cell.soil.organicMatter += coverDef.organicMatterBonus * eff;
 
-      // Apply moisture drawdown (tradeoff)
-      cell.soil.moisture = Math.max(0, cell.soil.moisture - coverDef.moistureDrawdown);
+      // Apply moisture drawdown (tradeoff), also scaled — less biomass = less water draw
+      cell.soil.moisture = Math.max(0, cell.soil.moisture - coverDef.moistureDrawdown * eff);
 
       // Clear cover crop
       cell.coverCropId = null;
@@ -1218,6 +1232,61 @@ export function simulateTick(state: GameState, scenario: ClimateScenario): Daily
       state.tracking.currentExpenses.insurance += INSURANCE_ANNUAL_PREMIUM;
     }
 
+    // Organic certification: annual cost, compliance check, transition/maintenance (6d.2)
+    if (state.flags['organic_enrolled']) {
+      const hadViolation = !!state.flags['organic_violation_this_year'];
+      const coverCropCells = state.grid.flat().filter(c => c.coverCropId).length;
+
+      // Annual certification fee (always, whether in transition or certified)
+      state.economy.cash -= ORGANIC_CERT_ANNUAL_COST;
+      state.economy.yearlyExpenses += ORGANIC_CERT_ANNUAL_COST;
+      state.tracking.currentExpenses.organicCertification += ORGANIC_CERT_ANNUAL_COST;
+
+      if (hadViolation) {
+        // Violation consequences
+        if (state.flags['organic_certified']) {
+          delete state.flags['organic_certified'];
+          state.organicCompliantYears = 0;
+          addNotification(state, 'event_result',
+            'Organic certification revoked: synthetic inputs used this year. You must complete 3 new clean years to re-qualify.');
+        } else {
+          state.organicCompliantYears = 0;
+          addNotification(state, 'event_result',
+            'Organic transition reset: synthetic inputs used this year. The 3-year clock restarts.');
+        }
+      } else {
+        // Clean year — increment compliant years
+        state.organicCompliantYears++;
+
+        // Certification eligibility (only on clean years)
+        if (!state.flags['organic_certified']) {
+          if (state.organicCompliantYears >= ORGANIC_TRANSITION_YEARS) {
+            if (coverCropCells >= ORGANIC_COVER_CROP_MIN) {
+              state.flags['organic_certified'] = true;
+              addNotification(state, 'event_result',
+                'Your farm has earned USDA Organic Certification! All harvest revenue now receives a 20% price premium.');
+            } else {
+              addNotification(state, 'event_result',
+                `Organic certification delayed: cover crops needed on at least ${ORGANIC_COVER_CROP_MIN} fields (currently ${coverCropCells}).`);
+            }
+          }
+        }
+      }
+
+      // Post-certification cover crop maintenance (annual, even on clean years)
+      if (state.flags['organic_certified'] && coverCropCells < ORGANIC_COVER_CROP_MIN) {
+        delete state.flags['organic_certified'];
+        state.organicCompliantYears = 0;
+        addNotification(state, 'event_result',
+          `Organic certification suspended: cover crops on fewer than ${ORGANIC_COVER_CROP_MIN} fields. Must re-qualify with 3 clean years.`);
+      }
+
+    }
+
+    // Clear violation flag globally — even for non-enrolled farms, so a stale flag
+    // from before enrollment doesn't poison the first enrolled year-end check.
+    delete state.flags['organic_violation_this_year'];
+
     // Year-end snapshot (Slice 4a): capture tracking data BEFORE resetting
     const yearSnapshot = createYearSnapshot(state);
     state.tracking.yearSnapshots.push(yearSnapshot);
@@ -1321,25 +1390,25 @@ function simulateSoil(cell: Cell, weather: DailyWeather): void {
   const soil = cell.soil;
 
   // Evapotranspiration (water loss)
-  // Cover crop ET rules:
-  //   crop + cover → max(cropKc, coverET)
-  //   crop + no cover → cropKc
-  //   empty + cover → coverET (replaces bare soil 0.3)
-  //   empty + no cover → 0.3 (bare soil)
+  // Cover crop ET scaled by understory effectiveness (less biomass = less water draw)
+  const BARE_SOIL_ET = 0.3;
   let etMultiplier: number;
   if (cell.crop) {
     const cropKc = getCropCoefficient(cell.crop);
     if (cell.coverCropId) {
       const coverDef = getCoverCropDefinition(cell.coverCropId);
-      etMultiplier = Math.max(cropKc, coverDef.winterETMultiplier);
+      const eff = getCoverCropEffectiveness(cell);
+      const scaledCoverET = BARE_SOIL_ET + (coverDef.winterETMultiplier - BARE_SOIL_ET) * eff;
+      etMultiplier = Math.max(cropKc, scaledCoverET);
     } else {
       etMultiplier = cropKc;
     }
   } else if (cell.coverCropId) {
     const coverDef = getCoverCropDefinition(cell.coverCropId);
-    etMultiplier = coverDef.winterETMultiplier;
+    const eff = getCoverCropEffectiveness(cell);
+    etMultiplier = BARE_SOIL_ET + (coverDef.winterETMultiplier - BARE_SOIL_ET) * eff;
   } else {
-    etMultiplier = 0.3; // Bare soil
+    etMultiplier = BARE_SOIL_ET;
   }
 
   const etLoss = weather.et0 * etMultiplier;
@@ -1349,8 +1418,11 @@ function simulateSoil(cell: Cell, weather: DailyWeather): void {
   soil.moisture = Math.min(soil.moisture + weather.precipitation, soil.moistureCapacity);
 
   // Organic matter decomposition (~6%/year compound-daily of current OM)
-  // Cover crop roots slow decomposition (50% reduction) but don't halt it entirely
-  const coverCropProtection = cell.coverCropId ? COVER_CROP_OM_PROTECTION : 1.0;
+  // Cover crop roots slow decomposition (50% reduction), scaled by understory effectiveness
+  const eff = cell.coverCropId ? getCoverCropEffectiveness(cell) : 0;
+  const coverCropProtection = cell.coverCropId
+    ? 1.0 - (1.0 - COVER_CROP_OM_PROTECTION) * eff   // blend: 1.0 (no protection) → COVER_CROP_OM_PROTECTION (full)
+    : 1.0;
   const omDecompRate = OM_DECOMP_RATE / DAYS_PER_YEAR * coverCropProtection;
   soil.organicMatter = Math.max(OM_FLOOR, soil.organicMatter - soil.organicMatter * omDecompRate);
 
@@ -1652,7 +1724,9 @@ export function harvestCell(state: GameState, cell: Cell, silent?: boolean): num
   const isCrashedCrop = state.flags['regime_market_crash'] && crop.cropId === activeScenario.marketCrashTargetCropId;
   const regimePriceMod = isCrashedCrop ? (activeScenario.marketCrashFactor ?? REGIME_MARKET_CRASH_FACTOR) : 1.0;
 
-  const actualPrice = cropDef.basePrice * priceMod * kFactor * regimePriceMod;
+  // Organic certification premium (6d.2): 20% when certified, separate multiplier
+  const organicPremium = state.flags['organic_certified'] ? ORGANIC_PRICE_PREMIUM : 1.0;
+  const actualPrice = cropDef.basePrice * priceMod * kFactor * regimePriceMod * organicPremium;
 
   const grossRevenue = yieldAmount * actualPrice;
   const laborCost = cropDef.laborCostPerAcre;
@@ -1973,6 +2047,8 @@ const FLAG_LABELS: Record<string, string> = {
   regime_market_crash: 'Market Crash',
   regime_heat_threshold: 'Heat Threshold Crossed',
   has_crop_insurance: 'Crop Insurance',
+  organic_enrolled: 'Organic Transition',
+  organic_certified: 'USDA Organic Certified',
 };
 
 export interface ReflectionData {

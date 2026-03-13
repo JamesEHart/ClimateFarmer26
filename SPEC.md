@@ -858,8 +858,8 @@ The end-of-game score rewards **resilient, sustainable farming** — not just ma
 
 #### 31.2 Completion Code
 
-- **When** I complete 30 years (or go bankrupt), **I should see** a completion code that encodes: player ID, final score, years survived, and scenario ID.
-- **When** I enter my completion code into the Google Form, **the teacher should** be able to decode it and see my results.
+- **When** I complete 30 years (or go bankrupt), **I should see** a human-readable completion code showing my player prefix, score, years survived, and scenario (e.g., `NEAL-78-Y30-GW`). This is a screenshot-friendly backup artifact, not a security mechanism.
+- **When** I sign in with my school Google account and click "Submit Results", **the teacher should** see my results in the backend spreadsheet (authenticated via Google Identity Services).
 
 #### 31.3 Leaderboard Framing
 

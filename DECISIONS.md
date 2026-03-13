@@ -42,7 +42,7 @@ Format: **Date — Decision — Rationale**
 
 2026-02-12 — Chromebook is target hardware — 2023 education Chromebooks (~$400). Intel N100/N200, 4-8GB RAM.
 
-2026-02-12 — Result reporting via completion code + Google Form — Zero server dependency.
+2026-02-12 — Result reporting via Google Sign-In + backend submission — Google Identity Services authenticates @dtechhs.org students; results POST to backend spreadsheet. Completion code is a human-readable screenshot backup (PREFIX-SCORE-YYEARS-SCENARIO), not a security mechanism. Originally planned as encoded/decodeable Google Form workflow, simplified in 6d after Google auth made tamper-detection redundant.
 
 ## Game Design
 

@@ -21,6 +21,8 @@
 
 .panelWide {
   max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
 .title {
@@ -288,4 +290,151 @@
 
 .choiceCostUnaffordable {
   color: var(--color-danger);
+}
+
+/* Score panel (year-30 / bankruptcy) */
+.scorePanel {
+  margin-bottom: 16px;
+}
+
+.tierBadge {
+  text-align: center;
+  padding: 8px 16px;
+  border-radius: var(--border-radius);
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+  margin-bottom: 12px;
+}
+
+.tierThriving {
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+
+.tierStable {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.tierStruggling {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.tierFailed {
+  background: #fce4ec;
+  color: #c62828;
+}
+
+.scoreTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+
+.scoreTable td {
+  padding: 6px 0;
+  font-size: var(--font-size-sm);
+}
+
+.scoreTable td:last-child {
+  text-align: right;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.scoreLabel {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.scoreExplanation {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted);
+}
+
+.scoreValue {
+  vertical-align: top;
+}
+
+.scoreMax {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.scoreTotalRow td {
+  border-top: 2px solid var(--color-bg-dark);
+  padding-top: 8px;
+  font-size: var(--font-size-base) !important;
+  font-weight: 700 !important;
+}
+
+.completionCodeBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-bg);
+  border-radius: var(--border-radius);
+  margin-bottom: 12px;
+}
+
+.completionCodeLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.completionCode {
+  font-family: monospace;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.copyBtn {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: var(--font-size-sm);
+  background: white;
+  border: 1px solid var(--color-bg-dark);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+
+.copyBtn:hover {
+  background: var(--color-bg-dark);
+}
+
+.submissionArea {
+  padding: 12px;
+  background: var(--color-bg);
+  border-radius: var(--border-radius);
+  margin-bottom: 12px;
+}
+
+.submissionPrompt {
+  font-size: var(--font-size-sm);
+  margin-bottom: 8px;
+}
+
+.submissionSuccess {
+  font-size: var(--font-size-sm);
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.submissionError {
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+  margin-bottom: 8px;
+}
+
+.mutedNote {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.signinContainer {
+  margin-top: 8px;
 }

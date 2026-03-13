@@ -623,6 +623,11 @@ function migrateV8ToV9(data: unknown): GameState | null {
     const save = data as SaveGame;
     const state = save.state as GameState & Record<string, unknown>;
 
+    // Add organicCompliantYears (6d.2 compliance layer)
+    if ((state as Record<string, unknown>).organicCompliantYears === undefined) {
+      (state as Record<string, unknown>).organicCompliantYears = 0;
+    }
+
     // Add new ExpenseBreakdown fields to currentExpenses
     const expenses = state.tracking.currentExpenses as unknown as Record<string, unknown>;
     if (expenses.insurance === undefined) expenses.insurance = 0;
