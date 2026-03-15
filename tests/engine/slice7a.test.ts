@@ -9,7 +9,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createInitialState, harvestCell } from '../../src/engine/game.ts';
+import { createInitialState, harvestCell, processCommand } from '../../src/engine/game.ts';
+import { computeScore } from '../../src/engine/scoring.ts';
 import { SLICE_1_SCENARIO } from '../../src/data/scenario.ts';
 import { getCropDefinition } from '../../src/data/crops.ts';
 import { STORYLETS } from '../../src/data/events.ts';
@@ -261,5 +262,85 @@ describe('§7a.3: Scenario names do not spoil difficulty', () => {
     for (const scenario of allScenarios) {
       expect(scenario.name.length).toBeGreaterThan(0);
     }
+  });
+});
+
+// ============================================================================
+// §7a.1b: Bulk harvest also shows yield-factor breakdown
+// ============================================================================
+
+describe('§7a.1b: Bulk harvest notifications include yield-factor explanations', () => {
+  it('bulk harvest notification includes yield penalties when soil OM is low', () => {
+    const state = makeState();
+    // Plant corn on multiple cells with low OM
+    for (let c = 0; c < 4; c++) {
+      const cell = state.grid[0][c];
+      setupHarvestableCorn(cell);
+      cell.soil.organicMatter = 1.0; // ~27% penalty
+      cell.soil.nitrogen = 200;
+    }
+
+    processCommand(state, { type: 'HARVEST_BULK', scope: 'row', index: 0 });
+
+    const harvestNotifs = state.notifications.filter(n => n.type === 'harvest');
+    expect(harvestNotifs.length).toBeGreaterThan(0);
+    const msg = harvestNotifs[harvestNotifs.length - 1].message;
+    expect(msg).toContain('low soil organic matter');
+  });
+
+  it('bulk harvest notification includes monoculture penalty', () => {
+    const state = makeState();
+    for (let c = 0; c < 4; c++) {
+      const cell = state.grid[0][c];
+      setupHarvestableCorn(cell);
+      cell.soil.nitrogen = 200;
+      cell.soil.organicMatter = 2.0;
+      cell.lastCropId = 'silage-corn';
+      cell.consecutiveSameCropCount = 2; // 3rd → 30% penalty
+    }
+
+    processCommand(state, { type: 'HARVEST_BULK', scope: 'row', index: 0 });
+
+    const harvestNotifs = state.notifications.filter(n => n.type === 'harvest');
+    const msg = harvestNotifs[harvestNotifs.length - 1].message;
+    expect(msg).toContain('monoculture penalty');
+  });
+
+  it('bulk harvest does not show factor text when harvest is healthy', () => {
+    const state = makeState();
+    for (let c = 0; c < 4; c++) {
+      const cell = state.grid[0][c];
+      setupHarvestableCorn(cell);
+      cell.soil.nitrogen = 200;
+      cell.soil.organicMatter = 2.0;
+    }
+
+    processCommand(state, { type: 'HARVEST_BULK', scope: 'row', index: 0 });
+
+    const harvestNotifs = state.notifications.filter(n => n.type === 'harvest');
+    const msg = harvestNotifs[harvestNotifs.length - 1].message;
+    expect(msg).not.toContain('Yield reduced by');
+  });
+});
+
+// ============================================================================
+// §7a.4: yearsSurvived off-by-one fix
+// ============================================================================
+
+describe('§7a.4: yearsSurvived is clamped to 30', () => {
+  it('computeScore returns yearsSurvived=30 when calendar.year is 31 (year-30 endgame)', () => {
+    const state = makeState();
+    state.calendar.year = 31; // year-end tick increments past 30
+    state.calendar.totalDay = 30 * 365 + 59;
+    const score = computeScore(state);
+    expect(score.yearsSurvived).toBe(30);
+  });
+
+  it('computeScore returns actual year for early bankruptcy', () => {
+    const state = makeState();
+    state.calendar.year = 15;
+    state.calendar.totalDay = 14 * 365 + 59;
+    const score = computeScore(state);
+    expect(score.yearsSurvived).toBe(15);
   });
 });

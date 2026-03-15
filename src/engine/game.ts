@@ -439,26 +439,40 @@ function processHarvestBulk(state: GameState, scope: 'all' | 'row' | 'col', inde
   }
 
   // #61: Batch harvest notifications by crop type
-  const cropRevenue = new Map<string, { count: number; revenue: number }>();
+  // Collect yield factors BEFORE harvest (harvest mutates cell state: consumes N, updates streaks)
+  const cropRevenue = new Map<string, { count: number; revenue: number; factors: YieldFactorEntry[] }>();
   let totalRevenue = 0;
   for (const cell of harvestable) {
     const cropId = cell.crop!.cropId;
+    const cellFactors = computeHarvestYieldFactors(state, cell);
     const rev = harvestCell(state, cell, true); // silent: suppress per-cell notifications
     totalRevenue += rev;
     const entry = cropRevenue.get(cropId);
     if (entry) {
       entry.count++;
       entry.revenue += rev;
+      // Accumulate worst factors across cells (keep the most severe per factor name)
+      for (const f of cellFactors) {
+        const existing = entry.factors.find(e => e.name === f.name);
+        if (existing) {
+          existing.value = Math.min(existing.value, f.value); // keep worst
+        } else {
+          entry.factors.push({ ...f });
+        }
+      }
     } else {
-      cropRevenue.set(cropId, { count: 1, revenue: rev });
+      cropRevenue.set(cropId, { count: 1, revenue: rev, factors: cellFactors.map(f => ({ ...f })) });
     }
   }
 
-  // Emit one notification per crop type
+  // Emit one notification per crop type, with yield factor explanation
   for (const [cropId, data] of cropRevenue) {
     const cropDef = getCropDefinition(cropId);
+    // Sort aggregated factors by severity for this crop
+    data.factors.sort((a, b) => a.value - b.value);
+    const factorText = formatYieldFactors(data.factors);
     addNotification(state, 'harvest',
-      `Harvested ${data.count} plots of ${cropDef.name} \u2014 $${Math.floor(data.revenue).toLocaleString()} revenue`);
+      `Harvested ${data.count} plots of ${cropDef.name} \u2014 $${Math.floor(data.revenue).toLocaleString()} revenue${factorText}`);
   }
 
   // Empty field guidance (#86): fire once after bulk harvest if nothing is plantable
@@ -1654,6 +1668,77 @@ export function computeOMYieldFactor(organicMatter: number): number {
 }
 
 // ============================================================================
+// Harvest Yield Factor Explanation (7a)
+// ============================================================================
+
+interface YieldFactorEntry { name: string; value: number; }
+
+/**
+ * Compute the significant yield penalty factors for a cell's current harvest.
+ * Returns factors with >5% impact, sorted by severity (worst first).
+ * Called by both single-cell and bulk harvest notification paths.
+ */
+export function computeHarvestYieldFactors(state: GameState, cell: Cell): YieldFactorEntry[] {
+  const crop = cell.crop;
+  if (!crop) return [];
+  const cropDef = getCropDefinition(crop.cropId);
+  const factors: YieldFactorEntry[] = [];
+
+  // Water stress
+  const totalGrowingDays = Math.max(1, state.calendar.totalDay - crop.plantedDay);
+  const waterStressFraction = crop.waterStressDays / totalGrowingDays;
+  const waterFactor = Math.max(0, 1 - cropDef.ky * waterStressFraction);
+  if (waterFactor < 0.95) factors.push({ name: 'water stress', value: waterFactor });
+
+  // Nitrogen
+  const nFactor = Math.min(1, (cell.soil.nitrogen + cropDef.nitrogenUptake * NITROGEN_CUSHION_FACTOR) / cropDef.nitrogenUptake);
+  if (nFactor < 0.95) factors.push({ name: 'low nitrogen', value: nFactor });
+
+  // Organic matter
+  const omFactor = computeOMYieldFactor(cell.soil.organicMatter);
+  if (omFactor < 0.95) factors.push({ name: 'low soil organic matter', value: omFactor });
+
+  // Overripe
+  if (crop.growthStage === 'overripe') {
+    const overripeFactor = crop.overripeDaysRemaining / OVERRIPE_GRACE_DAYS;
+    if (overripeFactor < 0.95) factors.push({ name: 'overripe penalty', value: overripeFactor });
+  }
+
+  // Event yield modifier
+  const yieldMod = getYieldModifier(state, crop.cropId);
+  if (yieldMod < 0.95) factors.push({ name: 'event effects', value: yieldMod });
+
+  // Skip chill — has its own detailed notification
+
+  // Perennial age
+  const ageFactor = getPerennialAgeFactor(crop, cropDef);
+  if (ageFactor < 0.95) factors.push({ name: 'tree age decline', value: ageFactor });
+
+  // Heat regime
+  if (state.flags['regime_heat_threshold'] && cropDef.heatSensitivity !== undefined && cropDef.heatSensitivity < 0.95) {
+    factors.push({ name: 'heat stress', value: cropDef.heatSensitivity });
+  }
+
+  // Monoculture streak
+  if (!crop.isPerennial && cell.lastCropId === crop.cropId) {
+    const streak = (cell.consecutiveSameCropCount ?? 0) + 1;
+    const penaltyFactor = Math.max(MONOCULTURE_PENALTY_FLOOR, 1.0 - MONOCULTURE_PENALTY_PER_YEAR * streak);
+    if (penaltyFactor < 0.95) factors.push({ name: 'monoculture penalty', value: penaltyFactor });
+  }
+
+  factors.sort((a, b) => a.value - b.value);
+  return factors;
+}
+
+/** Format top-N yield factors into a human-readable suffix string. */
+function formatYieldFactors(factors: YieldFactorEntry[], maxFactors = 2): string {
+  if (factors.length === 0) return '';
+  const top = factors.slice(0, maxFactors);
+  const parts = top.map(f => `${f.name} (-${Math.round((1 - f.value) * 100)}%)`);
+  return ` Yield reduced by: ${parts.join(', ')}.`;
+}
+
+// ============================================================================
 // Harvest Calculation
 // ============================================================================
 
@@ -1677,6 +1762,10 @@ export function harvestCell(state: GameState, cell: Cell, silent?: boolean): num
   // As OM declines, mineralization drops → less N available → progressive yield decline
   const nFactor = Math.min(1, (cell.soil.nitrogen + cropDef.nitrogenUptake * NITROGEN_CUSHION_FACTOR) / cropDef.nitrogenUptake);
   yieldAmount *= nFactor;
+
+  // Snapshot yield factors BEFORE mutating cell state (N consumption, streak updates)
+  // so the notification shows pre-harvest conditions that caused the penalty.
+  const preHarvestFactors = silent ? [] : computeHarvestYieldFactors(state, cell);
 
   // Consume nitrogen at harvest (crop uptake removes accumulated soil N)
   cell.soil.nitrogen = Math.max(0, cell.soil.nitrogen - cropDef.nitrogenUptake);
@@ -1776,36 +1865,7 @@ export function harvestCell(state: GameState, cell: Cell, silent?: boolean): num
   const netRevenue = grossRevenue - laborCost - repayment;
 
   if (!silent) {
-    // Build yield-factor explanation: show top 2 biggest penalties (>5% impact)
-    const yieldFactors: { name: string; value: number }[] = [];
-    if (waterFactor < 0.95) yieldFactors.push({ name: 'water stress', value: waterFactor });
-    if (nFactor < 0.95) yieldFactors.push({ name: 'low nitrogen', value: nFactor });
-    if (omFactor < 0.95) yieldFactors.push({ name: 'low soil organic matter', value: omFactor });
-    if (crop.growthStage === 'overripe') {
-      const overripeFactor = crop.overripeDaysRemaining / OVERRIPE_GRACE_DAYS;
-      if (overripeFactor < 0.95) yieldFactors.push({ name: 'overripe penalty', value: overripeFactor });
-    }
-    if (yieldMod < 0.95) yieldFactors.push({ name: 'event effects', value: yieldMod });
-    // Skip chill factor — it has its own detailed notification above
-    if (ageFactor < 0.95) yieldFactors.push({ name: 'tree age decline', value: ageFactor });
-    if (state.flags['regime_heat_threshold'] && cropDef.heatSensitivity !== undefined && cropDef.heatSensitivity < 0.95) {
-      yieldFactors.push({ name: 'heat stress', value: cropDef.heatSensitivity });
-    }
-    if (!crop.isPerennial && cell.lastCropId === crop.cropId) {
-      const streak = (cell.consecutiveSameCropCount ?? 0) + 1;
-      const penaltyFactor = Math.max(MONOCULTURE_PENALTY_FLOOR, 1.0 - MONOCULTURE_PENALTY_PER_YEAR * streak);
-      if (penaltyFactor < 0.95) yieldFactors.push({ name: 'monoculture penalty', value: penaltyFactor });
-    }
-
-    // Sort by severity (biggest penalty first), take top 2
-    yieldFactors.sort((a, b) => a.value - b.value);
-    const topFactors = yieldFactors.slice(0, 2);
-
-    let factorText = '';
-    if (topFactors.length > 0) {
-      const parts = topFactors.map(f => `${f.name} (-${Math.round((1 - f.value) * 100)}%)`);
-      factorText = ` Yield reduced by: ${parts.join(', ')}.`;
-    }
+    const factorText = formatYieldFactors(preHarvestFactors);
 
     // Base harvest message
     let msg = `Harvested ${cropDef.name}: ${yieldAmount.toFixed(1)} ${cropDef.yieldUnit} at $${actualPrice.toFixed(2)}/${cropDef.yieldUnit} = $${grossRevenue.toFixed(0)}`;

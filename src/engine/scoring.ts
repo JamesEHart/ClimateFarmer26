@@ -296,7 +296,7 @@ export function computeScore(state: GameState): ScoreResult {
         : total >= 40 ? 'Struggling'
           : 'Failed';
 
-  const yearsSurvived = state.calendar.year;
+  const yearsSurvived = Math.min(state.calendar.year, 30);
   const completionCode = encodeCompletionCode(
     state.playerId, Math.round(total), yearsSurvived, state.scenarioId,
   );
