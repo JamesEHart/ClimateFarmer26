@@ -428,6 +428,9 @@ Severity: MEDIUM (pedagogy). When revenue drops sharply (e.g., Year 2 after firs
 **98. Organic transition failure is too easy to miss.**
 Severity: MEDIUM (pedagogy/UX). When a player breaks organic certification (e.g., using synthetic fertilizer while enrolled), the decisive consequence is delivered as a notification bar toast — the same visual weight as "Crops watered." The organic warning interstitial catches pre-choice, but if the player proceeds, the result message is easily missed. Should be a more prominent UI signal (e.g., centered flash, or advisor follow-up).
 
+**100. Negative harvest revenue is unexplained.**
+Severity: MEDIUM (pedagogy). When yield penalties (OM, water stress, monoculture streak) stack heavily enough, harvest revenue can go negative after subtracting labor/seed costs. Students see absurd-looking negative revenue with no explanation of why. Confirmed on both tomatoes and orchard crops. Should show an explicit breakdown before or at harvest: gross yield, penalties applied, costs, net revenue. Without this, the cause-and-effect link — the game's core educational value — is broken at precisely the moment it matters most.
+
 **99. Row/column bulk actions are automation-hostile.**
 Severity: LOW (dev tooling, not student-facing). Row/col bulk action testids only render when a cell is selected, and re-render on every new selection. This caused AI testers to report "only one row planted" and wrong-testid errors. Mitigated by `__gameDebug.getActionState()` and `__gameDebug.selectCell()` helpers (added post-6e), which remove the need for brittle DOM scraping. Not a product bug — the UI works correctly for human users.
 

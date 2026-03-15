@@ -21,7 +21,16 @@ export interface BlockingState {
   reason?: AutoPauseReason | 'gameover';
   panelTestId?: string;
   eventId?: string;
-  choices?: Array<{ testid: string; label: string }>;
+  choices?: Array<{
+    testid: string;
+    label: string;
+    /** Whether this choice is currently clickable. False when player can't afford requiresCash. */
+    enabled?: boolean;
+    /** Cash cost shown on the button, if any. */
+    cost?: number;
+    /** Minimum cash required for this choice. If cash < this, enabled=false. */
+    requiresCash?: number;
+  }>;
   speed: number;
   notificationCount: number;
   year: number;
@@ -165,10 +174,16 @@ export function getBlockingState(state: GameState, hasPendingFollowUp = false, h
       reason,
       panelTestId,
       eventId: state.activeEvent.storyletId,
-      choices: state.activeEvent.choices.map(c => ({
-        testid: `${prefix}-choice-${c.id}`,
-        label: c.label,
-      })),
+      choices: state.activeEvent.choices.map(c => {
+        const canAfford = c.requiresCash === undefined || state.economy.cash >= c.requiresCash;
+        return {
+          testid: `${prefix}-choice-${c.id}`,
+          label: c.label,
+          enabled: canAfford,
+          cost: c.cost,
+          requiresCash: c.requiresCash,
+        };
+      }),
     };
   }
 
@@ -176,8 +191,9 @@ export function getBlockingState(state: GameState, hasPendingFollowUp = false, h
   const primary = getPrimaryChoiceInfo(reason, state);
   const choices: Array<{ testid: string; label: string }> = [primary];
 
-  // Most autopauses have a dismiss/secondary button
-  if (reason !== 'bankruptcy' && reason !== 'year_30') {
+  // Most autopauses have a dismiss/secondary button.
+  // planting_options only has a primary "Continue" button (no secondary in AutoPausePanel).
+  if (reason !== 'bankruptcy' && reason !== 'year_30' && reason !== 'planting_options') {
     choices.push({ testid: 'autopause-dismiss', label: getDismissLabel(reason) });
   }
 

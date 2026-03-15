@@ -128,16 +128,16 @@ function FoodServingsCallout({ servings, grewFeedCrops }: { servings: number; gr
             ~{servings.toLocaleString()} servings
           </div>
           <div class={styles.foodServingsSubline}>
-            A rough estimate based on the crops your farm grew. Actual production depends on growing conditions.
+            A rough estimate based on the crops your farm grew. Livestock feed crops like silage corn count at ~10% efficiency (energy pyramid). Actual production depends on growing conditions.
           </div>
         </>
       ) : grewFeedCrops ? (
         <div class={styles.foodServingsSubline}>
-          Your farm focused on livestock feed rather than direct human food. Silage corn feeds cattle, not people directly — a reminder that crop choice shapes a farm's role in the food system.
+          Your farm grew livestock feed crops. Feed supports the food system indirectly — but the energy pyramid means most of that energy doesn't reach people as food.
         </div>
       ) : (
         <div class={styles.foodServingsSubline}>
-          Your farm didn't produce enough crops to estimate food-production potential. Every season is a chance to plant something new.
+          No crop production data available. Every season is a chance to plant something new.
         </div>
       )}
     </div>

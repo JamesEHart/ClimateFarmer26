@@ -586,12 +586,33 @@ export function generateAdvisorFarewells(score: ScoreResult, state: GameState): 
 
 export function estimateHumanFoodServings(state: GameState): number {
   let total = 0;
-  for (const snapshot of state.tracking.yearSnapshots) {
+  const snapshots = state.tracking.yearSnapshots;
+
+  // Track which crops appear in snapshots (year-end grid presence)
+  const cropSeenInSnapshots = new Set<string>();
+
+  for (const snapshot of snapshots) {
     for (const [cropId, cellCount] of Object.entries(snapshot.cropCounts)) {
       const crop = CROPS[cropId];
       if (!crop || !crop.humanServingsPerUnit) continue;
+      cropSeenInSnapshots.add(cropId);
       total += cellCount * crop.yieldPotential * crop.humanServingsPerUnit;
     }
   }
+
+  // Annuals harvested before year-end won't appear in snapshots.
+  // Use planted_crop_* flags to detect them, then add a conservative estimate:
+  // assume 8 cells/year (one row) × years survived. Deliberately conservative.
+  const yearsPlayed = snapshots.length || 1;
+  const CONSERVATIVE_CELLS_PER_YEAR = 8;
+  for (const [flag, value] of Object.entries(state.flags)) {
+    if (!flag.startsWith('planted_crop_') || !value) continue;
+    const cropId = flag.slice('planted_crop_'.length);
+    if (cropSeenInSnapshots.has(cropId)) continue; // already counted from snapshots
+    const crop = CROPS[cropId];
+    if (!crop || !crop.humanServingsPerUnit || crop.type !== 'annual') continue;
+    total += CONSERVATIVE_CELLS_PER_YEAR * yearsPlayed * crop.yieldPotential * crop.humanServingsPerUnit;
+  }
+
   return Math.round(total);
 }

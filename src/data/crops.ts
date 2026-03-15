@@ -74,7 +74,7 @@ export const CROPS: Record<string, CropDefinition> = {
     basePrice: 55,         // $/ton
     seedCostPerAcre: 100,
     laborCostPerAcre: 80,
-    humanServingsPerUnit: 0, // livestock feed, not direct human food
+    humanServingsPerUnit: 200, // livestock feed → ~10% energy transfer → ~200 indirect servings/ton
 
     heatSensitivity: 0.85, // 15% yield loss under heat regime (pollination stress)
 

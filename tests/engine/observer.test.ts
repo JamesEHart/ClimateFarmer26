@@ -259,6 +259,49 @@ describe('Observer — getBlockingState()', () => {
     expect(result.year).toBe(5);
     expect(result.day).toBe(state.calendar.totalDay);
   });
+
+  it('planting_options has no dismiss button (primary only)', () => {
+    const state = makeState();
+    state.autoPauseQueue.push({ reason: 'planting_options', message: 'New crops available' });
+    const result = getBlockingState(state);
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe('planting_options');
+    expect(result.panelTestId).toBe('autopause-panel');
+    expect(result.choices).toHaveLength(1);
+    expect(result.choices![0].testid).toBe('autopause-action-primary');
+    // No autopause-dismiss — planting_options only has a Continue button
+    expect(result.choices!.some(c => c.testid === 'autopause-dismiss')).toBe(false);
+  });
+
+  it('event choices include enabled/cost/requiresCash metadata', () => {
+    const state = makeState();
+    state.economy.cash = 100;
+    state.autoPauseQueue.push({ reason: 'event', message: 'Test' });
+    state.activeEvent = {
+      storyletId: 'test-event',
+      title: 'Test',
+      description: 'Test.',
+      choices: [
+        { id: 'free', label: 'Free option', description: 'No cost', effects: [] },
+        { id: 'cheap', label: 'Cheap option', description: 'Costs $50', cost: 50, requiresCash: 50, effects: [] },
+        { id: 'expensive', label: 'Expensive option', description: 'Costs $500', cost: 500, requiresCash: 500, effects: [] },
+      ],
+      firedOnDay: 100,
+    };
+    const result = getBlockingState(state);
+    expect(result.choices).toHaveLength(3);
+    // Free option — enabled, no cost
+    expect(result.choices![0].enabled).toBe(true);
+    expect(result.choices![0].cost).toBeUndefined();
+    // Cheap option — enabled, affordable
+    expect(result.choices![1].enabled).toBe(true);
+    expect(result.choices![1].cost).toBe(50);
+    expect(result.choices![1].requiresCash).toBe(50);
+    // Expensive option — disabled, can't afford
+    expect(result.choices![2].enabled).toBe(false);
+    expect(result.choices![2].cost).toBe(500);
+    expect(result.choices![2].requiresCash).toBe(500);
+  });
 });
 
 // ============================================================================

@@ -363,12 +363,12 @@ describe('§3: Advisor Farewells', () => {
 // ============================================================================
 
 describe('§4: Human Food Servings Estimate', () => {
-  it('returns 0 for pure silage-corn farm', () => {
+  it('returns positive for silage-corn farm (indirect servings via energy pyramid)', () => {
     const state = makeState();
     addSnapshot(state, { cropCounts: { 'silage-corn': 30 } });
     addSnapshot(state, { cropCounts: { 'silage-corn': 30 } });
     const servings = estimateHumanFoodServings(state);
-    expect(servings).toBe(0);
+    expect(servings).toBeGreaterThan(0);
   });
 
   it('returns positive for diversified farm with human-food crops', () => {
@@ -378,9 +378,9 @@ describe('§4: Human Food Servings Estimate', () => {
     expect(servings).toBeGreaterThan(0);
   });
 
-  it('returns 0 for empty yearSnapshots (early bankruptcy)', () => {
+  it('returns 0 for empty yearSnapshots and no planted flags (early bankruptcy)', () => {
     const state = makeState();
-    // No snapshots at all
+    // No snapshots, no flags
     const servings = estimateHumanFoodServings(state);
     expect(servings).toBe(0);
   });
@@ -407,5 +407,27 @@ describe('§4: Human Food Servings Estimate', () => {
 
     // 2 years should produce roughly double 1 year
     expect(estimateHumanFoodServings(state2)).toBeGreaterThan(estimateHumanFoodServings(state1));
+  });
+
+  it('counts annuals via planted_crop_* flags when snapshots miss them', () => {
+    // Annuals harvested before year-end don't appear in yearSnapshot.cropCounts.
+    // The estimate should fall back to planted_crop_* flags.
+    const state = makeState();
+    addSnapshot(state, { cropCounts: {} }); // empty grid at year-end
+    addSnapshot(state, { cropCounts: {} });
+    state.flags['planted_crop_processing-tomatoes'] = true; // but tomatoes were grown!
+    const servings = estimateHumanFoodServings(state);
+    expect(servings).toBeGreaterThan(0);
+  });
+
+  it('does not double-count crops in both snapshots and flags', () => {
+    const state = makeState();
+    addSnapshot(state, { cropCounts: { 'almonds': 10 } }); // perennial, in snapshot
+    state.flags['planted_crop_almonds'] = true;
+    const servings = estimateHumanFoodServings(state);
+    // Should only count from snapshots, not add flag-based estimate on top
+    const stateNoFlag = makeState();
+    addSnapshot(stateNoFlag, { cropCounts: { 'almonds': 10 } });
+    expect(servings).toBe(estimateHumanFoodServings(stateNoFlag));
   });
 });
