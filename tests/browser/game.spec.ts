@@ -1297,8 +1297,10 @@ test.describe('Advisor Panel', () => {
     await expect(page.getByTestId('advisor-subtitle')).toHaveText('Focused on returns and financial growth');
     await expect(page.getByTestId('event-title')).toHaveText('A Visit from Valley Farm Credit');
 
-    // Dismiss Chen panel
+    // Dismiss Chen panel — welcome-review has followUpText, so dismiss that too
     await page.getByTestId('advisor-choice-welcome-review').click();
+    await expect(page.getByTestId('follow-up-panel')).toBeVisible();
+    await page.getByTestId('follow-up-dismiss').click();
     await expect(page.getByTestId('advisor-panel')).not.toBeVisible();
 
     // Now trigger Forum and verify it renders correctly
@@ -1312,8 +1314,10 @@ test.describe('Advisor Panel', () => {
     await expect(page.getByTestId('advisor-subtitle')).toHaveText('Word-of-mouth from neighboring farms');
     await expect(page.getByTestId('event-title')).toHaveText('Valley Growers Forum Meetup');
 
-    // Dismiss Forum panel
+    // Dismiss Forum panel — attend-meeting has followUpText, so dismiss that too
     await page.getByTestId('advisor-choice-attend-meeting').click();
+    await expect(page.getByTestId('follow-up-panel')).toBeVisible();
+    await page.getByTestId('follow-up-dismiss').click();
     await expect(page.getByTestId('advisor-panel')).not.toBeVisible();
   });
 
@@ -2291,6 +2295,60 @@ test.describe('Observer Layer', () => {
     expect(result.stopped).toBe(true);
     expect(result.ticksRun).toBeGreaterThan(0);
     expect(result.reason).toBeDefined();
+  });
+
+  test('fastForwardUntilBlocked() stops for planting-window autopause when setting enabled', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    // Enable planting-window autopause via settings
+    await page.getByTestId('settings-gear').click();
+    await page.getByTestId('setting-auto-pause-planting').check();
+    await page.getByTestId('settings-gear').click();
+
+    // Dismiss any initial autopauses and fast-forward through year boundaries
+    // until we hit a planting_options pause. The transition from spring→summer
+    // changes available crops (corn/tomatoes/sorghum drop out).
+    let foundPlantingPause = false;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const result = await page.evaluate(() => {
+        return (window as Record<string, any>).__gameDebug.fastForwardUntilBlocked(2000);
+      });
+
+      if (result.stopped && result.reason === 'planting_options') {
+        foundPlantingPause = true;
+        break;
+      }
+
+      if (!result.stopped) break; // ran out of ticks without any pause
+
+      // Dismiss the non-planting autopause and continue
+      await page.evaluate(() => {
+        const d = (window as Record<string, any>).__gameDebug;
+        const state = d.getState();
+        if (state.autoPauseQueue?.length > 0) {
+          // Clear autopause queue and active event to continue
+          state.autoPauseQueue.length = 0;
+          state.activeEvent = null;
+          state.speed = 4;
+        }
+      });
+    }
+
+    expect(foundPlantingPause).toBe(true);
+  });
+
+  test('fastForwardDays() advances by calendar days and returns final day', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    const result = await page.evaluate(() => {
+      return (window as Record<string, any>).__gameDebug.fastForwardDays(30);
+    });
+
+    expect(result.ticksRun).toBeLessThanOrEqual(30);
+    expect(result.day).toBeDefined();
+    expect(result.day).toBeGreaterThan(0);
   });
 });
 

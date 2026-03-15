@@ -15,7 +15,9 @@ import { SLICE_1_SCENARIO } from '../../src/data/scenario.ts';
 import { getCropDefinition } from '../../src/data/crops.ts';
 import {
   getBlockingState,
+  getActionState,
   fastForwardUntilBlocked,
+  fastForwardDays,
   getNotificationsDebug,
   dismissAllNotificationsDebug,
 } from '../../src/adapter/observer.ts';
@@ -315,6 +317,81 @@ describe('Observer — fastForwardUntilBlocked()', () => {
     expect(result.reason).toBe('water_stress');
     expect(result.ticksRun).toBe(0);
   });
+
+  it('calls onTick callback after each simulateTick and stops if it queues an autopause', () => {
+    const state = makeState();
+    state.speed = 4;
+    let tickCount = 0;
+    const result = fastForwardUntilBlocked(state, SLICE_1_SCENARIO, 100, (s) => {
+      tickCount++;
+      if (tickCount === 5) {
+        s.autoPauseQueue.push({ reason: 'planting_options', message: 'New crops available' });
+      }
+    });
+    expect(result.stopped).toBe(true);
+    expect(result.reason).toBe('planting_options');
+    expect(result.ticksRun).toBe(5);
+    expect(tickCount).toBe(5);
+  });
+
+  it('onTick callback is not called when already blocked', () => {
+    const state = makeState();
+    state.speed = 4;
+    state.autoPauseQueue.push({ reason: 'water_stress', message: 'Needs water' });
+    let called = false;
+    const result = fastForwardUntilBlocked(state, SLICE_1_SCENARIO, 100, () => {
+      called = true;
+    });
+    expect(result.stopped).toBe(true);
+    expect(result.ticksRun).toBe(0);
+    expect(called).toBe(false);
+  });
+});
+
+// ============================================================================
+// fastForwardDays()
+// ============================================================================
+
+describe('Observer — fastForwardDays()', () => {
+  it('advances exactly N days when no autopause fires', () => {
+    const state = makeState();
+    const startDay = state.calendar.totalDay;
+    const result = fastForwardDays(state, SLICE_1_SCENARIO, 30);
+    expect(result.stopped).toBe(false);
+    expect(result.ticksRun).toBe(30);
+    expect(result.day).toBe(startDay + 30);
+    expect(state.calendar.totalDay).toBe(startDay + 30);
+  });
+
+  it('stops early when autopause fires and includes final day', () => {
+    const state = makeState();
+    // Plant corn to trigger harvest autopause
+    processCommand(state, { type: 'PLANT_CROP', cellRow: 0, cellCol: 0, cropId: 'silage-corn' }, SLICE_1_SCENARIO);
+    const cropDef = getCropDefinition('silage-corn');
+    state.grid[0][0].crop!.gddAccumulated = cropDef.gddToMaturity - 1;
+    state.grid[0][0].crop!.growthStage = 'mature';
+    state.speed = 4;
+
+    const result = fastForwardDays(state, SLICE_1_SCENARIO, 365);
+    expect(result.stopped).toBe(true);
+    expect(result.ticksRun).toBeLessThan(365);
+    expect(result.day).toBe(state.calendar.totalDay);
+  });
+
+  it('respects onTick callback (planting window injection)', () => {
+    const state = makeState();
+    let tickCount = 0;
+    const result = fastForwardDays(state, SLICE_1_SCENARIO, 100, (s) => {
+      tickCount++;
+      if (tickCount === 10) {
+        s.autoPauseQueue.push({ reason: 'planting_options', message: 'Test' });
+      }
+    });
+    expect(result.stopped).toBe(true);
+    expect(result.reason).toBe('planting_options');
+    expect(result.ticksRun).toBe(10);
+    expect(result.day).toBeDefined();
+  });
 });
 
 // ============================================================================
@@ -344,5 +421,87 @@ describe('Observer — notification helpers', () => {
     expect(state.notifications.length).toBe(2);
     dismissAllNotificationsDebug(state);
     expect(state.notifications.length).toBe(0);
+  });
+});
+
+// ============================================================================
+// getActionState()
+// ============================================================================
+
+describe('Observer — getActionState()', () => {
+  it('returns available crops for spring start (no selection)', () => {
+    const state = makeState();
+    // Game starts in March (spring) — corn, tomatoes, sorghum should be available
+    const result = getActionState(state, null);
+    expect(result.selectedCell).toBeNull();
+    expect(result.availableCrops).toContain('silage-corn');
+    expect(result.availableCrops).toContain('processing-tomatoes');
+    expect(result.availableCrops).not.toContain('winter-wheat'); // fall only
+    expect(result.coverCropsEligible).toBe(false); // not fall
+    expect(result.harvestReadyCount).toBe(0);
+    expect(result.hasCrops).toBe(false);
+  });
+
+  it('includes plant-all testids but no row/col testids without selection', () => {
+    const state = makeState();
+    const result = getActionState(state, null);
+    expect(result.bulkActions).toContain('action-plant-all-silage-corn');
+    expect(result.bulkActions).toContain('action-harvest-all');
+    expect(result.bulkActions).toContain('action-water-all');
+    // No row/col actions without selection
+    expect(result.bulkActions.some(a => a.includes('-row-'))).toBe(false);
+    expect(result.bulkActions.some(a => a.includes('-col-'))).toBe(false);
+  });
+
+  it('includes row/col testids when cell is selected', () => {
+    const state = makeState();
+    const result = getActionState(state, { row: 2, col: 3 });
+    expect(result.selectedCell).toEqual({ row: 2, col: 3 });
+    expect(result.bulkActions).toContain('action-plant-row-2-silage-corn');
+    expect(result.bulkActions).toContain('action-plant-col-3-silage-corn');
+    expect(result.bulkActions).toContain('action-harvest-row-2');
+    expect(result.bulkActions).toContain('action-harvest-col-3');
+    expect(result.bulkActions).toContain('action-water-row-2');
+    expect(result.bulkActions).toContain('action-water-col-3');
+  });
+
+  it('reports harvestReadyCount when crops are harvestable', () => {
+    const state = makeState();
+    processCommand(state, { type: 'PLANT_CROP', cellRow: 0, cellCol: 0, cropId: 'silage-corn' }, SLICE_1_SCENARIO);
+    const cropDef = getCropDefinition('silage-corn');
+    state.grid[0][0].crop!.gddAccumulated = cropDef.gddToMaturity;
+    state.grid[0][0].crop!.growthStage = 'harvestable';
+
+    const result = getActionState(state, null);
+    expect(result.harvestReadyCount).toBe(1);
+    expect(result.hasCrops).toBe(true);
+  });
+
+  it('reports coverCropsEligible in fall with empty cells', () => {
+    const state = makeState();
+    // Advance to fall (October)
+    state.calendar.month = 10;
+    state.calendar.season = 'fall';
+    const result = getActionState(state, null);
+    expect(result.coverCropsEligible).toBe(true);
+    expect(result.bulkActions).toContain('action-plant-cover-crop-bulk');
+    expect(result.availableCrops).toContain('winter-wheat');
+    expect(result.availableCrops).not.toContain('silage-corn');
+  });
+
+  it('includes cover crop row/col testids when selected in fall', () => {
+    const state = makeState();
+    state.calendar.month = 10;
+    state.calendar.season = 'fall';
+    const result = getActionState(state, { row: 1, col: 4 });
+    expect(result.bulkActions).toContain('action-cover-crop-row-1');
+    expect(result.bulkActions).toContain('action-cover-crop-col-4');
+  });
+
+  it('excludes flag-gated crops the player has not unlocked', () => {
+    const state = makeState();
+    const result = getActionState(state, null);
+    expect(result.availableCrops).not.toContain('agave');
+    expect(result.availableCrops).not.toContain('heat-avocado');
   });
 });

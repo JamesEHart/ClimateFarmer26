@@ -434,7 +434,7 @@ describe('Slice 6a: Empty field guidance', () => {
 
     expect(state.flags['empty_field_guidance_shown']).toBe(true);
     const guidance = state.notifications.find(n =>
-      n.message.includes('No crops are plantable right now')
+      n.message.includes('Nothing is in season for planting')
     );
     expect(guidance).toBeDefined();
   });
@@ -448,7 +448,7 @@ describe('Slice 6a: Empty field guidance', () => {
     harvestCell(state, state.grid[0][0]);
 
     const guidance = state.notifications.filter(n =>
-      n.message.includes('No crops are plantable right now')
+      n.message.includes('Nothing is in season for planting')
     );
     expect(guidance.length).toBe(0);
   });
@@ -472,7 +472,66 @@ describe('Slice 6a: Empty field guidance', () => {
 
     expect(state.flags['empty_field_guidance_shown']).not.toBe(true);
   });
+
+  it('fires after bulk harvest when no crops are plantable', () => {
+    const state = makeState();
+    // Plant corn in two cells
+    plantAndMature(state, 0, 0, 'silage-corn');
+    plantAndMature(state, 0, 1, 'silage-corn');
+    // Advance to summer — nothing plantable
+    state.calendar = { ...state.calendar, month: 7, season: 'summer' };
+
+    processCommand(state, { type: 'HARVEST_BULK', scope: 'all' }, SLICE_1_SCENARIO);
+
+    expect(state.flags['empty_field_guidance_shown']).toBe(true);
+    const guidance = state.notifications.find(n =>
+      n.message.includes('Nothing is in season for planting')
+    );
+    expect(guidance).toBeDefined();
+  });
+
+  it('does not fire after bulk harvest when crops are still plantable', () => {
+    const state = makeState();
+    // March — corn, tomatoes, sorghum are plantable
+    plantAndMature(state, 0, 0, 'silage-corn');
+
+    processCommand(state, { type: 'HARVEST_BULK', scope: 'all' }, SLICE_1_SCENARIO);
+
+    expect(state.flags['empty_field_guidance_shown']).not.toBe(true);
+  });
 });
 
-// §10: pendingFollowUp lifecycle cleanup — tested in browser tests
+// ============================================================================
+// §10: Advisor intro choices use followUpText for "tell me more" paths
+// ============================================================================
+
+describe('Slice 6a: Advisor intro follow-up text', () => {
+  it('chen-intro welcome-review has followUpText', () => {
+    const chen = STORYLETS.find(s => s.id === 'advisor-chen-intro')!;
+    const welcomeReview = chen.choices.find(c => c.id === 'welcome-review')!;
+    expect(welcomeReview.followUpText).toBeDefined();
+    expect(welcomeReview.followUpText!.length).toBeGreaterThan(0);
+  });
+
+  it('chen-intro polite-decline has no followUpText', () => {
+    const chen = STORYLETS.find(s => s.id === 'advisor-chen-intro')!;
+    const decline = chen.choices.find(c => c.id === 'polite-decline')!;
+    expect(decline.followUpText).toBeUndefined();
+  });
+
+  it('forum-intro attend-meeting has followUpText', () => {
+    const forum = STORYLETS.find(s => s.id === 'advisor-forum-intro')!;
+    const attend = forum.choices.find(c => c.id === 'attend-meeting')!;
+    expect(attend.followUpText).toBeDefined();
+    expect(attend.followUpText!.length).toBeGreaterThan(0);
+  });
+
+  it('forum-intro just-listen has no followUpText', () => {
+    const forum = STORYLETS.find(s => s.id === 'advisor-forum-intro')!;
+    const listen = forum.choices.find(c => c.id === 'just-listen')!;
+    expect(listen.followUpText).toBeUndefined();
+  });
+});
+
+// §11: pendingFollowUp lifecycle cleanup — tested in browser tests
 // (adapter signals require localStorage/DOM environment)

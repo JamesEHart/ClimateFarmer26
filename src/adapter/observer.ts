@@ -9,7 +9,8 @@
  */
 
 import type { GameState, AutoPauseReason, ClimateScenario } from '../engine/types.ts';
-import { simulateTick } from '../engine/game.ts';
+import { simulateTick, getAvailableCrops } from '../engine/game.ts';
+import { getCropDefinition } from '../data/crops.ts';
 
 // ============================================================================
 // Types
@@ -32,6 +33,18 @@ export interface FastForwardResult {
   stopped: boolean;
   reason?: string;
   ticksRun: number;
+  /** Day the simulation reached (totalDay). Present on fastForwardDays results. */
+  day?: number;
+}
+
+export interface ActionState {
+  selectedCell: { row: number; col: number } | null;
+  availableCrops: string[];
+  coverCropsEligible: boolean;
+  harvestReadyCount: number;
+  hasCrops: boolean;
+  /** Currently valid bulk action testids, based on selected cell and game state. */
+  bulkActions: string[];
 }
 
 // ============================================================================
@@ -178,6 +191,90 @@ export function getBlockingState(state: GameState, hasPendingFollowUp = false, h
 }
 
 // ============================================================================
+// getActionState()
+// ============================================================================
+
+/**
+ * Returns what actions are currently available, eliminating the need for
+ * brittle DOM scraping. AI agents call this to know what they can do right now.
+ *
+ * @param sel — Currently selected cell (from adapter's selectedCell signal).
+ *   Must be passed in since observer.ts is pure and has no signal access.
+ */
+export function getActionState(
+  state: GameState,
+  sel: { row: number; col: number } | null,
+): ActionState {
+  const crops = getAvailableCrops(state);
+  const hasCrops = state.grid.some(row => row.some(c => c.crop !== null));
+  const isFall = state.calendar.season === 'fall';
+
+  // Count harvest-ready crops (same predicate as SidePanel)
+  let harvestReadyCount = 0;
+  for (const row of state.grid) {
+    for (const c of row) {
+      if (!c.crop) continue;
+      const stage = c.crop.growthStage;
+      if ((stage === 'harvestable' || stage === 'overripe') && !c.crop.harvestedThisSeason) {
+        if (c.crop.isPerennial && c.crop.isDormant) continue;
+        harvestReadyCount++;
+      }
+    }
+  }
+
+  // Cover crop eligibility (same predicate as SidePanel)
+  const coverCropsEligible = isFall && state.grid.some(row => row.some(c => {
+    if (c.coverCropId) return false;
+    if (!c.crop) return true;
+    if (!c.crop.isPerennial) return false;
+    const def = getCropDefinition(c.crop.cropId);
+    return (def.dormantSeasons?.length ?? 0) > 0 || (def.coverCropEffectiveness ?? 0) > 0;
+  }));
+
+  // Build list of currently valid bulk action testids
+  const bulkActions: string[] = [];
+
+  // Plant field — one per available crop
+  for (const cropId of crops) {
+    bulkActions.push(`action-plant-all-${cropId}`);
+  }
+
+  // Harvest/water field — always present (may be disabled)
+  bulkActions.push('action-harvest-all');
+  bulkActions.push('action-water-all');
+
+  // Cover crop field
+  if (coverCropsEligible) {
+    bulkActions.push('action-plant-cover-crop-bulk');
+  }
+
+  // Row/col actions require a selected cell
+  if (sel) {
+    for (const cropId of crops) {
+      bulkActions.push(`action-plant-row-${sel.row}-${cropId}`);
+      bulkActions.push(`action-plant-col-${sel.col}-${cropId}`);
+    }
+    bulkActions.push(`action-harvest-row-${sel.row}`);
+    bulkActions.push(`action-harvest-col-${sel.col}`);
+    bulkActions.push(`action-water-row-${sel.row}`);
+    bulkActions.push(`action-water-col-${sel.col}`);
+    if (coverCropsEligible) {
+      bulkActions.push(`action-cover-crop-row-${sel.row}`);
+      bulkActions.push(`action-cover-crop-col-${sel.col}`);
+    }
+  }
+
+  return {
+    selectedCell: sel,
+    availableCrops: crops,
+    coverCropsEligible,
+    harvestReadyCount,
+    hasCrops,
+    bulkActions,
+  };
+}
+
+// ============================================================================
 // fastForwardUntilBlocked()
 // ============================================================================
 
@@ -185,11 +282,16 @@ export function getBlockingState(state: GameState, hasPendingFollowUp = false, h
  * Run simulation ticks until ANY autopause fires or game ends.
  * Unlike fastForward(), this does NOT auto-dismiss any pauses.
  * Returns what stopped it and how many ticks ran.
+ *
+ * @param onTick — Optional callback invoked after each simulateTick, before
+ *   the autopause check. The adapter wrapper uses this to inject planting-window
+ *   autopause checks that live outside the pure engine layer.
  */
 export function fastForwardUntilBlocked(
   state: GameState,
   scenario: ClimateScenario,
   maxTicks: number,
+  onTick?: (state: GameState) => void,
 ): FastForwardResult {
   // If already blocked, return immediately
   if (state.autoPauseQueue.length > 0) {
@@ -202,6 +304,7 @@ export function fastForwardUntilBlocked(
   for (let i = 0; i < maxTicks; i++) {
     state.speed = 4; // ensure running
     simulateTick(state, scenario);
+    if (onTick) onTick(state);
 
     if (state.autoPauseQueue.length > 0) {
       return { stopped: true, reason: state.autoPauseQueue[0].reason, ticksRun: i + 1 };
@@ -212,6 +315,29 @@ export function fastForwardUntilBlocked(
   }
 
   return { stopped: false, ticksRun: maxTicks };
+}
+
+// ============================================================================
+// fastForwardDays()
+// ============================================================================
+
+/**
+ * Run simulation forward by a specified number of calendar days.
+ * Stops early if ANY autopause fires or game ends.
+ * AI agents find this more intuitive than counting ticks.
+ *
+ * Each simulateTick advances exactly 1 day, so days maps directly to ticks.
+ *
+ * @param onTick — Same optional callback as fastForwardUntilBlocked.
+ */
+export function fastForwardDays(
+  state: GameState,
+  scenario: ClimateScenario,
+  days: number,
+  onTick?: (state: GameState) => void,
+): FastForwardResult {
+  const result = fastForwardUntilBlocked(state, scenario, days, onTick);
+  return { ...result, day: state.calendar.totalDay };
 }
 
 // ============================================================================

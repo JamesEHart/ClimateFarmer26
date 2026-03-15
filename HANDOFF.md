@@ -23,7 +23,7 @@ Stretch events (tomato surge, pumping ban). 2 new crops (sorghum, citrus navels 
 - **Stabilization:** TopBar CSS Grid layout (#78), perennial harvest UI fix (#79).
 
 ### Slice 5a: Systems Infrastructure (Complete)
-New condition/effect types, `getTechLevel()` reconvergence (water/soil/crop tracks 0-3), K-lite potassium (per-cell depletion + price factor + symptom cues), auto-irrigation hook (tech-gated with cost multipliers), crop gating via `requiredFlag`, permanent regime shift modifiers (water/market/heat), separate tech/non-tech event clustering caps, harvest affordance count (#62), `pickMessage()` for message variety, agave as first gated crop. Save migration V7→V8. `SAVE_VERSION = '8.0.0'`.
+New condition/effect types, `getTechLevel()` reconvergence (water/soil/crop tracks 0-3), K-lite potassium (per-cell depletion + price factor + symptom cues), auto-irrigation hook (tech-gated with cost multipliers), crop gating via `requiredFlag`, permanent regime shift modifiers (water/market/heat), separate tech/non-tech event clustering caps, harvest affordance count (#62), `pickMessage()` for message variety, agave as first gated crop. Save migration V7→V8. `SAVE_VERSION = '8.0.0'` (later bumped to `9.0.0` in Slice 6c).
 
 ### Slice 5b: Advisors + First Tech Branch (Complete)
 Marcus Chen (`farm-credit`) + Valley Growers Forum (`growers-forum`) advisor characters with intro storylets. Water irrigation tech unlock (year 3, drip irrigation → auto-irrigation end-to-end). Auto-irrigation notification with 3-message rotating pool.
@@ -45,7 +45,7 @@ Debug-only affordances for AI test agents (`src/adapter/observer.ts`). Machine-r
 See `Agent_Navigation_Guide.md` for AI agent usage patterns.
 
 ### Slice 6d: Scoring + Google Sign-In Submission (Complete)
-5-category weighted composite scoring: financial stability (30%), soil health (20%), crop diversity (20%), climate adaptation (20%), consistency (10%). 4 tiers: Thriving (≥80), Stable (≥60), Struggling (≥40), Failed (<40). Human-readable completion code (PREFIX-SCORE-YYEARS-SCENARIO). Google Identity Services authentication for @dtechhs.org students. Authenticated result submission to backend spreadsheet. Score panel with per-component breakdown. `SAVE_VERSION` unchanged at `8.0.0`.
+5-category weighted composite scoring: financial stability (30%), soil health (20%), crop diversity (20%), climate adaptation (20%), consistency (10%). 4 tiers: Thriving (≥80), Stable (≥60), Struggling (≥40), Failed (<40). Human-readable completion code (PREFIX-SCORE-YYEARS-SCENARIO). Google Identity Services authentication for @dtechhs.org students. Authenticated result submission to backend spreadsheet. Score panel with per-component breakdown.
 
 ### Slice 6e: Endgame Payoff & Presentation Polish (Complete)
 Three deliverables making the ending feel like a real conclusion:
@@ -56,7 +56,7 @@ Three deliverables making the ending feel like a real conclusion:
 
 - **6e.3 — Art Pass + Title Screen:** Title screen hero image with graceful fallback. Event illustrations for 4 high-impact storylets (`illustrationId` field on Storylet type): heatwave, water restriction, rootworm, orchard disease. `humanServingsPerUnit` added to all 9 CropDefinition entries. ASSETS.md updated with specs for 9 new art assets.
 
-**No save migration** — all new data computed on-demand from existing GameState fields. Art is additive with `onError` graceful fallback — entire slice functional without art files.
+**No save migration in 6e** — all 6e data computed on-demand from existing GameState fields. (6c bumped SAVE_VERSION to `9.0.0` adding insurance/organic fields to ExpenseBreakdown.) Art is additive with `onError` graceful fallback — entire slice functional without art files.
 
 ## Current Metrics
 
@@ -64,7 +64,7 @@ Three deliverables making the ending feel like a real conclusion:
 npm test             # 1113 unit tests, all passing (33 test files)
 npm run test:browser # 121 Playwright browser tests (all passing; foreshadow natural-flow test may flake under --repeat-each stress)
 npm run build        # ~76.46 KB gzipped JS, ~6.09 KB CSS
-SAVE_VERSION         # '8.0.0'
+SAVE_VERSION         # '9.0.0'
 ```
 
 ## Architecture Quick Reference
@@ -104,7 +104,7 @@ src/
     events.ts        STORYLETS array (22 storylets: 8 seasonal draw + 14 condition-only,
                      4 with illustrationId for event art)
   save/
-    storage.ts       localStorage: auto-save, manual saves, V1→V8 migration chain
+    storage.ts       localStorage: auto-save, manual saves, V1→V9 migration chain
   ui/
     components/      Preact components (App, GameScreen, NewGameScreen, TopBar, FarmGrid,
                      FarmCell, SidePanel, CropMenu, AutoPausePanel, EndgamePanel,

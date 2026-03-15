@@ -894,7 +894,7 @@ Assessment, endgame presentation, and visual polish.
 
 **New engine exports (6d/6e):** `scoring.ts` — `computeScore()`, `generateEpilogue()`, `generateCategoryHints()`, `generateAdvisorFarewells()`, `estimateHumanFoodServings()`. Types: `ScoreResult`, `EpilogueData`, `CategoryHint`, `AdvisorFarewell`.
 
-**No save migration** — SAVE_VERSION remains `8.0.0`. All Slice 6 data derived on-demand from existing GameState fields.
+**Save migration:** V8→V9 in Slice 6c (adds insurance/organic fields to ExpenseBreakdown). `SAVE_VERSION = '9.0.0'`. Slice 6e data derived on-demand — no additional migration.
 
 **Deferred to Slice 7+:** Insurance/credit systems, glossary, solar lease event chain, automation policies beyond irrigation, full tech tree UI.
 

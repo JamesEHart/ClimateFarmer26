@@ -461,6 +461,16 @@ function processHarvestBulk(state: GameState, scope: 'all' | 'row' | 'col', inde
       `Harvested ${data.count} plots of ${cropDef.name} \u2014 $${Math.floor(data.revenue).toLocaleString()} revenue`);
   }
 
+  // Empty field guidance (#86): fire once after bulk harvest if nothing is plantable
+  if (!state.flags['empty_field_guidance_shown']) {
+    const available = getAvailableCrops(state);
+    if (available.length === 0) {
+      addNotification(state, 'info',
+        'Nothing is in season for planting right now. Each crop has its own window — corn, tomatoes, and sorghum plant in spring; winter wheat and cover crops plant in fall. Tip: click the gear icon to turn on "Pause at planting windows" so you never miss one.');
+      state.flags['empty_field_guidance_shown'] = true;
+    }
+  }
+
   logHarvest(state, `bulk_${scope}`, totalRevenue, harvestable.length);
   return { success: true, revenue: totalRevenue, cellsAffected: harvestable.length };
 }
@@ -1816,7 +1826,7 @@ export function harvestCell(state: GameState, cell: Cell, silent?: boolean): num
       const available = getAvailableCrops(state);
       if (available.length === 0) {
         addNotification(state, 'info',
-          'No crops are plantable right now. Some crops plant in spring (corn, tomatoes, sorghum), others in fall (winter wheat). Cover crops plant in fall too.');
+          'Nothing is in season for planting right now. Each crop has its own window — corn, tomatoes, and sorghum plant in spring; winter wheat and cover crops plant in fall. Tip: click the gear icon to turn on "Pause at planting windows" so you never miss one.');
         state.flags['empty_field_guidance_shown'] = true;
       }
     }

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ClimateFarmer26 is a browser-based educational simulation game where students role-play as California farmers across 30 years, making season-by-season decisions as climate impacts challenge their operations. 100% client-side, hosted on GitHub Pages, targeting Chromebooks.
 
-**Status: Slice 6e complete ("Endgame Payoff & Presentation Polish").** Slices 1-6e complete. 6e: epilogue generation, per-category hints, advisor farewells, human food servings estimate, EndgamePanel extraction, title screen hero image, event illustrations. Scoring system (6d): 5-category weighted composite, 4 tiers, completion code, Google Sign-In submission. `SAVE_VERSION = '8.0.0'`.
+**Status: Slice 6e complete ("Endgame Payoff & Presentation Polish").** Slices 1-6e complete. 6e: epilogue generation, per-category hints, advisor farewells, human food servings estimate, EndgamePanel extraction, title screen hero image, event illustrations. Scoring system (6d): 5-category weighted composite, 4 tiers, completion code, Google Sign-In submission. `SAVE_VERSION = '9.0.0'`.
 
 ## Workflow Rules
 
@@ -68,7 +68,7 @@ rm -rf docs && cp -r dist docs
 
 **Data files** (`src/data/`): `crops.ts` (9 crops with yield curves, K uptake, heat sensitivity, `requiredFlag` gating, `humanServingsPerUnit`), `cover-crops.ts`, `scenarios.ts` (5 climate scenarios with `marketCrashTargetCropId`), `events.ts` (22 storylets: 8 seasonal draw + 14 condition-only, 4 with `illustrationId`)
 
-**Save system** (`src/save/storage.ts`): localStorage with corruption detection + V1→V8 migration chain. Auto-save on season change. Manual saves keyed by "Year N Season".
+**Save system** (`src/save/storage.ts`): localStorage with corruption detection + V1→V9 migration chain. Auto-save on season change. Manual saves keyed by "Year N Season".
 
 **Key patterns:**
 - Command pattern for all player actions

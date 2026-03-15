@@ -422,6 +422,15 @@ Fix for Slice 6: add recurring forum-driven content — peer rumors, crop failur
 Severity: MEDIUM (engagement/pedagogy). A well-played diversified run finishes very safely ($640K cash, $1.5M total revenue). The last decade is margin erosion, not existential threat. There's no moment where the student thinks "I might actually lose this."
 Fix for Slice 6: foreshadowed catastrophic events with mitigation options (not random punishment). Design candidates: crop insurance mechanic, total crop loss / severe damage events (pest outbreak, disease, extreme weather), community-rumor foreshadowing, mutual aid / "help another farmer" narrative choices. The goal is drama and stakes, not numerical harshness — the player should have seen it coming and had choices about how to prepare.
 
+**97. Root-cause visibility for revenue changes is weak.**
+Severity: MEDIUM (pedagogy). When revenue drops sharply (e.g., Year 2 after first harvest), the student sees the cash number change but has no explanation of *why*. The year-end expense breakdown helps post-hoc, but in the moment the cause-and-effect link is missing. Possible approaches: harvest notification showing per-crop revenue breakdown, inline yield-factor explanation ("OM penalty: -15%"), or a "why did my revenue drop?" advisor trigger.
+
+**98. Organic transition failure is too easy to miss.**
+Severity: MEDIUM (pedagogy/UX). When a player breaks organic certification (e.g., using synthetic fertilizer while enrolled), the decisive consequence is delivered as a notification bar toast — the same visual weight as "Crops watered." The organic warning interstitial catches pre-choice, but if the player proceeds, the result message is easily missed. Should be a more prominent UI signal (e.g., centered flash, or advisor follow-up).
+
+**99. Row/column bulk actions are automation-hostile.**
+Severity: LOW (dev tooling, not student-facing). Row/col bulk action testids only render when a cell is selected, and re-render on every new selection. This caused AI testers to report "only one row planted" and wrong-testid errors. Mitigated by `__gameDebug.getActionState()` and `__gameDebug.selectCell()` helpers (added post-6e), which remove the need for brittle DOM scraping. Not a product bug — the UI works correctly for human users.
+
 ### Deferred to Slice 5+ / Later Discussion
 
 - ~~**Balance testing suite**~~ — RESOLVED in Slice 4a. 5 bots × 5 scenarios × 20 seeds = 500 headless 30-year runs.
@@ -437,6 +446,7 @@ Fix for Slice 6: foreshadowed catastrophic events with mitigation options (not r
 - **QA test protocol: require fresh saves** — AI tester sessions sometimes inherit prior-state perennials and costs, making results confusing. Not a product bug — test protocol should require fresh games unless continuity is intentional.
 - **Chromebook performance sanity pass** — AI tester reported background-tab throttling, apparent freezes, and large notification queues. Likely environmental (extension disconnects, Chrome throttling), but worth one manual pass on real hardware with many tabs open and a long notification history before classroom launch.
 - **Save migration chain bloat** — `src/save/storage.ts` has a V1→V8 migration chain duplicated in both `readSave()` (lines 58-143) and `listManualSaves()` (lines 171-234). Each version bump requires touching 5+ locations (SAVE_VERSION, validateSave, new type guard, new migration function, both chain helpers). V1-V4 saves are almost certainly unused in the wild (students started earliest on V5/Slice 3). Should refactor: collapse old versions into a single "legacy→V7" step, extract shared migration pipeline used by both `readSave` and `listManualSaves`, and keep only last 1-2 version migrations as individual steps.
+- **Forum thread-style layout** — Forum/community storylets currently render as plain paragraph blocks, identical to advisor speeches. Should feel visually distinct: speaker handles on their own line, compact post/reply blocks with subtle separation, social-feed feel. Presentation polish only — no mechanics change. Low priority.
 - **Advanced accessibility** (colorblind modes, full screen reader support) — Baseline keyboard nav + ARIA in Slice 1.
 - **Sound / music** — Not essential for classroom use.
 - **Farm expansion (neighbor buyout)** — Likely v2, not Classroom-Ready Build.

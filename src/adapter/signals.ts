@@ -13,7 +13,7 @@ import { autoSave, loadAutoSave, hasSaveData, hasManualSaves, saveGame, loadGame
 import type { SaveSlotInfo } from '../save/storage.ts';
 import { isSeasonChange, getSeasonName, totalDayToCalendar } from '../engine/calendar.ts';
 import { STORYLETS } from '../data/events.ts';
-import { getBlockingState, fastForwardUntilBlocked, getNotificationsDebug, dismissAllNotificationsDebug } from './observer.ts';
+import { getBlockingState, getActionState, fastForwardUntilBlocked, fastForwardDays, getNotificationsDebug, dismissAllNotificationsDebug } from './observer.ts';
 
 // ============================================================================
 // Scenario Resolution
@@ -972,6 +972,42 @@ function gameLoop(now: number): void {
 }
 
 // ============================================================================
+// Planting-window callback for debug fast-forward functions.
+// Shared by fastForwardUntilBlocked and fastForwardDays wrappers.
+// ============================================================================
+
+/** Build an onTick callback that replicates the game loop's planting-window check. */
+function buildPlantingWindowCallback(state: GameState): ((s: GameState) => void) | undefined {
+  if (!autoPausePlanting.value) return undefined;
+  let ffPrevMonth = state.calendar.month;
+  let ffPrevPlantableKey = getPlantableKey(state);
+  return (s: GameState) => {
+    if (s.calendar.month !== ffPrevMonth && ffPrevMonth !== -1) {
+      const plantableKey = getPlantableKey(s);
+      if (ffPrevPlantableKey && plantableKey !== ffPrevPlantableKey) {
+        const season = s.calendar.season;
+        s.autoPauseQueue.push({
+          reason: 'planting_options',
+          message: season === 'fall'
+            ? 'Planting window: fall crops and cover crops are now available.'
+            : `Planting window: ${season.charAt(0).toUpperCase() + season.slice(1)} crop options have changed.`,
+        });
+      }
+      ffPrevPlantableKey = plantableKey;
+    }
+    ffPrevMonth = s.calendar.month;
+  };
+}
+
+/** Sync adapter tracking state after debug fast-forward so the normal game loop stays consistent. */
+function syncPlantingTrackingState(): void {
+  if (_liveState && autoPausePlanting.value) {
+    _prevMonth = _liveState.calendar.month;
+    _prevPlantableKey = getPlantableKey(_liveState);
+  }
+}
+
+// ============================================================================
 // Debug Hook — Playwright tests and classroom debugging.
 // Negligible size; no runtime cost unless called.
 // ============================================================================
@@ -1099,7 +1135,22 @@ function gameLoop(now: number): void {
    */
   fastForwardUntilBlocked(maxTicks: number) {
     if (!_liveState) return { stopped: false, ticksRun: 0 };
-    const result = fastForwardUntilBlocked(_liveState, _activeScenario, maxTicks);
+    const onTick = buildPlantingWindowCallback(_liveState);
+    const result = fastForwardUntilBlocked(_liveState, _activeScenario, maxTicks, onTick);
+    syncPlantingTrackingState();
+    publishState();
+    return result;
+  },
+  /**
+   * Run simulation forward by N calendar days (1 tick = 1 day).
+   * Stops early if any autopause fires or game ends. AI agents find
+   * this more intuitive than counting ticks.
+   */
+  fastForwardDays(days: number) {
+    if (!_liveState) return { stopped: false, ticksRun: 0, day: 0 };
+    const onTick = buildPlantingWindowCallback(_liveState);
+    const result = fastForwardDays(_liveState, _activeScenario, days, onTick);
+    syncPlantingTrackingState();
     publishState();
     return result;
   },
@@ -1112,6 +1163,23 @@ function gameLoop(now: number): void {
   dismissAllNotifications() {
     if (!_liveState) return;
     dismissAllNotificationsDebug(_liveState);
+    publishState();
+  },
+  /**
+   * Returns what actions are currently available. Eliminates brittle DOM scraping.
+   * Includes: selected cell, available crops, cover crop eligibility,
+   * harvest-ready count, and all currently valid bulk action testids.
+   */
+  getActionState() {
+    if (!_liveState) return { selectedCell: null, availableCrops: [], coverCropsEligible: false, harvestReadyCount: 0, hasCrops: false, bulkActions: [] };
+    return getActionState(_liveState, selectedCell.value);
+  },
+  /**
+   * Select a cell programmatically (non-cheating UI equivalent).
+   * Row/col bulk actions only render when a cell is selected — call this first.
+   */
+  selectCell(row: number, col: number) {
+    selectCell(row, col);
     publishState();
   },
 };

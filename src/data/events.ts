@@ -567,8 +567,9 @@ export const STORYLETS: readonly Storylet[] = [
         description: "Hear what Marcus has to say about your farm's financials.",
         effects: [
           { type: 'set_flag', flag: 'met_chen', value: true },
-          { type: 'add_notification', message: "Marcus Chen from Valley Farm Credit reviewed your operation. His advice: \"Focus on your highest-revenue crops and track every dollar. Farming is a business — treat it like one.\"", notificationType: 'event_result' },
+          { type: 'add_notification', message: "Marcus Chen from Valley Farm Credit reviewed your operation.", notificationType: 'event_result' },
         ],
+        followUpText: "Marcus walks your fields with his tablet, tapping numbers as he goes. \"Here's what I see: you're spending money in places that aren't paying you back. Every dollar you put into the ground should come back with friends.\" He pulls up a comparison chart. \"Focus on your highest-revenue crops and track every dollar. Know your cost per plot, your revenue per harvest, your margin per season. Farming is a business — treat it like one, and it'll treat you right.\"",
       },
       {
         id: 'polite-decline',
@@ -603,8 +604,9 @@ export const STORYLETS: readonly Storylet[] = [
         description: 'The local farmers have decades of experience to share.',
         effects: [
           { type: 'set_flag', flag: 'met_forum', value: true },
-          { type: 'add_notification', message: 'You joined the Valley Growers Forum. The meetings are informal — lots of coffee, strong opinions, and the occasional gem of wisdom. "Stick around," one farmer said. "You\'ll hear things Dr. Santos won\'t tell you."', notificationType: 'event_result' },
+          { type: 'add_notification', message: 'You joined the Valley Growers Forum.', notificationType: 'event_result' },
         ],
+        followUpText: "The meeting is in a back room at the feed store — folding chairs, a coffee pot that's seen better days, and a dozen farmers who've been working this valley longer than you've been alive. The conversation jumps around: water prices, what the neighbor planted, a rumor about new regulations. \"Stick around,\" one old-timer says, leaning back. \"You'll hear things Dr. Santos won't tell you.\" It's not scientific, but these people know the valley. Sometimes experience beats a textbook.",
       },
       {
         id: 'just-listen',
@@ -1262,7 +1264,7 @@ export const STORYLETS: readonly Storylet[] = [
         effects: [
           { type: 'add_notification', message: 'The Forum had a spirited debate about monoculture vs. diversification.', notificationType: 'event_result' },
         ],
-        followUpText: "Your pushback triggered a real discussion. Several experienced farmers pointed out the flaws in Tommy\'s logic: his uncle farmed during a period of stable climate and cheap water — conditions that no longer exist. Corn monoculture depletes soil nutrients, builds up pest pressure, and leaves you completely exposed to a single bad market year. Sorghum is actually drought-resistant and heat-tolerant — it\'s not glamorous but it survives conditions that kill corn. The scientific evidence overwhelmingly supports diversification for long-term farm viability. Anecdotal success stories from one generation don\'t predict the next.",
+        followUpText: "The thread blows up.\n\nValleyDirt_Dan: \"Tommy my guy, your uncle also had $12/acre-foot water and no SGMA. Ask him what he'd do NOW.\"\n\nCitrusGal_Visalia: \"Corn-only worked when the aquifer was bottomless. My neighbor went all-in on corn, had one bad water year, lost everything. But sure, plant corn.\"\n\nMyUncleKnows_Tommy: \"OK but he still made more money than any of your little hobby farms\"\n\nOldTimer_Reedley: \"Kid, I've been here 40 years. The guys who survived are the ones who had more than one thing to sell when the price dropped. Your uncle got lucky with timing. Luck isn't a strategy.\"\n\nSorghumDave: \"Also sorghum prices aren't great but my sorghum is still alive in August when Tommy's uncle's corn would be toast. There's a reason it's called a survival crop.\"\n\nThe conversation goes in circles after that. Nobody changes anybody's mind, but you notice the older farmers — the ones still farming — mostly aren't corn-only.",
       },
       {
         id: 'good-to-know',
