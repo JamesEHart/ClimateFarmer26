@@ -1824,10 +1824,13 @@ export function harvestCell(state: GameState, cell: Cell, silent?: boolean): num
     const streak = (cell.consecutiveSameCropCount ?? 0) + 1; // +1 because current harvest extends the streak
     const penaltyFactor = Math.max(MONOCULTURE_PENALTY_FLOOR, 1.0 - MONOCULTURE_PENALTY_PER_YEAR * streak);
     yieldAmount *= penaltyFactor;
-    if (!silent && !state.flags['monoculture_penalty_shown']) {
-      addNotification(state, 'info',
-        `${cropDef.name}: yield reduced by planting the same crop repeatedly. Crop rotation helps prevent pest buildup and soil depletion.`);
+    // Always set flag when penalty applies (bulk harvest uses silent=true but penalty still fires)
+    if (!state.flags['monoculture_penalty_shown']) {
       state.flags['monoculture_penalty_shown'] = true;
+      if (!silent) {
+        addNotification(state, 'info',
+          `${cropDef.name}: yield reduced by planting the same crop repeatedly. Crop rotation helps prevent pest buildup and soil depletion.`);
+      }
     }
   }
 

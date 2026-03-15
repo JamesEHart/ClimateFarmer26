@@ -2089,8 +2089,8 @@ export const STORYLETS: readonly Storylet[] = [
       { type: 'avg_organic_matter_below', level: 1.5 },
     ],
     priority: 85,
-    cooldownDays: 730,
-    maxOccurrences: 2,
+    cooldownDays: 0,
+    maxOccurrences: 1,
     advisorId: 'extension-agent',
     choices: [
       {

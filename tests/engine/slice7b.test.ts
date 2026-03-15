@@ -12,7 +12,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../src/engine/game.ts';
+import { createInitialState, processCommand } from '../../src/engine/game.ts';
+import { getCropDefinition } from '../../src/data/crops.ts';
 import { evaluateCondition } from '../../src/engine/events/selector.ts';
 import { SLICE_1_SCENARIO } from '../../src/data/scenario.ts';
 import { STORYLETS } from '../../src/data/events.ts';
@@ -249,6 +250,40 @@ describe('§7b.3: Forum mechanical effects', () => {
       );
       expect(hasMechanicalEffect, `${id} should be pure content`).toBe(false);
     }
+  });
+});
+
+// ============================================================================
+// §7b.3b: Bulk harvest sets monoculture_penalty_shown (regression)
+// ============================================================================
+
+describe('§7b.3b: bulk harvest sets monoculture_penalty_shown flag', () => {
+  it('HARVEST_BULK with monoculture streak sets the flag even though harvestCell is silent', () => {
+    const state = makeState();
+    const cornDef = getCropDefinition('silage-corn');
+
+    // Set up 4 cells in row 0 with corn on a monoculture streak (3rd consecutive)
+    for (let c = 0; c < 4; c++) {
+      const cell = state.grid[0][c];
+      cell.lastCropId = 'silage-corn';
+      cell.consecutiveSameCropCount = 2; // 3rd consecutive harvest
+      cell.soil.nitrogen = 200;
+      cell.crop = {
+        cropId: 'silage-corn',
+        plantedDay: 59,
+        growthStage: 'harvestable',
+        gddAccumulated: cornDef.gddToMaturity,
+        waterStressDays: 0,
+        overripeDaysRemaining: -1,
+        isPerennial: false,
+      };
+    }
+
+    expect(state.flags['monoculture_penalty_shown']).toBeFalsy();
+
+    processCommand(state, { type: 'HARVEST_BULK', scope: 'row', index: 0 });
+
+    expect(state.flags['monoculture_penalty_shown']).toBe(true);
   });
 });
 

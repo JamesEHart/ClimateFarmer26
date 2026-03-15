@@ -1,6 +1,8 @@
 # Climate Farmer — Agent Navigation Guide
 Purpose: reliable UI navigation and state observation for AI/QA agents.
-Updated: 2026-03-15. Build: Slice 6e complete.
+Updated: 2026-03-15. Build: Slice 7b.
+
+**Changelog from v1:** Added `__exportPlaytestLog()` (§3), added confirm dialog to blocking panels table (§6), added execution timeout guidance (§11), expanded known automation traps (§12), corrected harvest dialog behavior documentation.
 
 ---
 
@@ -57,11 +59,12 @@ data-day                  total simulation day
 ### `window.__gameDebug.getBlockingState()`
 Structured version of the same data, plus actionable choice info.
 
-**Important:** `getBlockingState()` can return panels beyond standard autopauses. There are three categories of blockers:
+**Important:** `getBlockingState()` can return panels beyond standard autopauses. There are four categories of blockers:
 
-1. **Engine autopauses** — harvest, water stress, year-end, loan offer, bankruptcy, year 30
+1. **Engine autopauses** — harvest, water stress, year-end, loan offer, bankruptcy, year 30, planting options
 2. **Event/advisor panels** — storylet choice panels with variable options
 3. **UI-layer interstitials** — follow-up panels and organic warning panels (adapter-level, not engine-level)
+4. **Action confirm dialogs** — bulk plant/water and perennial planting confirmations (see §6)
 
 Event/advisor example:
 ```js
@@ -116,6 +119,44 @@ Standard autopause example:
 
 **Preact state batching warning:** After clicking a dismiss/choice button, you MUST yield to the event loop (e.g., `await new Promise(r => setTimeout(r, 50))`) before calling `getBlockingState()` again. Preact batches state updates — a synchronous `.click()` followed by an immediate state read will see stale data. This applies to all panel dismissals, not just event/advisor panels.
 
+### `window.__exportPlaytestLog()`
+**Returns a JSON string** of the complete structured playtest log for the current session. This is the most reliable way to review what happened during a playthrough. The log captures every event, choice, harvest, year-end summary, and command — even when automation was too fast to observe them in real-time.
+
+```js
+const log = JSON.parse(window.__exportPlaytestLog());
+// Each entry has: seq, ts, day, year, season, type, payload
+// Key types: "session_start", "event_fired", "event_choice", "harvest",
+//            "year_end", "command", "notification"
+```
+
+**Year-end entries** include complete financial summaries:
+```js
+{
+  type: "year_end",
+  payload: {
+    revenue: 43917, expenses: 17228, net: 26688, cash: 124965,
+    debt: 0, interestPaid: 0, avgNitrogen: 67, avgOrganicMatter: 1.69
+  }
+}
+```
+
+**Event entries** include titles and available choices:
+```js
+{
+  type: "event_fired",
+  payload: {
+    eventId: "advisor-cover-crop-education",
+    eventType: "advisor",
+    title: "Santos: The Case for Cover Crops",
+    choices: ["explain-more-cover", "maybe-later-cover"]
+  }
+}
+```
+
+**Best practice for automation:** Run your playthrough loop, then call `__exportPlaytestLog()` afterward to get a complete, accurate record. This is far more reliable than trying to capture event text during the loop.
+
+To enable console logging during play: `localStorage.setItem('playtestLog', '1')`
+
 ### `window.__gameDebug.fastForwardUntilBlocked(maxTicks)`
 Runs simulation ticks until ANY autopause fires. Unlike `fastForward()`, does **not** auto-dismiss anything. Respects the opt-in planting-window autopause setting if enabled. Returns:
 ```js
@@ -133,7 +174,7 @@ Same as `fastForwardUntilBlocked` but takes calendar days instead of ticks (1 ti
 ```
 The `day` field is the final `totalDay` (absolute day since game start).
 
-**Note:** This only detects engine-level autopauses. UI-layer interstitials (follow-up, organic warning) appear after an event choice is made, not during tick processing.
+**Note:** These only detect engine-level autopauses. UI-layer interstitials (follow-up, organic warning) appear after an event choice is made, not during tick processing.
 
 ### `window.__gameDebug.getNotifications()`
 Returns the full notification queue (the DOM only shows the newest):
@@ -184,32 +225,29 @@ Check `getBlockingState()` first. Then click the appropriate testid:
 
 | Block reason | Panel testid | Primary testid | Secondary testid |
 |-------------|-------------|---------------|-----------------|
-| harvest_ready | autopause-panel | autopause-action-primary | autopause-dismiss |
+| harvest_ready | autopause-panel | autopause-action-primary ("Harvest Field") | autopause-dismiss ("Continue" — **skips harvest!**) |
 | water_stress | autopause-panel | autopause-action-primary | autopause-dismiss |
 | year_end | autopause-panel | autopause-action-primary | autopause-dismiss |
+| planting_options | autopause-panel | autopause-action-primary ("Continue") | autopause-dismiss |
 | event | event-panel | event-choice-{id} | (choices vary) |
 | advisor | advisor-panel | advisor-choice-{id} | (choices vary) |
 | loan_offer | loan-panel | loan-accept | autopause-dismiss |
 | bankruptcy | gameover-panel | gameover-new-game | — |
 | year_30 | year30-panel | year30-new-game | — |
-| planting_options | autopause-panel | autopause-action-primary | autopause-dismiss |
 | **follow-up** | **follow-up-panel** | **follow-up-dismiss** | — |
 | **organic warning** | **organic-warning-panel** | **organic-warning-proceed** | **organic-warning-cancel** |
+| **confirm dialog** | **confirm-dialog** | **confirm-accept** | **confirm-cancel** |
+
+**Harvest warning:** For `harvest_ready`, the primary button label is "Harvest Field" and the secondary is "Continue". The secondary **skips the harvest entirely** — the opposite of what "Continue" means elsewhere. Always click `autopause-action-primary` unless you deliberately want to skip.
 
 **Follow-up panels** appear after choosing "tell me more" on an advisor event. They show explanatory text in a centered dialog. Dismiss with `follow-up-dismiss`.
 
 **Organic warning panels** appear when a player selects a non-organic choice while holding organic certification. It's a confirm-style interstitial: proceed loses organic cert, cancel returns to the choice panel.
 
-### Confirm dialogs
-Bulk plant/water and perennial planting show confirm dialogs:
-```
-confirm-dialog      ← container
-confirm-accept      ← "Confirm" button
-confirm-cancel      ← "Cancel" button
-```
+**Confirm dialogs** are triggered by bulk actions (Plant All, Water All) and perennial planting. They appear **on top of** other panels. `getBlockingState()` still shows the underlying state, but the confirm dialog intercepts clicks. Handle confirm dialogs first.
 
 ### Event/advisor panels
-Choices have testids: `event-choice-{choiceId}` or `advisor-choice-{choiceId}`. Use `getBlockingState().choices` to get exact testids.
+Choices have testids: `event-choice-{choiceId}` or `advisor-choice-{choiceId}`. Use `getBlockingState().choices` to get exact testids — never construct them by guesswork.
 
 ---
 
@@ -238,6 +276,8 @@ action-plant-col-<col>-<cropId>
 action-harvest-row-<row> / action-harvest-col-<col>
 action-water-row-<row> / action-water-col-<col>
 ```
+
+**Important:** Bulk "Plant All" and "Water All" trigger a confirm dialog. Row/col level actions do NOT trigger confirm dialogs.
 
 ### Planting windows (month-accurate)
 
@@ -366,35 +406,59 @@ __gameDebug.getState()             // Mutable live reference. Call publish() aft
 
 ---
 
-## 11. Strict Automation Loop
+## 11. Automation Loop (timeout-aware)
 
-When writing automated scripts, use this exact loop. Do not improvise.
+### The Problem
+Chrome extension JS execution has a **~30 second timeout**. An `async` loop with `await` delays that processes many game years WILL timeout. Synchronous loops without yields see stale Preact state after clicks.
+
+### Recommended Pattern: Synchronous Step Function
+
+Define a `step()` function that handles ONE blocking state and advances. Call it repeatedly from separate JS execution contexts (one tool call per batch of steps):
 
 ```js
-while (!done) {
-  // 1. Always check state before acting
+// Register once
+window._step = function() {
   const bs = __gameDebug.getBlockingState();
-
   if (bs.blocked) {
-    // 2. Handle the block using ONLY the returned choices — never guess testids
-    const choice = selectChoice(bs.choices);  // your decision logic
-    document.querySelector(`[data-testid="${choice.testid}"]`).click();
+    // Handle confirm dialogs first (they sit on top of other panels)
+    const confirmAccept = document.querySelector('[data-testid="confirm-accept"]');
+    if (confirmAccept) { confirmAccept.click(); }
 
-    // 3. MUST yield after every click (Preact batches state updates)
-    await new Promise(r => setTimeout(r, 50));
-    continue;
+    // Use the choices array from getBlockingState — never guess testids
+    else if (bs.choices && bs.choices.length > 0) {
+      const choice = bs.choices[0]; // or your decision logic
+      document.querySelector(`[data-testid="${choice.testid}"]`)?.click();
+    }
   }
+  __gameDebug.dismissAllNotifications();
+  __gameDebug.fastForwardUntilBlocked(2000);
+  return __gameDebug.getBlockingState();
+};
+```
 
-  // 4. Check what actions are available before acting
-  const as = __gameDebug.getActionState();
-
-  // 5. Only click testids that appear in as.bulkActions or as.availableCrops
-  // ... your action logic ...
-
-  // 6. Advance time
-  const result = __gameDebug.fastForwardUntilBlocked(500);
-  if (!result.stopped) break;
+Then call in batches:
+```js
+// Each JS execution: run 5-10 steps, return summary
+const results = [];
+for (let i = 0; i < 10; i++) {
+  const bs = window._step();
+  if (bs.reason === 'event' || bs.reason === 'advisor') {
+    results.push(`Y${bs.year} ${bs.season} ${bs.eventId}`);
+  }
+  if (bs.reason === 'year_end') {
+    results.push(`Y${bs.year} year_end`);
+  }
 }
+results.join('\n');
+```
+
+**Key insight:** The synchronous `step()` function works because `fastForwardUntilBlocked()` is synchronous and runs enough ticks to reach the next state. The click takes effect on the NEXT call to `step()`, not immediately — but since we re-check `getBlockingState()` at the start of each step, this is fine. The 50ms yield is only needed if you want to read state IMMEDIATELY after a click within the same execution.
+
+### After the run: use `__exportPlaytestLog()`
+```js
+const log = JSON.parse(window.__exportPlaytestLog());
+// Filter for events, harvests, year-ends, etc.
+const events = log.filter(e => e.type === 'event_fired' || e.type === 'event_choice');
 ```
 
 ---
@@ -403,17 +467,25 @@ while (!done) {
 
 These have caused incorrect QA findings in the past. Avoid them.
 
-1. **Row/col actions depend on selected cell.** They only render when `selectedCell` is non-null. Call `__gameDebug.selectCell(row, col)` first, then re-read `getActionState()` to get the row/col testids.
+1. **"Continue" means different things in different dialogs.** For `harvest_ready`, "Continue" (secondary button) **skips the harvest**. For `planting_options` and `year_end`, "Continue" (primary button) is the expected action. Always use `getBlockingState().choices` to know what each button does — check the `testid`, not the label.
 
-2. **Selection changes re-render the side panel.** Clicking a new cell clears the crop menu and changes which row/col actions are visible. Read `getActionState()` after every selection change.
+2. **Confirm dialogs block autopause clicks.** If you click `action-plant-all-silage-corn`, a confirm dialog appears. Until you click `confirm-accept` or `confirm-cancel`, the underlying autopause button is unclickable. Your step function must check for and handle confirm dialogs first.
 
-3. **Do not construct testids by guesswork.** Always use `getBlockingState().choices` for panel buttons and `getActionState().bulkActions` for action buttons. Constructed testids (e.g., guessing `event-choice-accept` instead of `event-choice-accept-risk`) will silently fail.
+3. **Follow-up panels become the primary blocker.** After clicking "tell me more" on an advisor, the follow-up panel takes over. `getBlockingState()` returns `panelTestId: "follow-up-panel"`. You must click `follow-up-dismiss` before anything else works.
 
-4. **Do not infer planting windows from season names.** Sorghum is available Apr–Jun (not all of "spring"). Citrus is Feb–Apr (not "winter"). Use `getActionState().availableCrops` for the ground truth.
+4. **Row/col actions depend on selected cell.** They only render when `selectedCell` is non-null. Call `__gameDebug.selectCell(row, col)` first, then re-read `getActionState()` to get the row/col testids.
 
-5. **Yield after every click.** Preact batches state updates. A synchronous click + immediate state read will see stale data. Wait at least 50ms.
+5. **Selection changes re-render the side panel.** Clicking a new cell clears the crop menu and changes which row/col actions are visible. Read `getActionState()` after every selection change.
 
-6. **Event/advisor cooldowns and caps are real.** If an event fires 30+ times in the same session, your script is likely not dismissing panels correctly (infinite refire). Check for testid typos (case-sensitive: `testid` vs `testId`).
+6. **Do not construct testids by guesswork.** Always use `getBlockingState().choices` for panel buttons and `getActionState().bulkActions` for action buttons. Constructed testids (e.g., guessing `event-choice-accept` instead of `event-choice-accept-risk`) will silently fail.
+
+7. **Do not infer planting windows from season names.** Sorghum is available Apr–Jun (not all of "spring"). Citrus is Feb–Apr (not "winter"). Use `getActionState().availableCrops` for the ground truth.
+
+8. **Yield after every click (async loops only).** Preact batches state updates. A synchronous click + immediate state read will see stale data. Wait at least 50ms. For synchronous step functions (§11), the yield happens naturally between JS execution calls.
+
+9. **Async loops timeout at ~30 seconds.** Keep loops to 5-10 steps per JS execution call. Use multiple calls to cover more game time.
+
+10. **Event/advisor cooldowns and caps are real.** If an event fires 30+ times in the same session, your script is likely not dismissing panels correctly (infinite refire). Check for testid typos (case-sensitive: `testid` vs `testId`).
 
 ---
 
@@ -425,4 +497,4 @@ Separate findings into three categories:
 - **Likely real:** Behavior is consistent and not explained by automation artifacts, but you haven't traced it to specific code
 - **Possibly automation artifact:** Could be caused by script timing, testid errors, stale state reads, or selection-dependent rendering
 
-Save playtest reports to `test-results/playtests/YYYY-MM-DD-description.md` so they're reviewable.
+Save playtest reports to `test-results/` with descriptive filenames.
