@@ -1448,6 +1448,24 @@ export const STORYLETS: readonly Storylet[] = [
         followUpText: 'The adjuster documents the pollination failure across your orchard. "Colony collapse is getting worse every year," she says. The $800 net payout helps offset revenue losses, and the hired pollinators limit yield damage to 20% instead of the 45% you\'d face without coverage.',
       },
       {
+        id: 'mutual-aid-pollination',
+        label: 'Cooperative Mutual Aid ($100 share)',
+        description: 'Your mutual aid cooperative covers some pollination losses, though payouts are smaller than commercial insurance.',
+        cost: 100,
+        requiresCash: 100,
+        requiresFlag: 'mutual_aid',
+        effects: [
+          { type: 'modify_cash', amount: -100 },
+          { type: 'modify_yield_modifier', cropId: 'almonds', multiplier: 0.80, durationDays: 90 },
+          { type: 'modify_yield_modifier', cropId: 'pistachios', multiplier: 0.80, durationDays: 90 },
+          { type: 'modify_yield_modifier', cropId: 'citrus', multiplier: 0.80, durationDays: 90 },
+          { type: 'modify_yield_modifier', cropId: 'heat-avocado', multiplier: 0.80, durationDays: 90 },
+          { type: 'insurance_payout', amount: 500 },
+          { type: 'add_notification', message: 'Mutual aid claim filed. $500 cooperative payout minus $100 cost share = $400 net. Tree crop yields reduced by 20%.', notificationType: 'event_result' },
+        ],
+        followUpText: 'The cooperative coordinator calls the next day. "We pooled resources from twelve farms in the network. It\'s not as much as a commercial policy would pay — we\'re running lean — but $400 net keeps you in the game." She pauses. "The real benefit of the co-op isn\'t the money. It\'s that twelve farmers all noticed the colony collapse at the same time and shared pollinator contacts. Three of us found replacement hives through the network that weren\'t available on the open market."',
+      },
+      {
         id: 'accept-pollination-loss',
         label: 'Accept Reduced Harvest',
         description: 'Without pollinators, fruit set will be dramatically reduced.',
@@ -1524,6 +1542,24 @@ export const STORYLETS: readonly Storylet[] = [
           { type: 'add_notification', message: 'Insurance claim filed. $1,200 payout minus $200 deductible = $1,000 net. Lost 15% of trees (vs. 25% without treatment).', notificationType: 'event_result' },
         ],
         followUpText: 'The insurance company sends their own arborist. "We see this more and more," she says, marking infected trees for removal. The $1,000 net payout partially covers your losses. Without insurance, you\'d face 25% tree loss and no financial cushion. "Better to lose 15% now than 50% next year," the arborist explains.',
+      },
+      {
+        id: 'mutual-aid-disease',
+        label: 'Cooperative Mutual Aid ($100 share)',
+        description: 'Your cooperative helps cover disease remediation costs with a shared cost model.',
+        cost: 100,
+        requiresCash: 100,
+        requiresFlag: 'mutual_aid',
+        effects: [
+          { type: 'modify_cash', amount: -100 },
+          { type: 'damage_crops', target: 'almonds', percentage: 0.15 },
+          { type: 'damage_crops', target: 'pistachios', percentage: 0.15 },
+          { type: 'damage_crops', target: 'citrus', percentage: 0.15 },
+          { type: 'damage_crops', target: 'heat-avocado', percentage: 0.15 },
+          { type: 'insurance_payout', amount: 600 },
+          { type: 'add_notification', message: 'Mutual aid claim filed. $600 cooperative payout minus $100 cost share = $500 net. Lost 15% of trees.', notificationType: 'event_result' },
+        ],
+        followUpText: 'The cooperative\'s agricultural advisor arrives the same week — a retired extension agent who volunteers with the network. "Commercial insurance sends an adjuster," she says, pulling on gloves. "We send someone who actually knows trees." She marks the infected sections with practiced efficiency, coordinating removal with two other co-op members who have chainsaws and a chipper. The $500 net is less than a commercial payout, but the labor coordination saved you at least that much again. "This is what the cooperative is for," she says. "Nobody has to face this alone."',
       },
       {
         id: 'accept-disease-loss',
@@ -2153,5 +2189,216 @@ export const STORYLETS: readonly Storylet[] = [
       },
     ],
     tags: ['advisor', 'cover-crops', 'ecology'],
+  },
+
+  // --- Slice 7c: Soil Degradation Events ---
+
+  {
+    id: 'soil-decline-warning',
+    type: 'advisor',
+    illustrationId: 'event-soil-exhaustion',
+    title: 'Santos: Urgent Soil Health Intervention',
+    description: "Dr. Santos arrives unannounced, which she never does. She sets a folder of lab results on your tailgate and lets you look before she speaks.\n\n\"Your organic matter is at levels I haven't seen outside of construction sites. We're below 1.3% across your fields — that's not 'low,' that's structural failure in slow motion. Your soil is losing its ability to hold water, cycle nutrients, and support root systems. Every season you farm on degraded soil, the next season gets harder.\"\n\nShe pulls out two options she's already costed.\n\n\"Option one: I can get you an advanced cover crop seed mix — multi-species blend with deep-rooted legumes, brassicas, and grasses. It's not the basic clover you've been using. This mix builds organic matter faster and fixes more nitrogen. Same planting window, same button — just a better toolkit. Eight hundred dollars.\n\nOption two: emergency compost application. Fifteen hundred, and it gives you an immediate boost to both organic matter and nitrogen. But it's a one-time fix — like getting a blood transfusion when what you need is to stop the bleeding.\n\nOr you can keep doing what you're doing and watch the numbers drop.\"",
+    preconditions: [
+      { type: 'min_year', year: 10 },
+      { type: 'avg_organic_matter_below', level: 1.3 },
+    ],
+    priority: 95,
+    cooldownDays: 0,
+    maxOccurrences: 1,
+    advisorId: 'extension-agent',
+    foreshadowing: {
+      signal: 'Dr. Santos has requested your latest soil test results. She mentioned wanting to "discuss the trajectory" — which, from Santos, is never casual.',
+      daysBeforeEvent: 60,
+      reliability: 1.0,
+      advisorSource: 'extension-agent',
+    },
+    choices: [
+      {
+        id: 'invest-cover-upgrade',
+        label: 'Advanced Cover Crop Mix ($800)',
+        description: 'Multi-species blend that builds organic matter 50% faster than basic clover. Same planting process — better results.',
+        cost: 800,
+        requiresCash: 800,
+        effects: [
+          { type: 'modify_cash', amount: -800 },
+          { type: 'set_flag', flag: 'tech_advanced_cover_crops', value: true },
+          { type: 'modify_nitrogen_all', amount: 30 },
+          { type: 'add_notification', message: 'Advanced cover crop mix purchased. Your cover crops will now build organic matter 50% faster. Santos: "This is the single best investment you can make in your soil right now."', notificationType: 'event_result' },
+        ],
+        followUpText: "Santos watches you sign the purchase order with visible relief.\n\n\"OK. Here's what you're getting. This isn't just clover — it's a multi-species blend designed for California valley soils. Crimson clover and hairy vetch for nitrogen fixation, tillage radish for breaking compaction layers, and cereal rye for carbon biomass. The roots on the radish go down eighteen inches — that's mechanical soil improvement that no amount of compost can replicate.\n\nThe key difference from your basic legume mix is the carbon-to-nitrogen ratio of the decomposing biomass. More grass species means more lignin, which breaks down slower and contributes more stable organic matter. You'll see about 50% more OM gain per incorporation cycle.\n\nPlant it the same way — fall season, same button. But the results compound. Each year, the soil gets a little better at holding water, cycling nutrients, supporting biology. After three or four seasons, you should see your organic matter trending upward instead of down.\n\nThe nitrogen boost I applied today buys you a bridge to get there. Cover crops are the destination.\"",
+      },
+      {
+        id: 'emergency-compost',
+        label: 'Emergency Compost Application ($1,500)',
+        description: 'Immediate organic matter and nitrogen boost across all fields. One-time fix.',
+        cost: 1500,
+        requiresCash: 1500,
+        effects: [
+          { type: 'modify_cash', amount: -1500 },
+          { type: 'modify_organic_matter_all', amount: 0.15 },
+          { type: 'modify_nitrogen_all', amount: 40 },
+          { type: 'add_notification', message: 'Emergency compost applied. Organic matter boosted +0.15% and nitrogen +40 lbs/ac across all fields. Santos: "This helps now, but you need a long-term soil building strategy."', notificationType: 'event_result' },
+        ],
+        followUpText: "The compost trucks arrive the next morning — Santos had them on standby, which tells you how worried she was.\n\n\"This is good material,\" she says, watching the spreaders work. \"Dairy manure compost, fully cured. You'll see an immediate bump in both organic matter and nitrogen availability. Your crops will respond within weeks.\"\n\nShe hesitates, then says what she clearly came to say.\n\n\"But I have to be honest with you. This is a band-aid on a structural problem. Fifteen hundred dollars buys you a 0.15% OM increase — and at current decomposition rates, you'll burn through that in about two years. The math doesn't close unless you're also putting carbon back into the soil every season through cover crops.\n\nCompost gives you a floor. Cover crops give you a trajectory. Without both, you're running on a treadmill — spending money to stay in the same place while the soil underneath you gets a little worse every year.\"",
+      },
+      {
+        id: 'manage-soil-decline',
+        label: "I'll Manage",
+        description: "You'll monitor the situation and adjust as needed.",
+        effects: [
+          { type: 'add_notification', message: "Santos nods slowly. \"It's your land. But the soil doesn't negotiate — it just gets thinner. I'll be here when you're ready.\"", notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['advisor', 'soil', 'ecology', 'tech-unlock'],
+  },
+
+  {
+    id: 'soil-exhaustion-crisis',
+    type: 'climate',
+    illustrationId: 'event-soil-exhaustion',
+    title: 'Soil Structure Failure',
+    description: "You notice it first in the irrigation rows. Water pools on the surface instead of soaking in — sitting in muddy puddles that take hours to drain. Then you see the cracks. Not the normal summer drying cracks, but deep fissures that run between the crop rows like the land itself is pulling apart.\n\nWhen you dig a test hole, the soil comes up in hard, pale chunks instead of the dark crumbly aggregates you remember from your early years. There are no earthworms. The root zone smells flat — none of the rich, earthy smell of healthy soil biology.\n\nDr. Santos confirms what you already know. \"Your organic matter is below 1%. The soil has lost its structure — the aggregates that hold water and air have broken down. Without intervention, every crop you plant will yield 40% less until the soil rebuilds. That could take years.\"\n\nThe question is whether to pay for intensive remediation now or accept reduced production while the land slowly recovers.",
+    preconditions: [
+      { type: 'min_year', year: 15 },
+      { type: 'avg_organic_matter_below', level: 1.0 },
+    ],
+    priority: 100,
+    cooldownDays: 0,
+    maxOccurrences: 1,
+    foreshadowing: {
+      signal: 'Your fields are showing signs of soil compaction — water is pooling in irrigation rows instead of soaking in. The soil surface looks pale and crusty.',
+      daysBeforeEvent: 30,
+      reliability: 1.0,
+    },
+    choices: [
+      {
+        id: 'intensive-remediation',
+        label: 'Intensive Remediation ($2,500)',
+        description: 'Emergency soil rebuilding: deep compost injection, gypsum application, and biological inoculant. Yields still reduced 40% but recovery takes 90 days instead of 180.',
+        cost: 2500,
+        requiresCash: 2500,
+        effects: [
+          { type: 'modify_cash', amount: -2500 },
+          { type: 'modify_yield_modifier', cropId: '*', multiplier: 0.60, durationDays: 90 },
+          { type: 'modify_organic_matter_all', amount: 0.20 },
+          { type: 'add_notification', message: 'Intensive soil remediation underway. All crop yields reduced by 40% for 90 days while soil recovers. Organic matter boosted +0.20%.', notificationType: 'event_result' },
+        ],
+        followUpText: "The remediation crew works for three days straight. Deep injection rigs pump composted material directly into the root zone — not surface-applied like normal compost, but forced into the compacted layers where the soil structure has collapsed.\n\nSantos supervises the biological inoculant application. \"We're reintroducing mycorrhizal fungi, beneficial bacteria, and nematodes. Think of it as a soil transplant — we're not just adding nutrients, we're rebuilding the living community that makes soil work.\"\n\nThe gypsum breaks up the hardpan. The compost feeds the biology. The inoculant jumpstarts the microbial community. But none of it is instant.\n\n\"Ninety days,\" Santos says. \"That's how long before you'll see the soil start responding. Your yields will be down 40% during that window — the roots can't access nutrients efficiently in degraded soil. After that, the biology starts working and things improve. But this is a reset, not a cure. If you don't maintain organic matter inputs going forward — cover crops, every season — you'll be back here in five years.\"\n\nShe's right, and you both know it. The $2,500 bought you time. What you do with it is up to you.",
+      },
+      {
+        id: 'accept-soil-exhaustion',
+        label: 'Accept Reduced Production',
+        description: 'No remediation investment. All crop yields reduced by 40% for 180 days as soil slowly rebuilds on its own.',
+        effects: [
+          { type: 'modify_yield_modifier', cropId: '*', multiplier: 0.60, durationDays: 180 },
+          { type: 'add_notification', message: 'Soil structure failure. All crop yields reduced by 40% for 180 days. Cover crops are your best path to recovery.', notificationType: 'event_result' },
+        ],
+        followUpText: "Santos doesn't argue. She's seen enough farms make this choice — and enough that didn't have the choice at all.\n\n\"The soil will rebuild on its own. It always does — that's what soil does, given time and organic inputs. But 'on its own' means 180 days of reduced yields. Every crop you harvest during that window will produce about 60% of what healthy soil would give you.\"\n\nShe pauses at the gate.\n\n\"Cover crops. Every fall, without exception. That's the single thing you can do that costs the least and helps the most. Each incorporation cycle adds organic matter, and organic matter is what rebuilds soil structure. It's slow — but it's the only path that doesn't cost $2,500 every time you hit this wall.\"\n\nThe 180 days will be lean. But the soil doesn't care about your timeline — it heals at its own pace.",
+      },
+    ],
+    tags: ['climate', 'soil', 'ecology', 'catastrophe'],
+  },
+
+  // --- Slice 7c: Insurance Regime Exit ---
+
+  {
+    id: 'regime-insurance-exit',
+    type: 'market',
+    title: 'Crop Insurance Market Exit',
+    description: "The letter arrives on a Tuesday — form letter, corporate letterhead, no personal touches.\n\n\"Dear Policyholder: Due to escalating systemic risk in the Central Valley agricultural corridor, Valley Agricultural Insurance Group has made the difficult decision to exit the crop insurance market for this region effective immediately. Your current policy will not be renewed.\"\n\nMarcus Chen calls before you finish reading it. \"I heard. Three other insurers pulled out of the Valley this month — it's an industry-wide retreat. The actuarial models can't price the risk anymore. Between water curtailments, heat events, disease pressure, and pollination failures, the loss ratios are unsustainable.\"\n\nHe's already found an alternative. \"There's a farmer cooperative mutual aid network operating in the region. It's not insurance — the payouts are smaller and it's member-funded — but it's something. The buy-in is $800. Or you can self-insure and rely on your cash reserves.\"\n\nThe Forum is buzzing. This affects everyone.",
+    preconditions: [
+      { type: 'min_year', year: 22 },
+      { type: 'max_year', year: 27 },
+      { type: 'has_flag', flag: 'has_crop_insurance' },
+      { type: 'not_has_flag', flag: 'regime_insurance_exit' },
+    ],
+    priority: 100,
+    cooldownDays: 0,
+    maxOccurrences: 1,
+    foreshadowing: {
+      signal: 'News reports indicate agricultural insurers are reassessing their Central Valley risk models. Several smaller carriers have already withdrawn from neighboring counties.',
+      daysBeforeEvent: 90,
+      reliability: 1.0,
+    },
+    choices: [
+      {
+        id: 'join-mutual-aid',
+        label: 'Join Cooperative Mutual Aid ($800)',
+        description: 'Member-funded safety net. Smaller payouts than commercial insurance, but better than nothing.',
+        cost: 800,
+        requiresCash: 800,
+        effects: [
+          { type: 'modify_cash', amount: -800 },
+          { type: 'set_flag', flag: 'mutual_aid', value: true },
+          { type: 'set_flag', flag: 'has_crop_insurance', value: false },
+          { type: 'set_flag', flag: 'regime_insurance_exit', value: true },
+          { type: 'add_notification', message: 'Joined the Valley Farmers Cooperative Mutual Aid network. Insurance premiums stop. Mutual aid provides reduced coverage on future catastrophes.', notificationType: 'event_result' },
+        ],
+        followUpText: "The cooperative coordinator — a retired almond grower named Margaret — walks you through the model.\n\n\"This isn't insurance. Let me be clear about that up front. There's no actuarial table, no adjusters, no corporate claims department. What we have is 47 farms pooling resources. When one of us gets hit, the rest chip in. The payouts are smaller than what Valley Ag was offering — roughly half — but they're real and they're fast.\n\nThe $800 buy-in goes into the shared fund. No annual premiums after that — the fund replenishes from member contributions after each payout event. If the fund runs low, we do a voluntary call for additional contributions.\n\nThe real value isn't the money, honestly. It's the network. When rootworm hits your neighbor, you hear about it the same day — not two weeks later from an extension bulletin. When disease shows up in someone's orchard, we've got people with chainsaws and experience on-site within 48 hours.\n\nIt's not perfect. But it's ours.\"",
+      },
+      {
+        id: 'self-insure-exit',
+        label: 'Self-Insure',
+        description: 'Rely on your cash reserves. No coverage, but no costs either.',
+        effects: [
+          { type: 'set_flag', flag: 'has_crop_insurance', value: false },
+          { type: 'set_flag', flag: 'regime_insurance_exit', value: true },
+          { type: 'add_notification', message: 'You chose to self-insure. No more premium payments, but no safety net for future catastrophes. Chen: "I hope your cash reserves are deep enough."', notificationType: 'event_result' },
+        ],
+      },
+      {
+        id: 'accept-risk-exit',
+        label: 'Accept the Risk',
+        description: "You'll deal with problems as they come.",
+        effects: [
+          { type: 'set_flag', flag: 'has_crop_insurance', value: false },
+          { type: 'set_flag', flag: 'regime_insurance_exit', value: true },
+          { type: 'add_notification', message: 'Insurance gone. No replacement coverage. You\'re on your own for any future catastrophes.', notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['regime-shift', 'market', 'insurance'],
+  },
+
+  // --- Slice 7c: Positive Reinforcement ---
+
+  {
+    id: 'advisor-soil-recovery-praise',
+    type: 'advisor',
+    illustrationId: 'event-cover-crops',
+    title: 'Santos: Your Soil Is Recovering',
+    description: "Dr. Santos is smiling when she arrives, which catches you off guard — you've mostly seen her concerned expression over the past few years.\n\n\"I just got your latest soil test results back. Sit down — this is the good news kind of sit down.\"\n\nShe spreads the data on your tailgate, next to where she delivered the bad news last time.\n\n\"Your organic matter is above 2.2% and climbing. That advanced cover crop mix is doing exactly what we hoped — the multi-species root systems are building soil aggregates, the decomposing biomass is feeding the microbial community, and the whole system is starting to work again. Water infiltration is up. Nitrogen mineralization is up. Your soil is becoming self-sustaining again.\"\n\nShe taps the trend line on the chart.\n\n\"This is what regeneration looks like. Not a magic bullet — years of consistent cover cropping, compounding season after season. You stuck with it when a lot of farmers wouldn't have. The hard part is done.\"",
+    preconditions: [
+      { type: 'min_year', year: 12 },
+      { type: 'avg_organic_matter_above', level: 2.2 },
+      { type: 'has_flag', flag: 'tech_advanced_cover_crops' },
+    ],
+    priority: 75,
+    cooldownDays: 0,
+    maxOccurrences: 1,
+    advisorId: 'extension-agent',
+    choices: [
+      {
+        id: 'acknowledge-recovery',
+        label: 'Thanks, Santos',
+        description: "It's been a long road.",
+        effects: [
+          { type: 'set_flag', flag: 'santos_praised_soil_recovery', value: true },
+          { type: 'add_notification', message: 'Santos confirmed your soil health is recovering. Organic matter above 2.2% and trending upward.', notificationType: 'event_result' },
+        ],
+        followUpText: "Santos leans against the truck, looking out over your fields with an expression you haven't seen from her before — something close to pride.\n\n\"You know what most of my farmers ask me? 'How do I fix my soil fast?' And I always have to tell them the same thing — you can't. You can't rush biology. You can spend money on compost and fertilizer and amendments, and those help, but the real fix is time plus consistent inputs.\n\nWhat you did — investing in the advanced mix, planting cover crops every single fall, incorporating them every spring — that's the only path that actually works. And it took years. Most people give up after two seasons because they can't see the change on the surface.\n\nBut look at this data. Your water holding capacity is up 15%. Your nitrogen mineralization rate has doubled since the low point. You're spending less on irrigation because the soil holds moisture longer. Less on fertilizer because the biology is cycling nutrients for you.\n\nYou didn't just fix your soil. You built a system that sustains itself. That's the difference between treating symptoms and solving the problem.\"\n\nShe folds up the charts and heads back to her truck.\n\n\"Keep planting those cover crops. The soil will keep rewarding you for it.\"",
+      },
+      {
+        id: 'dismiss-praise',
+        label: 'Just Doing My Job',
+        description: 'Farming is farming.',
+        effects: [
+          { type: 'add_notification', message: 'Santos smiles. "That\'s exactly what a good farmer says."', notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['advisor', 'soil', 'ecology', 'positive'],
   },
 ] as const;

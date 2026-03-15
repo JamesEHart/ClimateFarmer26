@@ -5,7 +5,7 @@
 
 import type { GameState } from '../types.ts';
 import type { Effect } from './types.ts';
-import { GRID_ROWS, GRID_COLS } from '../types.ts';
+import { GRID_ROWS, GRID_COLS, OM_FLOOR } from '../types.ts';
 import { addNotification } from '../game.ts';
 
 /** Clamp a modifier product to the allowed range [0.0, 10.0] */
@@ -110,6 +110,15 @@ export function applyEffects(
           for (let c = 0; c < GRID_COLS; c++) {
             const soil = state.grid[r][c].soil;
             soil.potassium = Math.max(0, Math.min(soil.potassium + effect.amount, 200));
+          }
+        }
+        break;
+
+      case 'modify_organic_matter_all':
+        for (let r = 0; r < GRID_ROWS; r++) {
+          for (let c = 0; c < GRID_COLS; c++) {
+            const soil = state.grid[r][c].soil;
+            soil.organicMatter = Math.max(OM_FLOOR, soil.organicMatter + effect.amount);
           }
         }
         break;

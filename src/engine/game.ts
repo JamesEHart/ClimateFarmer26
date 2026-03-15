@@ -915,8 +915,9 @@ function forEachCellInScope(
 // Cover Crop Incorporation (winter→spring)
 // ============================================================================
 
-function incorporateCoverCrops(state: GameState): void {
+export function incorporateCoverCrops(state: GameState): void {
   let incorporated = 0;
+  const coverMultiplier = state.flags['tech_advanced_cover_crops'] ? 1.5 : 1.0;
 
   for (let row = 0; row < GRID_ROWS; row++) {
     for (let col = 0; col < GRID_COLS; col++) {
@@ -929,8 +930,8 @@ function incorporateCoverCrops(state: GameState): void {
       // Apply nitrogen fixation (clamped to 200), scaled by effectiveness
       cell.soil.nitrogen = Math.min(200, cell.soil.nitrogen + coverDef.nitrogenFixation * eff);
 
-      // Apply organic matter bonus, scaled by effectiveness
-      cell.soil.organicMatter += coverDef.organicMatterBonus * eff;
+      // Apply organic matter bonus, scaled by effectiveness and tech upgrade
+      cell.soil.organicMatter += coverDef.organicMatterBonus * eff * coverMultiplier;
 
       // Apply moisture drawdown (tradeoff), also scaled — less biomass = less water draw
       cell.soil.moisture = Math.max(0, cell.soil.moisture - coverDef.moistureDrawdown * eff);
@@ -942,8 +943,10 @@ function incorporateCoverCrops(state: GameState): void {
   }
 
   if (incorporated > 0) {
+    const coverDef = getCoverCropDefinition('legume-cover');
+    const omBonus = (coverDef.organicMatterBonus * coverMultiplier).toFixed(2);
     addNotification(state, 'info',
-      `Cover crops incorporated on ${incorporated} plot${incorporated !== 1 ? 's' : ''}: +50 lbs/ac nitrogen, +0.10% organic matter, -0.5in moisture`);
+      `Cover crops incorporated on ${incorporated} plot${incorporated !== 1 ? 's' : ''}: +${coverDef.nitrogenFixation} lbs/ac nitrogen, +${omBonus}% organic matter, -${coverDef.moistureDrawdown}in moisture`);
   }
 }
 
@@ -2185,6 +2188,9 @@ const FLAG_LABELS: Record<string, string> = {
   regime_market_crash: 'Market Crash',
   regime_heat_threshold: 'Heat Threshold Crossed',
   has_crop_insurance: 'Crop Insurance',
+  tech_advanced_cover_crops: 'Advanced Cover Crop Mix',
+  regime_insurance_exit: 'Insurance Market Exit',
+  mutual_aid: 'Cooperative Mutual Aid',
   organic_enrolled: 'Organic Transition',
   organic_certified: 'USDA Organic Certified',
 };

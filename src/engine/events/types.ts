@@ -30,6 +30,7 @@ export type Condition =
   | { type: 'random'; probability: number }
   | { type: 'avg_potassium_below'; level: number }
   | { type: 'avg_organic_matter_below'; level: number }
+  | { type: 'avg_organic_matter_above'; level: number }
   | { type: 'has_any_crop_in'; cropIds: string[] };
 
 // --- Effects (what happens when a choice is selected) ---
@@ -46,6 +47,7 @@ export type Effect =
   | { type: 'set_flag'; flag: string; value: boolean }
   | { type: 'activate_frost_protection'; durationDays: number }
   | { type: 'modify_potassium_all'; amount: number }
+  | { type: 'modify_organic_matter_all'; amount: number }
   | { type: 'damage_crops'; target: string; percentage: number }
   | { type: 'insurance_payout'; amount: number };
 

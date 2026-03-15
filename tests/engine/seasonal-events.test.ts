@@ -66,7 +66,7 @@ describe('hasRandomCondition', () => {
     ]);
   });
 
-  it('identifies all 19 per-tick events', () => {
+  it('identifies all 23 per-tick events', () => {
     const perTickIds = STORYLETS.filter(s => !hasRandomCondition(s)).map(s => s.id);
     expect(perTickIds).toEqual([
       'advisor-orchard-decline',
@@ -89,6 +89,11 @@ describe('hasRandomCondition', () => {
       // Slice 7b Santos advisors
       'advisor-soil-trajectory',
       'advisor-cover-crop-education',
+      // Slice 7c soil/insurance events
+      'soil-decline-warning',
+      'soil-exhaustion-crisis',
+      'regime-insurance-exit',
+      'advisor-soil-recovery-praise',
     ]);
   });
 });
