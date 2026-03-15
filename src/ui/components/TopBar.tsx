@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'preact/hooks';
-import { gameState, currentWeather, dispatch, handleSave, returnToTitle, getActiveScenarioName, confirmDialog, needsPlayPrompt, autoPausePlanting, setAutoPausePlanting } from '../../adapter/signals.ts';
+import { gameState, currentWeather, dispatch, handleSave, returnToTitle, confirmDialog, needsPlayPrompt, autoPausePlanting, setAutoPausePlanting } from '../../adapter/signals.ts';
 import { getSeasonName, getMonthName } from '../../engine/calendar.ts';
 import type { GameSpeed, DailyWeather } from '../../engine/types.ts';
 import styles from '../styles/TopBar.module.css';
@@ -68,9 +68,7 @@ export function TopBar() {
           <span class={styles.dateText} data-testid="topbar-date" aria-label={`${getMonthName(calendar.month)} Year ${calendar.year}, ${getSeasonName(calendar.season)}`}>
             {getSeasonName(calendar.season)} &mdash; {getMonthName(calendar.month)}, Year {calendar.year}
           </span>
-          <span class={styles.scenarioName} data-testid="scenario-name" aria-label={`Scenario: ${getActiveScenarioName()}`}>
-            {getActiveScenarioName()}
-          </span>
+          {/* Scenario name hidden during gameplay — shown in endgame panel for post-mortem discussion */}
         </div>
 
         {weather && (

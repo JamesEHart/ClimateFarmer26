@@ -431,6 +431,7 @@ export const STORYLETS: readonly Storylet[] = [
         effects: [
           { type: 'add_notification', message: 'Dr. Santos reviewed your irrigation records and suggested watering more frequently during heat events.', notificationType: 'event_result' },
         ],
+        followUpText: "Water stress is cumulative — every day a plant doesn't get enough moisture, it loses a little growth potential it can never recover. The soil acts like a sponge: organic matter holds water between irrigations, so healthy soil needs less frequent watering. When you irrigate, the water soaks in and crops draw on it over the next few days. During heat events, evaporation increases and crops drink more — that's when water stress hits hardest. The auto-pause on water stress warnings is your best early warning system. When you see it, irrigate immediately rather than waiting for the next scheduled watering.",
       },
     ],
     tags: ['advisor', 'education'],
@@ -468,6 +469,7 @@ export const STORYLETS: readonly Storylet[] = [
           { type: 'set_flag', flag: 'chillHoursRevealed', value: true },
           { type: 'add_notification', message: "Dr. Santos: \"Pistachios need fewer chill hours than almonds. As winters warm, consider shifting toward more climate-resilient varieties.\"", notificationType: 'event_result' },
         ],
+        followUpText: "Not all tree crops are equally vulnerable. Almonds need roughly 400 chill hours and are sensitive to warm interruptions during dormancy. Pistachios need more total hours but handle warm spells better — they're more flexible about when those cold hours arrive. Citrus doesn't need chill hours at all, but it's sensitive to frost. The strategic play is portfolio thinking: mix trees with different climate vulnerabilities so a bad winter for almonds isn't a bad winter for everything. If you see chill hours consistently falling short, that's a signal to start transitioning toward heat-adapted varieties rather than doubling down on what worked in the past.",
       },
     ],
     tags: ['advisor', 'chill', 'climate'],
@@ -503,6 +505,7 @@ export const STORYLETS: readonly Storylet[] = [
         effects: [
           { type: 'add_notification', message: "Dr. Santos: \"Winter wheat has the lowest seed and labor costs. It won't make you rich, but it keeps the farm running.\"", notificationType: 'event_result' },
         ],
+        followUpText: "When you're cash-strapped, the goal isn't profit — it's survival. Winter wheat costs just $100 to plant and $100 in labor. It won't generate huge revenue, but it almost always turns a small profit and keeps the land in production. The hidden benefit: wheat is a light nitrogen feeder, so it doesn't drain your soil the way corn or tomatoes do. That means the field recovers while still earning. Sorghum is another good option — drought-tolerant, moderate costs. The trap to avoid: planting an expensive crop you can't afford to water. Seed money spent on unirrigated tomatoes is seed money wasted.",
       },
     ],
     tags: ['advisor', 'finance'],

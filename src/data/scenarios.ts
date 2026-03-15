@@ -239,7 +239,7 @@ const WHIPLASH_CONFIG: ScenarioConfig = {
  */
 const LATE_ESCALATION_CONFIG: ScenarioConfig = {
   id: 'late-escalation',
-  name: 'Late Escalation',
+  name: 'Delayed Shift',
   description: 'The first 15 years are mild. Then rapid warming, water cuts, and frequent heatwaves test your resilience.',
   baseSeed: 389,
   warmingRate: 0.15,
@@ -269,7 +269,7 @@ const LATE_ESCALATION_CONFIG: ScenarioConfig = {
  */
 const MILD_BASELINE_CONFIG: ScenarioConfig = {
   id: 'mild-baseline',
-  name: 'Mild Conditions',
+  name: 'Baseline Pattern',
   description: 'Relatively forgiving climate with slow warming and adequate water. A good scenario for first-time players.',
   baseSeed: 501,
   warmingRate: 0.05,

@@ -1776,13 +1776,52 @@ export function harvestCell(state: GameState, cell: Cell, silent?: boolean): num
   const netRevenue = grossRevenue - laborCost - repayment;
 
   if (!silent) {
-    if (repayment > 0) {
-      addNotification(state, 'harvest',
-        `Harvested ${cropDef.name}: ${yieldAmount.toFixed(1)} ${cropDef.yieldUnit} at $${actualPrice.toFixed(2)}/${cropDef.yieldUnit} = $${grossRevenue.toFixed(0)} (labor: $${laborCost}, loan repayment: $${repayment.toFixed(0)})`);
-    } else {
-      addNotification(state, 'harvest',
-        `Harvested ${cropDef.name}: ${yieldAmount.toFixed(1)} ${cropDef.yieldUnit} at $${actualPrice.toFixed(2)}/${cropDef.yieldUnit} = $${grossRevenue.toFixed(0)} (labor: $${laborCost})`);
+    // Build yield-factor explanation: show top 2 biggest penalties (>5% impact)
+    const yieldFactors: { name: string; value: number }[] = [];
+    if (waterFactor < 0.95) yieldFactors.push({ name: 'water stress', value: waterFactor });
+    if (nFactor < 0.95) yieldFactors.push({ name: 'low nitrogen', value: nFactor });
+    if (omFactor < 0.95) yieldFactors.push({ name: 'low soil organic matter', value: omFactor });
+    if (crop.growthStage === 'overripe') {
+      const overripeFactor = crop.overripeDaysRemaining / OVERRIPE_GRACE_DAYS;
+      if (overripeFactor < 0.95) yieldFactors.push({ name: 'overripe penalty', value: overripeFactor });
     }
+    if (yieldMod < 0.95) yieldFactors.push({ name: 'event effects', value: yieldMod });
+    // Skip chill factor — it has its own detailed notification above
+    if (ageFactor < 0.95) yieldFactors.push({ name: 'tree age decline', value: ageFactor });
+    if (state.flags['regime_heat_threshold'] && cropDef.heatSensitivity !== undefined && cropDef.heatSensitivity < 0.95) {
+      yieldFactors.push({ name: 'heat stress', value: cropDef.heatSensitivity });
+    }
+    if (!crop.isPerennial && cell.lastCropId === crop.cropId) {
+      const streak = (cell.consecutiveSameCropCount ?? 0) + 1;
+      const penaltyFactor = Math.max(MONOCULTURE_PENALTY_FLOOR, 1.0 - MONOCULTURE_PENALTY_PER_YEAR * streak);
+      if (penaltyFactor < 0.95) yieldFactors.push({ name: 'monoculture penalty', value: penaltyFactor });
+    }
+
+    // Sort by severity (biggest penalty first), take top 2
+    yieldFactors.sort((a, b) => a.value - b.value);
+    const topFactors = yieldFactors.slice(0, 2);
+
+    let factorText = '';
+    if (topFactors.length > 0) {
+      const parts = topFactors.map(f => `${f.name} (-${Math.round((1 - f.value) * 100)}%)`);
+      factorText = ` Yield reduced by: ${parts.join(', ')}.`;
+    }
+
+    // Base harvest message
+    let msg = `Harvested ${cropDef.name}: ${yieldAmount.toFixed(1)} ${cropDef.yieldUnit} at $${actualPrice.toFixed(2)}/${cropDef.yieldUnit} = $${grossRevenue.toFixed(0)}`;
+    if (repayment > 0) {
+      msg += ` (labor: $${laborCost}, loan repayment: $${repayment.toFixed(0)})`;
+    } else {
+      msg += ` (labor: $${laborCost})`;
+    }
+    msg += factorText;
+
+    // Separate net-loss warning when harvest costs exceed crop value
+    if (grossRevenue < laborCost) {
+      msg += ` Warning: harvest costs ($${laborCost}) exceeded crop value ($${grossRevenue.toFixed(0)}).`;
+    }
+
+    addNotification(state, 'harvest', msg);
   }
 
   // Slice 5a: K depletion at harvest

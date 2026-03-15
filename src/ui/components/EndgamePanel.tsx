@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { GameState } from '../../engine/types.ts';
 import { STARTING_CASH } from '../../engine/types.ts';
 import { buildReflectionData } from '../../engine/game.ts';
+import { resolveScenarioId } from '../../data/scenarios.ts';
 import { getCropDefinition, CROPS } from '../../data/crops.ts';
 import {
   computeScore,
@@ -305,6 +306,9 @@ function CompletionSection({ scoreResult, state }: { scoreResult: ScoreResult; s
 function buildReflectionSummary(state: GameState): string {
   const ref = buildReflectionData(state);
   const lines: string[] = [];
+
+  const { scenario } = resolveScenarioId(state.scenarioId ?? 'gradual-warming');
+  lines.push(`Climate scenario: ${scenario.name}.`);
 
   const startCash = STARTING_CASH;
   const finalCash = Math.floor(state.economy.cash);
