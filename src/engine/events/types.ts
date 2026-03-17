@@ -31,7 +31,8 @@ export type Condition =
   | { type: 'avg_potassium_below'; level: number }
   | { type: 'avg_organic_matter_below'; level: number }
   | { type: 'avg_organic_matter_above'; level: number }
-  | { type: 'has_any_crop_in'; cropIds: string[] };
+  | { type: 'has_any_crop_in'; cropIds: string[] }
+  | { type: 'total_planted_gte'; cellCount: number };
 
 // --- Effects (what happens when a choice is selected) ---
 

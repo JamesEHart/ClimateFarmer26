@@ -66,7 +66,7 @@ describe('hasRandomCondition', () => {
     ]);
   });
 
-  it('identifies all 25 per-tick events', () => {
+  it('identifies all 28 per-tick events', () => {
     const perTickIds = STORYLETS.filter(s => !hasRandomCondition(s)).map(s => s.id);
     expect(perTickIds).toEqual([
       'advisor-orchard-decline',
@@ -98,6 +98,10 @@ describe('hasRandomCondition', () => {
       'soil-exhaustion-crisis',
       'regime-insurance-exit',
       'advisor-soil-recovery-praise',
+      // Slice 8c labor/automation storylets
+      'forum-labor-shortage',
+      'advisor-automation-question',
+      'forum-staffing-crunch',
     ]);
   });
 });

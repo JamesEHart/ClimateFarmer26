@@ -469,6 +469,20 @@ Severity: MEDIUM (scoring balance/narrative tone). Deferred — needs design dis
 
 **106. Event panels don't scroll on long content.** `.panel` class had no `max-height` or `overflow-y`, so tall event panels grew beyond the viewport. Fixed: added `max-height: 85vh; overflow-y: auto` to `.panel`.
 
+**107. Water stress auto-pause fires during watering restriction.** Player sees "Water Field" prompt during a ban, clicks it, nothing happens. Fixed: sends `water_warning` notification instead of auto-pause when `wateringRestricted`. Pause token resets when restriction expires (`expireActiveEffects`). Handles overlapping restrictions correctly.
+
+**108. Planting auto-pause fires with no plantable cells.** Pauses when plantable crops change but all 64 cells are occupied. Fixed: checks for empty cells or cover-crop-eligible perennial cells (fall) before pausing.
+
+**109. Nitrogen advisor fires 3 times — too repetitive.** `maxOccurrences` reduced from 3 to 2. Two lessons is enough.
+
+**110. Potash followUpText overstates longevity.** "Should last several seasons" is false for heavy K feeders (corn: 150 K/harvest vs +80 from potash). Fixed: copy now explains depletion depends on crop type.
+
+**111. "Buy Priority Water Access" label misleading.** Implies avoiding restriction entirely, but it's a 15-day restriction (vs 60). Fixed: renamed to "Pay for Reduced Curtailment" with explicit "15 days instead of 60."
+
+**112. Perennial age label wrong for young trees.** "Tree age decline" shown during ramp-up phase (year 6 pistachios). Fixed: uses "young tree (not yet peak)" when in ramp-up phase.
+
+**113. Debug hooks exposed in student build.** `window.__gameDebug`, `window.__playtestLog`, `game-observer` DOM element all accessible in console. Fixed: gated behind `VITE_ENABLE_DEBUG === 'true'` env var. Student build strips them entirely.
+
 ### Deferred — Post-Slice 4 / Academic Integrity
 
 - **Agent policy notice (soft deterrent)** — Production-only `<meta name="ai-agent-policy">` tag asking well-behaved AI agents not to play the game for students. Low effort (~30 min), only a soft deterrent for agents that respect such instructions. Implementation: inject in `src/main.tsx` gated on `import.meta.env.PROD`. Verify with test: present in prod build, absent in dev.

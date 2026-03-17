@@ -876,10 +876,10 @@ describe('Slice 5c: data integrity', () => {
     }
   });
 
-  it('count of condition-only events increased by 14 from 5b baseline (was 9, now 23)', () => {
+  it('count of condition-only events increased by 19 from 5b baseline (was 9, now 28)', () => {
     const conditionOnlyCount = STORYLETS.filter(
       s => !s.preconditions.some(c => c.type === 'random'),
     ).length;
-    expect(conditionOnlyCount).toBe(25);
+    expect(conditionOnlyCount).toBe(28);
   });
 });

@@ -177,6 +177,8 @@ Illustrations for high-impact storylet events. Displayed above the event title i
 | `event-water-restriction` | `public/assets/events/event-water-restriction_480x240.jpeg` | 480x240 | EventPanel (`groundwater-pumping-ban`) | Needed | Dry irrigation canal, reduced water flow, official notice feel. Pivotal regime moment. |
 | `event-rootworm` | `public/assets/events/event-rootworm_480x240.jpeg` | 480x240 | EventPanel (`catastrophe-rootworm`) | Needed | Close-up of damaged corn roots, beetles visible. Visceral, educational. |
 | `event-orchard-disease` | `public/assets/events/event-orchard-disease_480x240.jpeg` | 480x240 | EventPanel (`catastrophe-orchard-disease`) | Needed | Diseased tree with yellowing leaves, canker visible. Urgent, concerning. |
+| `event-staffing-crunch` | `public/assets/events/event-staffing-crunch_480x240.jpeg` | 480x240 | EventPanel (`forum-staffing-crunch`) | Complete | Mechanical almond shaker and pickup sweeper working a row of mature almond trees in a dry Central Valley summer. One or two workers visible alongside the machine — the contrast of automated equipment and limited crew captures the harvest-labor tension. Wide, sun-baked feel. |
+| `event-labor-shortage` | `public/assets/events/event-labor-shortage_480x240.jpeg` | 480x240 | EventPanel (`forum-labor-shortage`) | Complete | A broad Central Valley orchard at harvest — almonds or pistachios — with a contractor on a phone in the foreground, rows of trees stretching behind them. The scene should convey scale and urgency without depicting a specific machine. Warm, documentary feel. |
 
 ### Event Illustration Prompting Notes
 

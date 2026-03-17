@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ClimateFarmer26 is a browser-based educational simulation game where students role-play as California farmers across 30 years, making season-by-season decisions as climate impacts challenge their operations. 100% client-side, hosted on GitHub Pages, targeting Chromebooks.
 
-**Status: Slice 7d complete ("Avocado Timing + UI Polish").** Slices 1-7d complete. 7d: separated avocado research from heat regime (early proactive Y10-14 $600, late catchup post-regime $800 with 90-day foreshadow), settings gear dropdown fix, forum thread formatting, scrollable event panels. 7c: soil crisis escalation, cover crop upgrade, insurance exit. 7a-7b: transparency + Forum/Santos content. `SAVE_VERSION = '9.0.0'`.
+**Status: Slice 7d + QA fixes complete. Student build deployed (debug hooks stripped).** Slices 1-7d complete. Post-7d QA: water stress/restriction UX fix, planting auto-pause guard, nitrogen advisor cap, copy fixes. Debug hooks gated behind `VITE_ENABLE_DEBUG` env var. `SAVE_VERSION = '9.0.0'`.
 
 ## Workflow Rules
 

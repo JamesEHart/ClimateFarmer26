@@ -43,7 +43,7 @@ describe('Advisor storylet definitions', () => {
 
   it('all advisors have maxOccurrences set', () => {
     const advisors = STORYLETS.filter(s => s.type === 'advisor');
-    expect(advisors.length).toBe(22);
+    expect(advisors.length).toBe(23);
     for (const a of advisors) {
       expect(a.maxOccurrences).toBeDefined();
       expect(a.maxOccurrences).toBeGreaterThan(0);

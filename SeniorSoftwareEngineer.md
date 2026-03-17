@@ -114,44 +114,49 @@ Keep these current at all times:
 4. What must be measured (performance, reliability, usability) before moving on?
 5. What assumptions are still unverified?
 
-## Current State Snapshot (2026-03-09, Slice 5a Planning/In-Progress)
+## Current State Snapshot (2026-03-15, Wrap-Up / Pre-Deploy)
 
 ### Executive Status
-1. Slice 4 is **complete** (4a balance infrastructure → 4b event refactor → 4c economic rebalancing → 4d overhead tuning → 4e classroom UX pass → stabilization fixes).
-2. Slice 5 planning is active; Sub-Slice 5a foundations are being implemented/tested.
-3. Classroom-critical UX issues from external QA rounds resolved. Water fatigue (#59, HIGH) remains open and is now tied to irrigation automation work in 5a/5b.
+1. Slices **1-7d are complete**. The game is in classroom-ready wrap-up, not slice planning.
+2. The source of truth is the code/test surface plus `HANDOFF.md` and `CLAUDE.md`, not the older slice-planning notes that used to live here.
+3. Current work is QA triage, final wording/UX corrections, and deploy-hardening for student use tomorrow.
 
 ### Latest Verified Signals
-1. Unit tests: 589 passing (19 test files).
-2. Browser tests: 96 total, all passing (foreshadow natural-flow test may flake under `--repeat-each` stress — non-blocking).
-3. Build: clean, ~43.8KB gzipped JS + ~5.1KB CSS.
-4. SAVE_VERSION = '7.0.0'. Migration chain: V1→V2→V3→V4→V5→V6→V7.
-5. 5 calibrated climate scenarios in `scenarios.ts`.
-6. External QA coverage completed: good-faith optimizer, exploit-seeker, classroom-reality, teaching-assistant, structured 4e acceptance (21/21 gameplay checks).
+1. Unit tests: 1066 passing (31 test files).
+2. Browser tests: 123 total, passing; foreshadow natural-flow remains the known flaky stress case.
+3. Build: clean, ~78.23KB gzipped JS + ~6.21KB CSS.
+4. `SAVE_VERSION = '9.0.0'`. Migration chain is V1→V9.
+5. 5 calibrated climate scenarios, 9 crops, scoring/endgame flow, Google submission, and full 30-year completion path are in place.
+6. Slice 7d is the latest completed content/UI pass: avocado research split from heat regime, settings/menu polish, forum formatting, scrollable event panels.
 
-### Slice-4 Completed Fixes (All 7 Themes Resolved)
-1. Water-warning click-tax → `skipConfirm` auto-pause watering (#52).
-2. Notification backlog → batch + cap + age trim (#61).
-3. Perennial onboarding → confirm dialog with years-to-first-harvest warning (#71).
-4. Advisor-action alignment → season-agnostic recommendation text (#72).
-5. Real-time financial clarity → running net P/L in TopBar (#73).
-6. Harvest readiness affordance → custom crop art for all stages + text badges (#74) + perennial harvest UI fix (#79).
-7. Pause-state guidance → pulsing "Press Play" prompt (#50).
+### Project State That Matters Now
+1. The architecture is stable: pure TS engine, adapter/debug layer, Preact UI, deterministic tests, and a large browser-test surface.
+2. The game is feature-complete enough for student deployment; remaining decisions are mostly polish, QA interpretation, and deployment safeguards.
+3. Raw QA logs must be interpreted carefully. Recent long-form AI playtests surfaced both real UX issues and harness-induced false conclusions. Trust manual/source-backed findings over stale markdown summaries.
+4. Debug affordances (`window.__gameDebug`, playtest log globals, hidden observer DOM) remain appropriate for QA but should be disabled in the student-facing build.
 
-### Remaining Open Items (Slice 5 Candidates)
-- **#47:** Event clustering (spammy multi-event seasons)
-- **#49:** Cover crop pedagogy not landing (OM decline invisible)
-- **#59:** Water warning click-fatigue (recommended: automated irrigation as tech tree unlock)
-- **#62:** Harvest affordance misleads when selected plot is not ready
-- **#65:** Year-30 completion panel lacks educational summary
-- **#66:** Soil management limited agency after advisor caps
-- **#70:** Confirm dialog overwrite (automation hardening)
+### Major Work Since The Old Slice-5 Snapshot
+1. Slice 5 shipped fully: tech reconvergence, K-lite, auto-irrigation, crop gating, regime modifiers, event-cap infrastructure, first gated crop.
+2. Slice 6 shipped: scoring, endgame reflection, advisor/category hints, food-servings estimate, Google Sign-In submission, presentation/art polish.
+3. Slice 7 shipped through 7d: transparency improvements, Santos/Forum content, soil crisis escalation, cover crop upgrade, insurance exit, avocado timing fix, and several UI polish passes.
+4. Multiple QA-driven fixes landed after code review, including:
+   - water-stress pause behavior during watering restrictions
+   - planting autopause gating when no actionable planting targets exist
+   - reduced nitrogen-advisor repetition
+   - clarified emergency water wording
+   - corrected perennial ramp-up wording (`young tree (not yet peak)` vs. decline)
 
-### Recommended Next Step (Supervisory)
-1. Keep Slice 5a strict: engine/data foundations first (conditions, tech-level reconvergence, K-lite baseline, gating, regime modifiers, event-pool caps, migration).
-2. Hold scoring/completion code and Google Form integration for Slice 6 unless explicitly re-approved.
-3. Require proof-of-foundation before content scale-up: deterministic tests, migration chain, and no vacuous passes.
-4. Start 5b/5c content only after 5a acceptance gates are green.
+### Remaining Pre-Deploy Focus
+1. Disable or env-gate debug hooks for the student build. This is not anti-cheat perfection; it removes the obvious console/AI-agent entry points.
+2. Treat `run*.md` QA summaries as provisional unless corroborated by raw logs and source. Several reports became stale mid-session.
+3. Keep review standards high even at wrap-up: no doc drift, no misleading copy, no unverified “seems fine” claims.
+4. Do not open new feature scope. Only fix deploy-risking issues, correctness bugs, or clarity problems that would confuse students tomorrow.
+
+### Supervisory Recommendation
+1. For any final change, ask: does this materially improve tomorrow's student experience or deploy safety?
+2. Prefer copy fixes, debug-surface hardening, and report/document cleanup over new mechanics.
+3. If a QA finding depends on a broken automation loop, do not rebalance the game around it.
+4. At this stage, “done” means clean build/tests, coherent student-facing wording, and no obvious debug/observer backdoors in the deploy build.
 
 ## Historical Bootstrap (2026-02-26, Post-Slice-3)
 

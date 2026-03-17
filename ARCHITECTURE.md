@@ -512,10 +512,10 @@ Game content lives in data modules under `src/data/`:
 **Current implementation (Slice 3):**
 ```
 src/data/
-  crops.ts          # 7 crop definitions (4 annual + 3 perennial)
+  crops.ts          # 9 crop definitions (4 annual + 5 perennial)
   cover-crops.ts    # Cover crop definitions (Slice 3b)
-  scenario.ts       # 1 climate scenario (30 years, seasonal params + chillHours)
-  events.ts         # STORYLETS array (5 climate/market/regulatory + 9 advisor events)
+  scenarios.ts      # 5 calibrated climate scenarios with chillHours, marketCrashTargetCropId
+  events.ts         # STORYLETS array (57 storylets: seasonal draw + condition-only advisors/tech/regime)
 ```
 
 All content is defined as typed TypeScript constants, validated at compile time by `tsc --strict`. This provides the data-driven benefits (adding content = editing data, not engine logic) with compile-time type safety.
@@ -695,7 +695,7 @@ All interactive DOM elements get `data-testid` attributes following this standar
 |------|---------|
 | `farm` | `farm-cell-3-7`, `farm-grid`, `farm-row-header-3` |
 | `action` | `action-plant-all`, `action-harvest-row-2`, `action-water-all` |
-| `speed` | `speed-pause`, `speed-play`, `speed-fast`, `speed-fastest` |
+| `speed` | `speed-toggle`, `speed-fast`, `speed-fastest` |
 | `topbar` | `topbar-date`, `topbar-cash`, `topbar-season-icon` |
 | `sidebar` | `sidebar-soil-n`, `sidebar-soil-k`, `sidebar-water-supply` |
 | `advisor` | `advisor-panel-extension`, `advisor-choice-1`, `advisor-dismiss` |

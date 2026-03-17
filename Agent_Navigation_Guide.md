@@ -1,6 +1,6 @@
 # Climate Farmer — Agent Navigation Guide
 Purpose: reliable UI navigation and state observation for AI/QA agents.
-Updated: 2026-03-15. Build: Slice 7c.
+Updated: 2026-03-15. Build: Slice 7d + QA fixes. Note: debug hooks require `VITE_ENABLE_DEBUG=true` build.
 
 **Changelog from v1:** Added `__exportPlaytestLog()` (§3), added confirm dialog to blocking panels table (§6), added execution timeout guidance (§11), expanded known automation traps (§12), corrected harvest dialog behavior documentation.
 
@@ -190,13 +190,13 @@ Clears notification backlog if it's interfering with testing.
 ## 4. Speed Controls
 
 ```
-speed-pause    0×
-speed-play     1×
+speed-toggle   play/pause (▶ when paused, ⏸ when playing; always resumes at 1×)
 speed-fast     2×
 speed-fastest  4×
 ```
 
-- Speed resets to 0 after every autopause. Click a speed button to resume.
+- Speed resets to 0 after every autopause. Click the toggle or a speed button to resume.
+- Toggle always resumes at 1×. Use `speed-fast` or `speed-fastest` for higher speeds.
 - `play-prompt` appears when paused after an action — it means "click play to continue."
 
 ---
@@ -205,15 +205,20 @@ speed-fastest  4×
 
 ```
 settings-gear                  ← opens/closes settings dropdown in TopBar
-setting-auto-pause-planting    ← checkbox: auto-pause at planting window boundaries
+setting-pause-all              ← master checkbox: all planting windows (includes perennials)
+setting-pause-warm-season      ← tomatoes/corn planting pause
+setting-pause-sorghum          ← sorghum planting pause
+setting-pause-winter-wheat     ← winter wheat planting pause
+setting-pause-cover-crops      ← cover crop planting pause
 ```
 
-The planting-window setting changes what autopauses are expected during play. When enabled, the game pauses at each season boundary where planting options change. Agents should note this setting's state when reporting observations — it affects pacing.
+The planting-window setting changes what autopauses are expected during play. Each group fires at most once per year when new crops become plantable. Agents should note these settings when reporting observations — they affect pacing.
 
 **For automation:** Do NOT use screenshot-based clicking on the gear icon. Use the debug helper instead:
 ```js
-__gameDebug.setAutoPausePlanting(true);   // enable
-__gameDebug.getPreferences();              // { autoPausePlanting: true }
+__gameDebug.setAutoPausePlanting(true);   // enable all groups (backward-compat wrapper)
+__gameDebug.setPlantingPausePrefs({ all: false, warmSeason: true, sorghum: false, winterWheat: false, coverCrops: false });
+__gameDebug.getPreferences();              // { autoPausePlanting: bool, plantingPausePrefs: { all, warmSeason, sorghum, winterWheat, coverCrops } }
 ```
 
 ---
@@ -344,8 +349,8 @@ __gameDebug.selectCell(row, col)   // UI equivalent, not a cheat
 ```
 newgame-player-id / newgame-start / tutorial-skip
 farm-cell-{r}-{c}
-speed-pause / speed-play / speed-fast / speed-fastest
-settings-gear / setting-auto-pause-planting
+speed-toggle / speed-fast / speed-fastest
+settings-gear / setting-pause-all / setting-pause-warm-season / setting-pause-sorghum / setting-pause-winter-wheat / setting-pause-cover-crops
 game-observer                    ← machine-readable state (§3)
 action-plant / menu-crop-{id}
 action-plant-all-{id} / action-harvest-all / action-water-all
@@ -393,8 +398,9 @@ __gameDebug.getActionState()       // Available crops, cover crop eligibility, v
 __gameDebug.selectCell(row, col)   // Select a cell programmatically. Required for row/col actions.
 
 // Preferences (avoids tiny gear icon)
-__gameDebug.setAutoPausePlanting(bool) // Enable/disable planting-window autopause
-__gameDebug.getPreferences()           // Returns { autoPausePlanting: bool }
+__gameDebug.setAutoPausePlanting(bool) // Enable/disable all planting-window pauses (backward-compat)
+__gameDebug.setPlantingPausePrefs(prefs) // Set granular per-group prefs { all, warmSeason, sorghum, winterWheat, coverCrops }
+__gameDebug.getPreferences()           // Returns { autoPausePlanting: bool, plantingPausePrefs: { all, warmSeason, sorghum, winterWheat, coverCrops } }
 
 // Direct state access
 __gameDebug.getState()             // Mutable live reference. Call publish() after mutation.

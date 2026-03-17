@@ -138,6 +138,13 @@ export function evaluateCondition(
       }
       return false;
     }
+    case 'total_planted_gte': {
+      let count = 0;
+      for (let r = 0; r < GRID_ROWS; r++)
+        for (let c = 0; c < GRID_COLS; c++)
+          if (state.grid[r][c].crop !== null) count++;
+      return count >= condition.cellCount;
+    }
     case 'random':
       return rng.next() < condition.probability;
     default: {

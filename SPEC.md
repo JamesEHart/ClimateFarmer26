@@ -372,8 +372,7 @@ Every interactive element listed below MUST have a data-testid. Tests will verif
 - `topbar-date` — current date display
 - `topbar-cash` — cash balance display
 - `topbar-season-icon` — season indicator
-- `speed-pause` — pause button
-- `speed-play` — 1x speed button
+- `speed-toggle` — play/pause toggle (▶ when paused, ⏸ when playing; always resumes at 1x)
 - `speed-fast` — 2x speed button
 - `speed-fastest` — 4x speed button
 

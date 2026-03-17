@@ -2,7 +2,9 @@ import { signal, computed, batch } from '@preact/signals';
 import type { GameState, Command, CommandResult, Cell, DailyWeather } from '../engine/types.ts';
 import { GRID_ROWS, GRID_COLS, IRRIGATION_COST_PER_CELL } from '../engine/types.ts';
 import { getIrrigationCostMultiplier } from '../engine/events/effects.ts';
-import { createInitialState, processCommand, simulateTick, dismissAutoPause, resetYearlyTracking, addNotification, dismissNotification, getAvailableCrops, executeBulkPlant, executeWater, executeBulkCoverCrop, isCoverCropEligible } from '../engine/game.ts';
+import { createInitialState, processCommand, simulateTick, dismissAutoPause, resetYearlyTracking, addNotification, dismissNotification, getAvailableCrops, executeBulkPlant, executeWater, executeBulkCoverCrop } from '../engine/game.ts';
+import type { PlantingPausePrefs, PlantingPauseState } from './planting-pause.ts';
+import { DEFAULT_PLANTING_PAUSE_PREFS, buildPlantableCropSet, checkPlantingPause, isAnyPlantingPauseEnabled, migratePlantingPausePrefs } from './planting-pause.ts';
 import { getCoverCropDefinition } from '../data/cover-crops.ts';
 import { logSessionStart } from '../engine/playtest-log.ts';
 import { getCropDefinition } from '../data/crops.ts';
@@ -124,34 +126,33 @@ export const pendingOrganicWarning = signal(false);
 // Player Preferences (localStorage-backed, not game state)
 // ============================================================================
 
-const PREF_AUTO_PAUSE_PLANTING = 'climateFarmer_pref_autoPausePlanting';
+const PREF_PLANTING_PAUSE = 'climateFarmer_pref_plantingPause';
+const PREF_AUTO_PAUSE_PLANTING_OLD = 'climateFarmer_pref_autoPausePlanting';
 
-/** Auto-pause when planting options change (new crops become plantable at season boundary). */
-export const autoPausePlanting = signal<boolean>(
-  typeof localStorage !== 'undefined' && localStorage.getItem(PREF_AUTO_PAUSE_PLANTING) === 'true',
+/** Granular per-crop-group planting-window auto-pause preferences (8b). */
+export const plantingPausePrefs = signal<PlantingPausePrefs>(
+  typeof localStorage !== 'undefined'
+    ? migratePlantingPausePrefs(
+        localStorage.getItem(PREF_AUTO_PAUSE_PLANTING_OLD),
+        localStorage.getItem(PREF_PLANTING_PAUSE),
+      )
+    : { ...DEFAULT_PLANTING_PAUSE_PREFS },
 );
 
-export function setAutoPausePlanting(value: boolean): void {
-  autoPausePlanting.value = value;
+export function setPlantingPausePrefs(prefs: PlantingPausePrefs): void {
+  plantingPausePrefs.value = prefs;
   try {
-    if (value) {
-      localStorage.setItem(PREF_AUTO_PAUSE_PLANTING, 'true');
-    } else {
-      localStorage.removeItem(PREF_AUTO_PAUSE_PLANTING);
-    }
+    localStorage.setItem(PREF_PLANTING_PAUSE, JSON.stringify(prefs));
+    localStorage.removeItem(PREF_AUTO_PAUSE_PLANTING_OLD);
   } catch { /* quota exceeded — ignore */ }
 }
 
-/** Track previous planting options for change detection. */
-let _prevPlantableKey = '';
+/** Track previous month for month-boundary gating and per-group pause state. */
 let _prevMonth = -1;
-
-/** Build a comparable key from current planting options. */
-function getPlantableKey(state: GameState): string {
-  const crops = getAvailableCrops(state);
-  const isFall = state.calendar.season === 'fall';
-  return crops.join(',') + (isFall ? ',cover' : '');
-}
+let _plantingPauseTracking: PlantingPauseState = {
+  prevPlantableCrops: new Set(),
+  pausedGroupsThisYear: new Map(),
+};
 
 // ============================================================================
 // State Publishing
@@ -244,8 +245,8 @@ export function startNewGame(playerId: string, scenarioId?: string): void {
 
   _liveState = createInitialState(trimmed, _activeScenario);
   logSessionStart(_liveState);
-  _prevPlantableKey = getPlantableKey(_liveState);
   _prevMonth = _liveState.calendar.month;
+  _plantingPauseTracking = { prevPlantableCrops: buildPlantableCropSet(_liveState), pausedGroupsThisYear: new Map() };
   batch(() => {
     publishState();
     screen.value = 'playing';
@@ -267,8 +268,8 @@ export function resumeGame(): void {
   _activeScenario = resolveScenario(state.scenarioId, state);
   _liveState = state;
   logSessionStart(_liveState);
-  _prevPlantableKey = getPlantableKey(_liveState);
   _prevMonth = _liveState.calendar.month;
+  _plantingPauseTracking = { prevPlantableCrops: buildPlantableCropSet(_liveState), pausedGroupsThisYear: new Map() };
   batch(() => {
     publishState();
     screen.value = 'playing';
@@ -321,6 +322,12 @@ export function dispatch(command: Command): CommandResult {
   }
   publishState();
   return result;
+}
+
+/** Toggle play/pause — always resumes at 1x for novice-friendly predictability. */
+export function togglePlayPause(): void {
+  if (!_liveState) return;
+  dispatch({ type: 'SET_SPEED', speed: _liveState.speed === 0 ? 1 : 0 });
 }
 
 /** #50: Show play prompt if game is paused and player just took an action */
@@ -861,8 +868,8 @@ export function loadSavedGame(slotName: string): void {
   _activeScenario = resolveScenario(state.scenarioId, state);
   _liveState = state;
   logSessionStart(_liveState);
-  _prevPlantableKey = getPlantableKey(_liveState);
   _prevMonth = _liveState.calendar.month;
+  _plantingPauseTracking = { prevPlantableCrops: buildPlantableCropSet(_liveState), pausedGroupsThisYear: new Map() };
   autoSave(_liveState); // #68: sync autosave to loaded manual save
   batch(() => {
     publishState();
@@ -892,7 +899,7 @@ let lastFrameTime = 0;
 let tickAccumulator = 0;
 let lastSeasonAutoSaveDay = -1;
 
-const BASE_TICKS_PER_SECOND = 12;
+const BASE_TICKS_PER_SECOND = 10;
 
 export function startGameLoop(): void {
   if (loopHandle !== null) return;
@@ -939,28 +946,13 @@ function gameLoop(now: number): void {
         autoSave(_liveState);
       }
 
-      // Auto-pause at calendar planting windows (6d.3 QoL) — check at every month boundary
-      if (autoPausePlanting.value && _liveState.calendar.month !== _prevMonth && _prevMonth !== -1) {
-        const plantableKey = getPlantableKey(_liveState);
-        if (_prevPlantableKey && plantableKey !== _prevPlantableKey) {
-          // Only pause if there are plantable cells (empty cells for crops,
-          // or perennial cells eligible for cover crops in fall)
-          const isFall = _liveState.calendar.season === 'fall';
-          const hasPlantableCell = _liveState.grid.some(row => row.some(cell =>
-            cell.crop === null || (isFall && !cell.coverCropId && isCoverCropEligible(cell))
-          ));
-          if (hasPlantableCell) {
-            const season = _liveState.calendar.season;
-            _liveState.speed = 0; // true pause — game stays stopped until player resumes
-            _liveState.autoPauseQueue.push({
-              reason: 'planting_options',
-              message: season === 'fall'
-                ? 'Planting window: fall crops and cover crops are now available.'
-                : `Planting window: ${season.charAt(0).toUpperCase() + season.slice(1)} crop options have changed.`,
-            });
-          }
+      // Auto-pause at calendar planting windows (8b: granular per-group)
+      if (isAnyPlantingPauseEnabled(plantingPausePrefs.value) && _liveState.calendar.month !== _prevMonth && _prevMonth !== -1) {
+        const msg = checkPlantingPause(_liveState, plantingPausePrefs.value, _plantingPauseTracking);
+        if (msg) {
+          _liveState.speed = 0;
+          _liveState.autoPauseQueue.push({ reason: 'planting_options', message: msg });
         }
-        _prevPlantableKey = plantableKey;
       }
       _prevMonth = _liveState.calendar.month;
 
@@ -985,40 +977,43 @@ function gameLoop(now: number): void {
 // Shared by fastForwardUntilBlocked and fastForwardDays wrappers.
 // ============================================================================
 
-/** Build an onTick callback that replicates the game loop's planting-window check. */
-function buildPlantingWindowCallback(state: GameState): ((s: GameState) => void) | undefined {
-  if (!autoPausePlanting.value) return undefined;
+interface PlantingWindowCallbackHandle {
+  onTick: (s: GameState) => void;
+  tracking: PlantingPauseState;
+}
+
+/** Build a fast-forward callback + tracking handle that replicates the game loop's planting-window check. */
+function buildPlantingWindowCallback(state: GameState): PlantingWindowCallbackHandle | undefined {
+  const prefs = plantingPausePrefs.value;
+  if (!isAnyPlantingPauseEnabled(prefs)) return undefined;
   let ffPrevMonth = state.calendar.month;
-  let ffPrevPlantableKey = getPlantableKey(state);
-  return (s: GameState) => {
-    if (s.calendar.month !== ffPrevMonth && ffPrevMonth !== -1) {
-      const plantableKey = getPlantableKey(s);
-      if (ffPrevPlantableKey && plantableKey !== ffPrevPlantableKey) {
-        const hasPlantableCell = s.grid.some(row => row.some(cell =>
-          cell.crop === null || (s.calendar.season === 'fall' && !cell.coverCropId && isCoverCropEligible(cell))
-        ));
-        if (hasPlantableCell) {
-          const season = s.calendar.season;
+  const ffTracking: PlantingPauseState = {
+    prevPlantableCrops: new Set(_plantingPauseTracking.prevPlantableCrops),
+    pausedGroupsThisYear: new Map(_plantingPauseTracking.pausedGroupsThisYear),
+  };
+  return {
+    onTick: (s: GameState) => {
+      if (s.calendar.month !== ffPrevMonth && ffPrevMonth !== -1) {
+        const msg = checkPlantingPause(s, prefs, ffTracking);
+        if (msg) {
           s.speed = 0;
-          s.autoPauseQueue.push({
-            reason: 'planting_options',
-            message: season === 'fall'
-              ? 'Planting window: fall crops and cover crops are now available.'
-              : `Planting window: ${season.charAt(0).toUpperCase() + season.slice(1)} crop options have changed.`,
-          });
+          s.autoPauseQueue.push({ reason: 'planting_options', message: msg });
         }
       }
-      ffPrevPlantableKey = plantableKey;
-    }
-    ffPrevMonth = s.calendar.month;
+      ffPrevMonth = s.calendar.month;
+    },
+    tracking: ffTracking,
   };
 }
 
 /** Sync adapter tracking state after debug fast-forward so the normal game loop stays consistent. */
-function syncPlantingTrackingState(): void {
-  if (_liveState && autoPausePlanting.value) {
+function syncPlantingTrackingState(ffTracking?: PlantingPauseState): void {
+  if (_liveState) {
     _prevMonth = _liveState.calendar.month;
-    _prevPlantableKey = getPlantableKey(_liveState);
+    if (ffTracking) {
+      _plantingPauseTracking.prevPlantableCrops = new Set(ffTracking.prevPlantableCrops);
+      _plantingPauseTracking.pausedGroupsThisYear = new Map(ffTracking.pausedGroupsThisYear);
+    }
   }
 }
 
@@ -1151,9 +1146,9 @@ if (import.meta.env.VITE_ENABLE_DEBUG === 'true') {
    */
   fastForwardUntilBlocked(maxTicks: number) {
     if (!_liveState) return { stopped: false, ticksRun: 0 };
-    const onTick = buildPlantingWindowCallback(_liveState);
-    const result = fastForwardUntilBlocked(_liveState, _activeScenario, maxTicks, onTick);
-    syncPlantingTrackingState();
+    const handle = buildPlantingWindowCallback(_liveState);
+    const result = fastForwardUntilBlocked(_liveState, _activeScenario, maxTicks, handle?.onTick);
+    syncPlantingTrackingState(handle?.tracking);
     publishState();
     return result;
   },
@@ -1164,9 +1159,9 @@ if (import.meta.env.VITE_ENABLE_DEBUG === 'true') {
    */
   fastForwardDays(days: number) {
     if (!_liveState) return { stopped: false, ticksRun: 0, day: 0 };
-    const onTick = buildPlantingWindowCallback(_liveState);
-    const result = fastForwardDays(_liveState, _activeScenario, days, onTick);
-    syncPlantingTrackingState();
+    const handle = buildPlantingWindowCallback(_liveState);
+    const result = fastForwardDays(_liveState, _activeScenario, days, handle?.onTick);
+    syncPlantingTrackingState(handle?.tracking);
     publishState();
     return result;
   },
@@ -1199,18 +1194,27 @@ if (import.meta.env.VITE_ENABLE_DEBUG === 'true') {
     publishState();
   },
   /**
-   * Set the planting-window autopause preference directly.
+   * Set all planting-window autopause preferences at once (backward-compat wrapper).
    * Avoids screenshot-based clicking on the tiny gear icon.
    */
   setAutoPausePlanting(enabled: boolean) {
-    setAutoPausePlanting(enabled);
+    const v = enabled;
+    setPlantingPausePrefs({ all: v, warmSeason: v, sorghum: v, winterWheat: v, coverCrops: v });
+  },
+  /**
+   * Set granular per-crop-group planting pause preferences (8b).
+   */
+  setPlantingPausePrefs(prefs: PlantingPausePrefs) {
+    setPlantingPausePrefs(prefs);
   },
   /**
    * Returns current user preferences (settings that affect game behavior).
    */
   getPreferences() {
+    const p = plantingPausePrefs.value;
     return {
-      autoPausePlanting: autoPausePlanting.value,
+      autoPausePlanting: p.all || p.warmSeason || p.sorghum || p.winterWheat || p.coverCrops,
+      plantingPausePrefs: p,
     };
   },
 };

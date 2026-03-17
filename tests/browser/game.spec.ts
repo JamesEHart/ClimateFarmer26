@@ -139,7 +139,7 @@ test.describe('New Game & Main Screen', () => {
     await expect(page.getByTestId('topbar-cash')).toContainText('50,000');
 
     // SPEC §1.1: paused on start
-    await expect(page.getByTestId('speed-pause')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('speed-toggle')).toHaveAttribute('aria-pressed', 'false');
   });
 
   test('rejects empty player ID', async ({ page }) => {
@@ -351,18 +351,39 @@ test.describe('Time & Simulation', () => {
     await startNewGame(page);
     await waitForGameScreen(page);
 
-    // Initially paused
-    await expect(page.getByTestId('speed-pause')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByTestId('speed-play')).toHaveAttribute('aria-pressed', 'false');
+    // Initially paused — toggle shows play icon (aria-pressed=false means paused)
+    await expect(page.getByTestId('speed-toggle')).toHaveAttribute('aria-pressed', 'false');
 
-    // Start playing
-    await page.getByTestId('speed-play').click();
-    await expect(page.getByTestId('speed-play')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByTestId('speed-pause')).toHaveAttribute('aria-pressed', 'false');
+    // Click toggle to play (resumes at 1x)
+    await page.getByTestId('speed-toggle').click();
+    await expect(page.getByTestId('speed-toggle')).toHaveAttribute('aria-pressed', 'true');
 
-    // Pause again
-    await page.getByTestId('speed-pause').click();
-    await expect(page.getByTestId('speed-pause')).toHaveAttribute('aria-pressed', 'true');
+    // Click toggle to pause
+    await page.getByTestId('speed-toggle').click();
+    await expect(page.getByTestId('speed-toggle')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('toggle always resumes at 1x regardless of prior speed', async ({ page }) => {
+    await startNewGame(page);
+    await waitForGameScreen(page);
+
+    // Set speed to 4x
+    await page.getByTestId('speed-fastest').click();
+    await expect(page.getByTestId('speed-fastest')).toHaveAttribute('aria-pressed', 'true');
+
+    // Pause via toggle
+    await page.getByTestId('speed-toggle').click();
+    await expect(page.getByTestId('speed-toggle')).toHaveAttribute('aria-pressed', 'false');
+
+    // Resume via toggle — should be 1x, NOT 4x
+    await page.getByTestId('speed-toggle').click();
+    await expect(page.getByTestId('speed-toggle')).toHaveAttribute('aria-pressed', 'true');
+    // 2x and 4x should not be active
+    await expect(page.getByTestId('speed-fast')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByTestId('speed-fastest')).toHaveAttribute('aria-pressed', 'false');
+    // Verify speed is actually 1 via debug hook
+    const speed = await page.evaluate(() => (window as any).__gameDebug.getState().speed);
+    expect(speed).toBe(1);
   });
 
   test('date advances when playing', async ({ page }) => {
@@ -374,7 +395,7 @@ test.describe('Time & Simulation', () => {
     // Play at fastest speed for a bit
     await page.getByTestId('speed-fastest').click();
     await page.waitForTimeout(2000);
-    await page.getByTestId('speed-pause').click();
+    await page.getByTestId('speed-toggle').click();
 
     const laterDate = await page.getByTestId('topbar-date').textContent();
     expect(laterDate).not.toBe(initialDate);
@@ -398,7 +419,7 @@ test.describe('Time & Simulation', () => {
     await expect(autoPausePanel.first()).toBeVisible({ timeout: 15000 });
 
     // Game should be paused
-    await expect(page.getByTestId('speed-pause')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('speed-toggle')).toHaveAttribute('aria-pressed', 'false');
   });
 });
 
@@ -487,9 +508,10 @@ test.describe('Accessibility', () => {
     await startNewGame(page);
     await waitForGameScreen(page);
 
-    const pause = page.getByTestId('speed-pause');
-    const label = await pause.getAttribute('aria-label');
-    expect(label).toContain('Pause');
+    const toggle = page.getByTestId('speed-toggle');
+    const label = await toggle.getAttribute('aria-label');
+    // When paused, label says "Play"; when playing, it says "Pause"
+    expect(label).toContain('Play');
   });
 
   test('grid cells respond to Enter key', async ({ page }) => {
@@ -546,8 +568,7 @@ test.describe('data-testid Coverage', () => {
     await expect(page.getByTestId('topbar-date')).toBeVisible();
     await expect(page.getByTestId('topbar-cash')).toBeVisible();
     await expect(page.getByTestId('topbar-season-icon')).toBeVisible();
-    await expect(page.getByTestId('speed-pause')).toBeVisible();
-    await expect(page.getByTestId('speed-play')).toBeVisible();
+    await expect(page.getByTestId('speed-toggle')).toBeVisible();
     await expect(page.getByTestId('speed-fast')).toBeVisible();
     await expect(page.getByTestId('speed-fastest')).toBeVisible();
   });
@@ -630,7 +651,7 @@ test.describe('Edge Cases', () => {
     // Run at 4x speed for a bit with no crops
     await page.getByTestId('speed-fastest').click();
     await page.waitForTimeout(2000);
-    await page.getByTestId('speed-pause').click();
+    await page.getByTestId('speed-toggle').click();
 
     // Cash should still be $50,000
     await expect(page.getByTestId('topbar-cash')).toContainText('50,000');
@@ -966,7 +987,7 @@ test.describe('Loan Panel', () => {
     });
 
     // Start the game loop so simulateTick detects bankruptcy
-    await page.getByTestId('speed-play').click();
+    await page.getByTestId('speed-toggle').click();
 
     // Wait for the loan panel to appear
     await expect(page.getByTestId('loan-panel')).toBeVisible({ timeout: 10000 });
@@ -983,7 +1004,7 @@ test.describe('Loan Panel', () => {
       (window as Record<string, any>).__gameDebug.setCash(0);
     });
 
-    await page.getByTestId('speed-play').click();
+    await page.getByTestId('speed-toggle').click();
     await expect(page.getByTestId('loan-panel')).toBeVisible({ timeout: 10000 });
 
     // Accept the loan
@@ -1003,7 +1024,7 @@ test.describe('Loan Panel', () => {
       (window as Record<string, any>).__gameDebug.setCash(0);
     });
 
-    await page.getByTestId('speed-play').click();
+    await page.getByTestId('speed-toggle').click();
     await expect(page.getByTestId('loan-panel')).toBeVisible({ timeout: 10000 });
 
     // Decline the loan — should show gameover panel with reflection, not go straight to title
@@ -1881,8 +1902,8 @@ test.describe('4e: Play Prompt (#50)', () => {
     // Play prompt should be visible
     await expect(page.getByTestId('play-prompt')).toBeVisible();
 
-    // Click play (testId is 'speed-play')
-    await page.getByTestId('speed-play').click();
+    // Click toggle to play
+    await page.getByTestId('speed-toggle').click();
 
     // Prompt should disappear
     await expect(page.getByTestId('play-prompt')).not.toBeVisible();
@@ -2084,7 +2105,7 @@ test.describe('TopBar Grid Geometry Regression', () => {
       dbg.publish();
     });
 
-    const speedGroup = page.locator('[data-testid="speed-pause"]').locator('..');
+    const speedGroup = page.locator('[data-testid="speed-toggle"]').locator('..');
     const boxA = await speedGroup.boundingBox();
     expect(boxA).toBeTruthy();
 
@@ -2140,7 +2161,7 @@ test.describe('TopBar Grid Geometry Regression', () => {
       dbg.publish();
     });
 
-    const speedGroup = page.locator('[data-testid="speed-pause"]').locator('..');
+    const speedGroup = page.locator('[data-testid="speed-toggle"]').locator('..');
     const speedBox = await speedGroup.boundingBox();
     const cashBox = await page.getByTestId('topbar-cash').boundingBox();
     expect(speedBox).toBeTruthy();
@@ -2301,9 +2322,9 @@ test.describe('Observer Layer', () => {
     await startNewGame(page);
     await waitForGameScreen(page);
 
-    // Enable planting-window autopause via settings
+    // Enable planting-window autopause via settings (warm-season covers spring→summer transition)
     await page.getByTestId('settings-gear').click();
-    await page.getByTestId('setting-auto-pause-planting').check();
+    await page.getByTestId('setting-pause-all').check();
     await page.getByTestId('settings-gear').click();
 
     // Dismiss any initial autopauses and fast-forward through year boundaries
@@ -2397,16 +2418,18 @@ test.describe('Planting Window Auto-Pause', () => {
     await startNewGame(page);
     await waitForGameScreen(page);
 
-    // Open settings gear and enable the toggle
+    // Open settings gear and enable all planting window pauses
     await page.getByTestId('settings-gear').click();
     await expect(page.getByTestId('settings-dropdown')).toBeVisible();
-    const checkbox = page.getByTestId('setting-auto-pause-planting');
+    const checkbox = page.getByTestId('setting-pause-all');
     await expect(checkbox).toBeVisible();
     await checkbox.check();
 
-    // Verify localStorage was set
-    const stored = await page.evaluate(() => localStorage.getItem('climateFarmer_pref_autoPausePlanting'));
-    expect(stored).toBe('true');
+    // Verify localStorage was set (new JSON key)
+    const stored = await page.evaluate(() => localStorage.getItem('climateFarmer_pref_plantingPause'));
+    expect(stored).toBeTruthy();
+    const parsed = JSON.parse(stored!);
+    expect(parsed.all).toBe(true);
 
     // Close settings dropdown
     await page.getByTestId('settings-gear').click();
@@ -2483,9 +2506,9 @@ test.describe('Planting Window Auto-Pause', () => {
     await startNewGame(page);
     await waitForGameScreen(page);
 
-    // Enable the toggle
+    // Enable all planting window pauses
     await page.getByTestId('settings-gear').click();
-    await page.getByTestId('setting-auto-pause-planting').check();
+    await page.getByTestId('setting-pause-all').check();
     await page.getByTestId('settings-gear').click();
 
     // Reload and start fresh
@@ -2495,7 +2518,7 @@ test.describe('Planting Window Auto-Pause', () => {
 
     // Open settings and verify checkbox is still checked
     await page.getByTestId('settings-gear').click();
-    await expect(page.getByTestId('setting-auto-pause-planting')).toBeChecked();
+    await expect(page.getByTestId('setting-pause-all')).toBeChecked();
   });
 });
 
@@ -2730,7 +2753,7 @@ test.describe('Endgame Panel', () => {
       (window as Record<string, any>).__gameDebug.setCash(0);
     });
 
-    await page.getByTestId('speed-play').click();
+    await page.getByTestId('speed-toggle').click();
     await expect(page.getByTestId('loan-panel')).toBeVisible({ timeout: 10000 });
     await page.getByTestId('autopause-dismiss').click();
 

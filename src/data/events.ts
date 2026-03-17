@@ -2471,4 +2471,134 @@ export const STORYLETS: readonly Storylet[] = [
     ],
     tags: ['advisor', 'soil', 'ecology', 'positive'],
   },
+
+  // --- 8c Events: Labor/Automation Narrative ---
+
+  {
+    id: 'forum-labor-shortage',
+    type: 'community',
+    illustrationId: 'event-labor-shortage',
+    advisorId: 'growers-forum',
+    title: 'Harvest Hands Getting Scarce',
+    description: "The Forum's summer thread is running hot this year.\n\n\"Can anyone find harvest crews? I have 50 acres of almonds coming in and my contractor just called — he's 30 workers short. Heat pushed everyone's harvest into the same three-week window and he's getting outbid on labor rates.\" — DeltaOrchards\n\n\"Same here with pistachios. I've been scrambling all week. Starting to wonder if the old model is sustainable.\" — ValleyOrchards_Fresno\n\n\"H-2A guest worker program. Expensive and paperwork-heavy, but at least your crew shows up. Moved to it three years ago.\" — Ruiz_Orchards\n\nThe thread goes on. You close the browser and look out at your fields.",
+    preconditions: [
+      { type: 'min_year', year: 9 },
+      { type: 'max_year', year: 16 },
+      { type: 'total_planted_gte', cellCount: 30 },
+      { type: 'has_any_crop_in', cropIds: ['almonds', 'citrus-navels', 'pistachios', 'heat-avocado'] },
+      { type: 'season', season: 'summer' },
+    ],
+    priority: 90,
+    cooldownDays: 730,
+    maxOccurrences: 1,
+    choices: [
+      {
+        id: 'labor-learn-more',
+        label: 'What are others doing about it?',
+        description: 'Dig into what options exist — H-2A, mechanization, and what other growers are actually doing.',
+        effects: [
+          { type: 'set_flag', flag: 'labor_pressure_aware', value: true },
+          { type: 'add_notification', message: 'You dug into the labor shortage problem. The pressure is real — and growing.', notificationType: 'event_result' },
+        ],
+        followUpText: "The picture that emerges from your reading isn't reassuring.\n\nCalifornia has lost a significant share of its agricultural workforce over the past decade — aging farmworker populations, competing opportunities in other sectors, and regulatory changes affecting seasonal labor supply. The crops hit hardest are orchard and tree fruit operations: hand-sorted citrus, tree-shaken almonds and pistachios, avocados that require selective hand-picking at different maturities. These crops command premium prices partly because they require skilled, careful human labor — and that's exactly the labor pool that's shrinking.\n\nThe H-2A temporary worker program lets farms sponsor foreign workers on agricultural visas. The paperwork burden is real — housing requirements, minimum wage floors, transportation obligations — but it provides predictable crew supply. Operations that use it report the upfront investment pays back within one to two seasons.\n\nMechanization is advancing, but more slowly for tree fruits than for field crops. Mechanical almond shakers are standard at large operations; the bottleneck is sorting and hulling capacity. Citrus and avocado mechanization is still emerging — fruit quality is sensitive to mechanical handling, and premium markets often require hand grades.\n\nNone of this is quick. The growers who aren't worried right now are the ones who started adapting several years ago.",
+      },
+      {
+        id: 'labor-get-by',
+        label: "We'll get by this year",
+        description: "It's been tight before. You'll manage.",
+        effects: [
+          { type: 'add_notification', message: "You put the labor thread out of your mind. The harvest comes together — barely.", notificationType: 'event_result' },
+        ],
+      },
+    ],
+    tags: ['community', 'labor', 'automation'],
+  },
+
+  {
+    id: 'advisor-automation-question',
+    type: 'advisor',
+    advisorId: 'extension-agent',
+    title: 'Santos: The Automation Question',
+    description: "Dr. Santos called ahead this time — unusual for her. 'I've been following the labor discussions you've been reading,' she said. 'I want to talk through some of what I'm seeing across the Valley, if you have an hour.'\n\nShe arrives the next morning and walks your fields before she says anything. She doesn't pull out her tablet right away, just looks at your operation.\n\n'Farms like yours — large enough that labor costs are real, growing crops that still depend on skilled hands at harvest — that's where the pressure is building fastest.' She turns to face you. 'I want to make sure you're thinking about what comes next, not just this year.'",
+    preconditions: [
+      { type: 'min_year', year: 10 },
+      { type: 'max_year', year: 16 },
+      { type: 'has_flag', flag: 'labor_pressure_aware' },
+      { type: 'total_planted_gte', cellCount: 30 },
+      { type: 'has_any_crop_in', cropIds: ['almonds', 'citrus-navels', 'pistachios', 'heat-avocado'] },
+    ],
+    priority: 90,
+    cooldownDays: 365,
+    maxOccurrences: 1,
+    choices: [
+      {
+        id: 'automation-efficiency-first',
+        label: 'Efficiency has to come first',
+        description: "A farm that loses money can't employ anyone. You have to stay viable.",
+        effects: [
+          { type: 'set_flag', flag: 'automation_discussed', value: true },
+          { type: 'add_notification', message: 'You and Santos worked through the automation tradeoffs. She heard your argument.', notificationType: 'event_result' },
+        ],
+        followUpText: "Santos doesn't disagree with you — not exactly.\n\n\"You're right that a failing farm employs no one. That's the real constraint, and anyone who ignores it is being dishonest about how agriculture works.\" She pulls up data on her tablet. \"Here's what the efficiency gains look like at your scale: for almonds and pistachios, once you own the shaking and pickup equipment, you cut harvest cost per acre significantly compared to contracted labor at current rates. The math is getting clearer every year.\n\nThe crops where mechanization is harder are citrus and avocados — fruit quality is sensitive to mechanical handling, and the premium markets that make those crops profitable often require hand grades. Those operations have a longer runway before the economics force the question.\n\nWhat I'd push back on,\" she says carefully, \"is the framing of efficiency as something that happens to other people. When you automate, you're making a decision about who bears the cost of that efficiency. Usually it's workers. Sometimes it's whole communities. The question isn't whether — it's how you make that transition, and whether you're doing it with any accountability to the people affected.\"\n\nShe closes her tablet. \"That's all I'm asking you to think about.\"",
+      },
+      {
+        id: 'automation-more-at-stake',
+        label: "There's more at stake than efficiency",
+        description: 'The farming community matters. So do the families who harvest your crops.',
+        effects: [
+          { type: 'set_flag', flag: 'automation_discussed', value: true },
+          { type: 'add_notification', message: 'Santos appreciated that you were thinking beyond the balance sheet.', notificationType: 'event_result' },
+        ],
+        followUpText: "Santos nods, and something in her expression relaxes slightly.\n\n\"That's the right instinct. Let me give you some substance to go with it.\"\n\nShe explains what the research shows. Agricultural mechanization doesn't just shift labor — it shifts communities. The San Joaquin Valley towns built around seasonal farmwork have been changing for decades: smaller populations, fewer families, fewer local businesses. Some of that is inevitable structural change. Some of it is the accumulated result of individual farm decisions that treated labor as a pure cost line.\n\n\"The farms I've seen navigate this well do a few things. They communicate early — workers who know a change is coming have time to adapt. They look for automation that handles the dangerous and physically punishing work first. And some of them partner with workforce development programs — not as charity, but because a trained local workforce is more reliable than the contractor market.\n\n\"There are also crop choices that matter. High-value hand-harvested crops — premium citrus, specialty varieties — command prices that justify skilled human labor. You don't have to choose between being viable and being part of a community. But you do have to choose consciously.\"\n\nShe pauses at the edge of your field.\n\n\"The fact that you're asking the question puts you ahead of most.\"",
+      },
+    ],
+    tags: ['advisor', 'labor', 'automation', 'community'],
+  },
+
+  {
+    id: 'forum-staffing-crunch',
+    type: 'community',
+    illustrationId: 'event-staffing-crunch',
+    advisorId: 'growers-forum',
+    title: 'Staffing Crunch at Harvest',
+    description: "Your harvest contractor called this morning with news you'd half-expected.\n\n\"I can get you maybe 60% of what we contracted — 65% if I push hard. The heat pushed three other operations into the same two-week window and I'm getting outbid. I can pull more workers if you're willing to go above-market on rate. Or we work with what I have and accept that some acreage goes unharvested.\"\n\nYou hang up and look at the calendar. The window is tight. Almonds past hull split are exposed to rain and mold. Citrus held too long loses grade. The Forum is already full of the same conversation. \"Year two of this,\" someone posted this morning. \"If you're still fully dependent on hired crews for hand-harvested crops, you need a plan B.\"",
+    preconditions: [
+      { type: 'min_year', year: 11 },
+      { type: 'max_year', year: 16 },
+      { type: 'total_planted_gte', cellCount: 40 },
+      { type: 'has_any_crop_in', cropIds: ['almonds', 'citrus-navels', 'pistachios', 'heat-avocado'] },
+      { type: 'season', season: 'summer' },
+    ],
+    priority: 90,
+    cooldownDays: 730,
+    maxOccurrences: 2,
+    choices: [
+      {
+        id: 'staffing-pay-premium',
+        label: 'Pay premium for emergency labor ($300)',
+        description: 'Go above-market rate to pull the workers you need. Expensive, but the harvest comes in.',
+        cost: 300,
+        requiresCash: 300,
+        effects: [
+          { type: 'modify_cash', amount: -300 },
+          { type: 'add_notification', message: "You paid above-market rates to secure enough crews. The harvest came in — mostly. A costly workaround that won't get easier.", notificationType: 'event_result' },
+        ],
+        followUpText: "The crews show up — enough of them, anyway. You lose maybe 8-10% of your acreage to timing gaps where the window closes before workers cycle through, but the bulk of the crop is in.\n\nThe $300 doesn't capture the full cost: the hours on the phone, the deals negotiated at disadvantageous rates, the contractor relationships you'll need to rebuild next year. The Forum thread is still open on your phone.\n\n\"Anyone else feel like they're paying more every year for less certainty? At what point do we just accept that this model is broken?\"\n\nYou close the tab. Something has to change.",
+      },
+      {
+        id: 'staffing-delay-harvest',
+        label: 'Delay harvest and hope',
+        description: "Work with what you have and try to manage the timing. Some crops will overripen.",
+        effects: [
+          { type: 'modify_yield_modifier', cropId: 'almonds', multiplier: 0.85, durationDays: 45 },
+          { type: 'modify_yield_modifier', cropId: 'citrus-navels', multiplier: 0.85, durationDays: 45 },
+          { type: 'modify_yield_modifier', cropId: 'pistachios', multiplier: 0.85, durationDays: 45 },
+          { type: 'modify_yield_modifier', cropId: 'heat-avocado', multiplier: 0.85, durationDays: 45 },
+          { type: 'add_notification', message: "Some crops overripened waiting for crews. Yield down ~15% on your labor-intensive fields this harvest.", notificationType: 'event_result' },
+        ],
+        followUpText: "You stretch the harvest across a longer window than you should, cycling the limited crew through your highest-priority acreage first. It's triage.\n\nThe losses are real but contained. A section of almonds picked up hull stain from an overnight drizzle. Citrus held too long dropped a grade. Total yield impact on your hand-harvested crops: roughly 15%.\n\nYour contractor calls that evening. \"I'm sorry about this year. I want to be straight with you: I'm seeing this get worse, not better. The farms I'm not worried about are the ones that have been diversifying away from pure hand-harvest dependency. I know that's a big change. But I'd think about it.\"\n\nYou note it down. Next season needs a different plan.",
+      },
+    ],
+    tags: ['community', 'labor', 'consequence'],
+  },
 ] as const;

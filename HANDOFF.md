@@ -62,12 +62,23 @@ Three deliverables making the ending feel like a real conclusion:
 
 **No save migration in 6e** — all 6e data computed on-demand from existing GameState fields. (6c bumped SAVE_VERSION to `9.0.0` adding insurance/organic fields to ExpenseBreakdown.) Art is additive with `onError` graceful fallback — entire slice functional without art files.
 
+### Post-7d QA Fixes + Launch Prep (Complete)
+Bug fixes from release-candidate QA testing:
+- **Water stress during restriction:** Auto-pause no longer shows useless "Water Field" prompt during watering bans. Sends `water_warning` notification instead. Pause token resets when restriction expires (handles overlapping restrictions correctly).
+- **Planting auto-pause guard:** Skips pause when no cells are plantable (includes cover crop eligibility under perennials in fall).
+- **Nitrogen advisor:** `maxOccurrences` reduced from 3 to 2 (two lessons is enough).
+- **Potash copy fix:** Removed misleading "should last several seasons" — now explains depletion depends on crop type.
+- **Water curtailment label:** "Buy Priority Water Access" → "Pay for Reduced Curtailment" with explicit "15 days instead of 60" framing.
+- **Perennial age label:** "tree age decline" → "young tree (not yet peak)" for ramp-up phase trees.
+
+**Debug hook gating:** All console debug hooks (`window.__gameDebug`, `window.__playtestLog`, `window.__exportPlaytestLog`) and `game-observer` DOM element gated behind `VITE_ENABLE_DEBUG === 'true'`. Student build (`npm run build`) strips them entirely. Dev server and Playwright tests retain access. See `deploy/DISABLE_DEBUG_HOOKS.md` (gitignored).
+
 ## Current Metrics
 
 ```
-npm test             # 1066 unit tests, all passing (31 test files)
+npm test             # 1315 unit tests, all passing (35 test files)
 npm run test:browser # 123 Playwright browser tests (all passing; foreshadow natural-flow test may flake under --repeat-each stress)
-npm run build        # ~78.23 KB gzipped JS, ~6.21 KB CSS
+npm run build        # ~95.49 KB gzipped JS (student), ~97.50 KB (debug), ~6.31 KB CSS
 SAVE_VERSION         # '9.0.0'
 ```
 
@@ -107,8 +118,8 @@ src/
                      requiredFlag gating, humanServingsPerUnit
     cover-crops.ts   Cover crop definitions (legume-cover)
     scenarios.ts     5 calibrated climate scenarios with chillHours per year, marketCrashTargetCropId
-    events.ts        STORYLETS array (39 storylets: seasonal draw + condition-only,
-                     4 with illustrationId for event art)
+    events.ts        STORYLETS array (57 storylets: seasonal draw + condition-only,
+                     19 with illustrationId for event art)
   save/
     storage.ts       localStorage: auto-save, manual saves, V1→V9 migration chain
   ui/
@@ -190,10 +201,10 @@ See ASSETS.md for full manifest and prompting notes.
 ## Verification Commands
 
 ```bash
-npm test             # 1059 unit tests (31 files)
-npm run test:browser # 123 Playwright browser tests (builds first)
+npm test             # 1315 unit tests (35 files)
+npm run test:browser # 123 Playwright browser tests (builds first; uses VITE_ENABLE_DEBUG=true)
 npm run test:all     # All tests in sequence
-npm run build        # Production build (~78KB gzipped JS)
+npm run build        # Student build (~95KB gzipped JS, debug hooks stripped)
 npm run test:balance # Balance smoke (75 runs, ~5-8 min)
 ```
 

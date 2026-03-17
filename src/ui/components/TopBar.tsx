@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'preact/hooks';
-import { gameState, currentWeather, dispatch, handleSave, returnToTitle, confirmDialog, needsPlayPrompt, autoPausePlanting, setAutoPausePlanting } from '../../adapter/signals.ts';
+import { gameState, currentWeather, dispatch, handleSave, returnToTitle, confirmDialog, needsPlayPrompt, plantingPausePrefs, setPlantingPausePrefs, togglePlayPause } from '../../adapter/signals.ts';
 import { getSeasonName, getMonthName } from '../../engine/calendar.ts';
 import type { GameSpeed, DailyWeather } from '../../engine/types.ts';
 import styles from '../styles/TopBar.module.css';
@@ -47,12 +47,8 @@ export function TopBar() {
     dispatch({ type: 'SET_SPEED', speed: s });
   }
 
-  const speedButtons: { speed: GameSpeed; label: string; testId: string; ariaLabel: string }[] = [
-    { speed: 0, label: '\u23F8', testId: 'speed-pause', ariaLabel: `Pause \u2014 currently ${speed === 0 ? 'paused' : `playing at ${speed}x speed`}` },
-    { speed: 1, label: '\u25B6', testId: 'speed-play', ariaLabel: `Play 1x \u2014 currently ${speed === 0 ? 'paused' : `playing at ${speed}x speed`}` },
-    { speed: 2, label: '\u25B6\u25B6', testId: 'speed-fast', ariaLabel: `Fast 2x \u2014 currently ${speed === 0 ? 'paused' : `playing at ${speed}x speed`}` },
-    { speed: 4, label: '\u25B6\u25B6\u25B6', testId: 'speed-fastest', ariaLabel: `Fastest 4x \u2014 currently ${speed === 0 ? 'paused' : `playing at ${speed}x speed`}` },
-  ];
+  const isPaused = speed === 0;
+  const statusText = isPaused ? 'paused' : `playing at ${speed}x speed`;
 
   return (
     <header class={styles.topbar} role="banner">
@@ -81,23 +77,38 @@ export function TopBar() {
 
       <div class={styles.centerGroup}>
         <div class={styles.speedControls} role="group" aria-label="Simulation speed controls">
-          {speedButtons.map(btn => (
-            <button
-              key={btn.testId}
-              data-testid={btn.testId}
-              class={`${styles.speedBtn} ${speed === btn.speed ? styles.speedBtnActive : ''}`}
-              onClick={() => setSpeed(btn.speed)}
-              aria-label={btn.ariaLabel}
-              aria-pressed={speed === btn.speed}
-            >
-              {btn.label}
-            </button>
-          ))}
+          <button
+            data-testid="speed-toggle"
+            class={`${styles.speedBtn} ${styles.speedBtnToggle} ${isPaused ? '' : styles.speedBtnActive}`}
+            onClick={togglePlayPause}
+            aria-label={isPaused ? `Play \u2014 currently ${statusText}` : `Pause \u2014 currently ${statusText}`}
+            aria-pressed={!isPaused}
+          >
+            {isPaused ? '\u25B6' : '\u23F8'}
+          </button>
+          <button
+            data-testid="speed-fast"
+            class={`${styles.speedBtn} ${speed === 2 ? styles.speedBtnActive : ''}`}
+            onClick={() => setSpeed(2)}
+            aria-label={`Fast 2x \u2014 currently ${statusText}`}
+            aria-pressed={speed === 2}
+          >
+            {'\u25B6\u25B6'}
+          </button>
+          <button
+            data-testid="speed-fastest"
+            class={`${styles.speedBtn} ${speed === 4 ? styles.speedBtnActive : ''}`}
+            onClick={() => setSpeed(4)}
+            aria-label={`Fastest 4x \u2014 currently ${statusText}`}
+            aria-pressed={speed === 4}
+          >
+            {'\u25B6\u25B6\u25B6'}
+          </button>
         </div>
 
         {needsPlayPrompt.value && speed === 0 && state.autoPauseQueue.length === 0 && (
           <span data-testid="play-prompt" class={styles.playPrompt}>
-            Press Play to continue
+            Game paused. Press Play to continue.
           </span>
         )}
       </div>
@@ -206,15 +217,60 @@ function SettingsGear() {
       </button>
       {open && (
         <div class={styles.settingsDropdown} data-testid="settings-dropdown">
-          <label class={styles.settingsOption}>
-            <input
-              type="checkbox"
-              data-testid="setting-auto-pause-planting"
-              checked={autoPausePlanting.value}
-              onChange={(e) => setAutoPausePlanting((e.target as HTMLInputElement).checked)}
-            />
-            Auto-pause at calendar planting windows
-          </label>
+          <div class={styles.settingsGroup}>
+            <label class={styles.settingsOption}>
+              <input
+                type="checkbox"
+                data-testid="setting-pause-all"
+                checked={plantingPausePrefs.value.all}
+                onChange={(e) => {
+                  const checked = (e.target as HTMLInputElement).checked;
+                  if (checked) {
+                    setPlantingPausePrefs({ all: true, warmSeason: true, sorghum: true, winterWheat: true, coverCrops: true });
+                  } else {
+                    setPlantingPausePrefs({ ...plantingPausePrefs.value, all: false });
+                  }
+                }}
+              />
+              All planting windows
+            </label>
+            <label class={`${styles.settingsOption} ${styles.settingsIndent}`}>
+              <input
+                type="checkbox"
+                data-testid="setting-pause-warm-season"
+                checked={plantingPausePrefs.value.warmSeason}
+                onChange={(e) => setPlantingPausePrefs({ ...plantingPausePrefs.value, warmSeason: (e.target as HTMLInputElement).checked, all: false })}
+              />
+              Pause for tomato/corn planting
+            </label>
+            <label class={`${styles.settingsOption} ${styles.settingsIndent}`}>
+              <input
+                type="checkbox"
+                data-testid="setting-pause-sorghum"
+                checked={plantingPausePrefs.value.sorghum}
+                onChange={(e) => setPlantingPausePrefs({ ...plantingPausePrefs.value, sorghum: (e.target as HTMLInputElement).checked, all: false })}
+              />
+              Pause for sorghum planting
+            </label>
+            <label class={`${styles.settingsOption} ${styles.settingsIndent}`}>
+              <input
+                type="checkbox"
+                data-testid="setting-pause-winter-wheat"
+                checked={plantingPausePrefs.value.winterWheat}
+                onChange={(e) => setPlantingPausePrefs({ ...plantingPausePrefs.value, winterWheat: (e.target as HTMLInputElement).checked, all: false })}
+              />
+              Pause for winter wheat planting
+            </label>
+            <label class={`${styles.settingsOption} ${styles.settingsIndent}`}>
+              <input
+                type="checkbox"
+                data-testid="setting-pause-cover-crops"
+                checked={plantingPausePrefs.value.coverCrops}
+                onChange={(e) => setPlantingPausePrefs({ ...plantingPausePrefs.value, coverCrops: (e.target as HTMLInputElement).checked, all: false })}
+              />
+              Pause for cover crop planting
+            </label>
+          </div>
         </div>
       )}
     </div>
