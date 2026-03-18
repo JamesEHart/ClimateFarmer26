@@ -228,6 +228,8 @@ export interface ConfirmDialogState {
 export function startNewGame(playerId: string, scenarioId?: string): void {
   const trimmed = playerId.trim().slice(0, 30);
   if (!trimmed) return;
+  // Reject IDs with characters that could break CSV export or backend logging
+  if (!/^[\w\- ]+$/u.test(trimmed)) return;
 
   // Set active scenario (default: random from recently-unplayed pool)
   if (scenarioId && SCENARIOS[scenarioId]) {

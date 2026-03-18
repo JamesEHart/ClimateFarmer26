@@ -809,6 +809,9 @@ function processSetCoverCrop(state: GameState, row: number, col: number, coverCr
   }
 
   const def = getCoverCropDefinition(coverCropId);
+  if (!def) {
+    return { success: false, reason: `Unknown cover crop: ${coverCropId}` };
+  }
   if (state.economy.cash < def.seedCostPerAcre) {
     return { success: false, reason: `Not enough cash. Cost: $${def.seedCostPerAcre}, Available: $${Math.floor(state.economy.cash)}.` };
   }
@@ -843,6 +846,9 @@ function processSetCoverCropBulk(
   }
 
   const def = getCoverCropDefinition(coverCropId);
+  if (!def) {
+    return { success: false, reason: `Unknown cover crop: ${coverCropId}` };
+  }
 
   // Count eligible cells: empty OR deciduous perennial (has dormantSeasons)
   const eligible: Cell[] = [];
@@ -905,8 +911,10 @@ function forEachCellInScope(
       for (let c = 0; c < GRID_COLS; c++) fn(state.grid[r][c]);
     }
   } else if (scope === 'row' && index !== undefined) {
+    if (index < 0 || index >= GRID_ROWS) return;
     for (let c = 0; c < GRID_COLS; c++) fn(state.grid[index][c]);
   } else if (scope === 'col' && index !== undefined) {
+    if (index < 0 || index >= GRID_COLS) return;
     for (let r = 0; r < GRID_ROWS; r++) fn(state.grid[r][index]);
   }
 }
@@ -2066,6 +2074,9 @@ function getCell(state: GameState, row: number, col: number): Cell | null {
 }
 
 function getCellsInScope(state: GameState, scope: 'all' | 'row' | 'col', index?: number): Cell[] {
+  if ((scope === 'row' || scope === 'col') && (index === undefined || index < 0)) return [];
+  if (scope === 'row' && index !== undefined && index >= GRID_ROWS) return [];
+  if (scope === 'col' && index !== undefined && index >= GRID_COLS) return [];
   const cells: Cell[] = [];
   for (let r = 0; r < GRID_ROWS; r++) {
     for (let c = 0; c < GRID_COLS; c++) {

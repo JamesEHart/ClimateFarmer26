@@ -60,7 +60,7 @@ function readSave(key: string): GameState | null {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
 
-    const parsed = JSON.parse(raw) as SaveGame;
+    const parsed: unknown = JSON.parse(raw);
     if (!validateSave(parsed)) {
       // Helper: apply V8→V9
       const finishV8 = (v8State: GameState | null): GameState | null => {
@@ -188,8 +188,10 @@ export function listManualSaves(): SaveSlotInfo[] {
     try {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
-      const parsed = JSON.parse(raw) as SaveGame;
-      const savedTimestamp = parsed.timestamp ?? Date.now();
+      const parsed: unknown = JSON.parse(raw);
+      const savedTimestamp = (parsed && typeof parsed === 'object' && typeof (parsed as Record<string, unknown>).timestamp === 'number')
+        ? (parsed as Record<string, unknown>).timestamp as number
+        : Date.now();
 
       // Try current-version validation first, then migration chain for older saves.
       let state: GameState | null = null;
@@ -334,6 +336,15 @@ function validateSave(data: unknown): data is SaveGame {
   if (grid.length !== GRID_ROWS) return false;
   for (const row of grid) {
     if (!Array.isArray(row) || row.length !== GRID_COLS) return false;
+    for (const rawCell of row) {
+      if (!rawCell || typeof rawCell !== 'object') return false;
+      const cell = rawCell as Record<string, unknown>;
+      if (!cell.soil || typeof cell.soil !== 'object') return false;
+      const soil = cell.soil as Record<string, unknown>;
+      if (typeof soil.nitrogen !== 'number' || !Number.isFinite(soil.nitrogen)) return false;
+      if (typeof soil.organicMatter !== 'number' || !Number.isFinite(soil.organicMatter)) return false;
+      if (typeof soil.moisture !== 'number' || !Number.isFinite(soil.moisture)) return false;
+    }
   }
 
   // Economy values must be finite numbers

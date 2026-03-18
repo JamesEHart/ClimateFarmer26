@@ -151,9 +151,13 @@ export async function renderSignInButton(
     client_id: GIS_CLIENT_ID,
     callback: (response: { credential: string }) => {
       try {
-        // Decode JWT payload (signature verified by Google's library)
-        const payload = JSON.parse(atob(response.credential.split('.')[1]));
+        // Decode JWT payload (signature verified by Google's GIS library above)
+        const parts = response.credential.split('.');
+        if (parts.length !== 3) throw new Error('Malformed JWT');
+        const payload = JSON.parse(atob(parts[1]));
+        if (!payload || typeof payload !== 'object') throw new Error('Invalid JWT payload');
         const email: string = payload.email;
+        if (typeof email !== 'string' || !email.includes('@')) throw new Error('Invalid email in token');
 
         if (!email.toLowerCase().endsWith(`@${ALLOWED_DOMAIN}`)) {
           onError?.(`Please use your @${ALLOWED_DOMAIN} account.`);
